@@ -1,0 +1,45 @@
+{
+  "staticFileServer": { 
+    "type": "http",
+    "endpoint": {"config": "endpoint"},
+    "proxy": {
+      "out": "_copyRequest",
+      "in": "_bufferUntilMimeType"
+    }
+  },
+
+  "_copyRequest": { 
+    "type": "copy",
+    "outs": [
+      "_lookupMimeType",
+      "_readFile"
+    ]
+  },
+
+  "_bufferUntilMimeType": {
+    "type": "process",
+    "path": "lib/buffer-until",
+    "in": "_zipResponse",
+    "environment": {
+      "PREDICATE": "equals(header.result.cmd,set-mime-type)"
+    }
+  },
+
+  "_zipResponse": { 
+    "type": "zip",
+    "ins": [
+      "_lookupMimeType",
+      "_readFile"
+    ]
+  },
+
+  "_lookupMimeType": { 
+    "type": "process",
+    "path": "lib/lookup-mime-type"
+  },
+
+  "_readFile": { 
+    "type": "process",
+    "path": "lib/read-file"
+  }
+}
