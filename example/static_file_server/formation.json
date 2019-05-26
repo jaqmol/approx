@@ -1,9 +1,9 @@
 {
   "static_file_server": {
     "type": "http",
-    "props": [
-      "path"
-    ],
+    "assign": {
+      "$_read_file_base_path": "path"
+    },
     "proxy_out": "_fork_request",
     "proxy_in": "_order_mime_type_first"
   },
@@ -37,8 +37,11 @@
     "command": "node lib/lookup_mime_type"
   },
 
-  "_read_file": { 
+  "_read_file": {
     "type": "process",
+    "assign": {
+      "environment.BASE_PATH": "$_read_file_base_path"
+    },
     "command": "node lib/read_file"
   }
 }
