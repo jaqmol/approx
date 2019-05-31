@@ -42,6 +42,22 @@ type Formation struct {
 	PublicOutputPathForName map[string]string
 }
 
+// FindConfs ...
+func (f *Formation) FindConfs(names ...string) []Conf {
+	confs := f.PrivateConfs
+	confs = append(f.PrivateConfs, f.PublicConfs...)
+	acc := make([]Conf, 0)
+	for _, name := range names {
+		for _, co := range confs {
+			if co.Name() == name {
+				acc = append(acc, co)
+				break
+			}
+		}
+	}
+	return acc
+}
+
 func exitOnUnassignedVariables(privateConfs []Conf, publicConfs []Conf) {
 	varsAssignedTo, varsAssignedFrom := make(map[string]bool), make(map[string]bool)
 	collectVarsFromConfs(privateConfs, varsAssignedTo, varsAssignedFrom)
