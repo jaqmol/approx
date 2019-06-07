@@ -20,48 +20,46 @@ func ReadFormation() *Formation {
 		log.Fatalf("Error parsing formation file: %v\n", err.Error())
 	}
 
-	privateConfs, publicConfs := createConfs(configMap)
-	publicInputPathForName, publicOutputPathForName :=
-		findPublicPathsOrExitOnUnspecified(privateConfs, publicConfs)
-
-	exitOnUnassignedVariables(privateConfs, publicConfs)
+	mainConf, privateConfs := createConfs(configMap)
+	exitOnUnspecifiedPublicPaths(mainConf, privateConfs)
+	exitOnUnassignedVariables(mainConf, privateConfs)
 
 	return &Formation{
-		PrivateConfs:            privateConfs,
-		PublicConfs:             publicConfs,
-		PublicInputPathForName:  publicInputPathForName,
-		PublicOutputPathForName: publicOutputPathForName,
+		MainConf:     mainConf,
+		PrivateConfs: privateConfs,
+		// PublicInputPathForName:  publicInputPathForName,
+		// PublicOutputPathForName: publicOutputPathForName,
 	}
 }
 
 // Formation ...
 type Formation struct {
-	PrivateConfs            []Conf
-	PublicConfs             []Conf
-	PublicInputPathForName  map[string]string
-	PublicOutputPathForName map[string]string
+	MainConf     Conf
+	PrivateConfs map[string]Conf
+	// PublicInputPathForName  map[string]string
+	// PublicOutputPathForName map[string]string
 }
 
-// FindConfs ...
-func (f *Formation) FindConfs(names ...string) []Conf {
-	confs := f.PrivateConfs
-	confs = append(f.PrivateConfs, f.PublicConfs...)
-	acc := make([]Conf, 0)
-	for _, name := range names {
-		for _, co := range confs {
-			if co.Name() == name {
-				acc = append(acc, co)
-				break
-			}
-		}
-	}
-	return acc
-}
+// // FindConfs ...
+// func (f *Formation) FindConfs(names ...string) []Conf {
+// 	confs := f.PrivateConfs
+// 	confs = append(f.PrivateConfs, f.MainConf)
+// 	acc := make([]Conf, 0)
+// 	for _, name := range names {
+// 		for _, co := range confs {
+// 			if co.Name() == name {
+// 				acc = append(acc, co)
+// 				break
+// 			}
+// 		}
+// 	}
+// 	return acc
+// }
 
-func exitOnUnassignedVariables(privateConfs []Conf, publicConfs []Conf) {
+func exitOnUnassignedVariables(mainConf Conf, privateConfs map[string]Conf) {
 	varsAssignedTo, varsAssignedFrom := make(map[string]bool), make(map[string]bool)
 	collectVarsFromConfs(privateConfs, varsAssignedTo, varsAssignedFrom)
-	collectVarsFromConfs(publicConfs, varsAssignedTo, varsAssignedFrom)
+	collectVarsFromConfs(map[string]Conf{mainConf.Name(): mainConf}, varsAssignedTo, varsAssignedFrom)
 	unassignedVars := findUnassignedVars(varsAssignedTo, varsAssignedFrom)
 	if len(unassignedVars) > 0 {
 		acc := make([]string, 0)
@@ -72,7 +70,7 @@ func exitOnUnassignedVariables(privateConfs []Conf, publicConfs []Conf) {
 	}
 }
 
-func collectVarsFromConfs(confs []Conf, varsAssignedTo map[string]bool, varsAssignedFrom map[string]bool) {
+func collectVarsFromConfs(confs map[string]Conf, varsAssignedTo map[string]bool, varsAssignedFrom map[string]bool) {
 	for _, c := range confs {
 		for k, v := range c.Assign() {
 			if strings.HasPrefix(k, "$") {
@@ -117,10 +115,13 @@ func findUnassignedVars(varsAssignedTo map[string]bool, varsAssignedFrom map[str
 	return
 }
 
-func findPublicPathsOrExitOnUnspecified(privateConfs []Conf, publicConfs []Conf) (
+/* WAS
+func findPublicPathsOrExitOnUnspecified(mainConf Conf, privateConfs []Conf) (
 	publicInputPathForName map[string]string,
 	publicOutputPathForName map[string]string,
 ) {
+*/
+func exitOnUnspecifiedPublicPaths(mainConf Conf, privateConfs map[string]Conf) {
 	privateConfForName := make(map[string]Conf)
 	requiredPrivateInputNames := make(map[string]bool)
 	requiredPrivateOutputNames := make(map[string]bool)
@@ -131,10 +132,8 @@ func findPublicPathsOrExitOnUnspecified(privateConfs []Conf, publicConfs []Conf)
 		addPrivateConfNames(requiredPrivateInputNames, p.Inputs())
 		addPrivateConfNames(requiredPrivateOutputNames, p.Outputs())
 	}
-	for _, p := range publicConfs {
-		addPrivateConfNames(requiredPrivateInputNames, p.Inputs())
-		addPrivateConfNames(requiredPrivateOutputNames, p.Outputs())
-	}
+	addPrivateConfNames(requiredPrivateInputNames, mainConf.Inputs())
+	addPrivateConfNames(requiredPrivateOutputNames, mainConf.Outputs())
 
 	undefinedPrivateInputNames := findUnspecifiedPrivateInputNames(privateConfForName, requiredPrivateInputNames)
 	undefinedPrivateOutputNames := findUnspecifiedPrivateInputNames(privateConfForName, requiredPrivateOutputNames)
@@ -211,9 +210,9 @@ func readConfigFile() []byte {
 	return configFileData
 }
 
-func createConfs(configMap map[string]interface{}) ([]Conf, []Conf) {
-	privateConfs := make([]Conf, 0)
-	publicConfs := make([]Conf, 0)
+func createConfs(configMap map[string]interface{}) (Conf, map[string]Conf) {
+	var mainConf Conf
+	privateConfs := make(map[string]Conf)
 	for specName, untyped := range configMap {
 		isPrivate := strings.HasPrefix(specName, "_")
 		if spec, ok := untyped.(map[string]interface{}); ok {
@@ -225,8 +224,8 @@ func createConfs(configMap map[string]interface{}) ([]Conf, []Conf) {
 			var conf Conf
 			var err error
 			switch specType {
-			case "http":
-				conf, err = NewHTTPConf(specName, dec)
+			case "http_server":
+				conf, err = NewHTTPServerConf(specName, dec)
 			case "fork":
 				conf, err = NewForkConf(specName, dec)
 			case "merge":
@@ -239,14 +238,18 @@ func createConfs(configMap map[string]interface{}) ([]Conf, []Conf) {
 			}
 			if conf != nil {
 				if isPrivate {
-					privateConfs = append(privateConfs, conf)
+					privateConfs[conf.Name()] = conf
 				} else {
-					publicConfs = append(publicConfs, conf)
+					if mainConf != nil {
+						log.Fatalf("There's more than one public spec: \"%v\", \"%v\"\n", mainConf.Name(), specName)
+					} else {
+						mainConf = conf
+					}
 				}
 			} else {
 
 			}
 		}
 	}
-	return privateConfs, publicConfs
+	return mainConf, privateConfs
 }

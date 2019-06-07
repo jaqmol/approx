@@ -8,10 +8,16 @@ import (
 )
 
 func main() {
-	hub, err := run.Run()
+	hub, err := run.Init()
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
 
 	visualize.Hub(hub)
+
+	// errChan := run.Run(hub)
+
+	// for err := range errChan {
+	// 	log.Fatalln(err.Error())
+	// }
 }

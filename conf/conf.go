@@ -16,7 +16,7 @@ type Type int
 // ConfTypes ...
 const (
 	TypeProcess Type = iota
-	TypeHTTP
+	TypeHTTPServer
 	TypeFork
 	TypeMerge
 )
@@ -35,23 +35,3 @@ func addAssignmentsToRequired(assign map[string]string, required map[string]Requ
 		required[v] = RequiredTypeAssign
 	}
 }
-
-// func filterMapValuesForVars(mapping map[string]string) (values []string) {
-// 	values = make([]string, 0)
-// 	for _, v := range mapping {
-// 		if strings.HasPrefix(v, "$") {
-// 			values = append(values, v)
-// 		}
-// 	}
-// 	return
-// }
-
-// func filterSliceForVars(slice []string) []string {
-// 	acc := make([]string, 0)
-// 	for _, v := range slice {
-// 		if isVariable(v) {
-// 			acc = append(acc, v)
-// 		}
-// 	}
-// 	return acc
-// }

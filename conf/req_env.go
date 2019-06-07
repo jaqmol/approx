@@ -9,10 +9,8 @@ import (
 func NewReqEnv(f *Formation) *ReqEnv {
 	names := make([]string, 0)
 
-	for _, p := range f.PublicConfs {
-		for rn := range p.Required() {
-			names = append(names, strings.ToUpper(rn))
-		}
+	for rn := range f.MainConf.Required() {
+		names = append(names, strings.ToUpper(rn))
 	}
 
 	hasValuesForNames := make(map[string]bool)

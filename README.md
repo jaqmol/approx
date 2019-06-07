@@ -4,9 +4,9 @@ Application baseplane. Build applications from communicating processes. Mix and 
 
 ## Nomenclature
 
-### Hub
+### Approx executable
 
-Reads a formation and spins up a network of processors. The hub is the `approx` executable.
+Reads a formation and spins up a flow-graph of processors.
 
 ### Processor
 
@@ -38,8 +38,8 @@ PATH=example ENDPOINT=/ ./approx example/static_file_server/formation.json
 
 ## Why
 
-- To allow for designing applications as a network or flow-chart of stream processors.
-- To design each of them as a low complexity stream process that transforms an input into an output.
+- To allow for designing applications as a flow-graph of stream processors.
+- To design each of them as a low complexity stream process that transforms inputs into outputs.
 - To build multi-process-applications easily and with every programming language that can read/write files.
 - To mix and match programming languages as comes handy.
 - To choose the best library (or programming language) for a single problem. 
@@ -47,9 +47,9 @@ PATH=example ENDPOINT=/ ./approx example/static_file_server/formation.json
 
 ### Why pipes and named pipes?
 
-A network of stream processors is an event driven architecture. Listening for messages by reading from `stdin` or a named pipe is an equally easy to to use API for input-output in the very most of programming languages. Also:
+A flow-graph of stream processors is an event driven architecture. Listening for messages / or IPC via reading from `stdin` or a named pipe is among the most basic of tasks in the very most of programming languages. Also:
 - Very good performance.
-- Easy access.
+- Very good documentation.
 - Maximum operating system support.
 
 ### Why not unix sockets?

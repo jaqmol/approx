@@ -3,20 +3,20 @@ package visualize
 import (
 	"strings"
 
-	"github.com/jaqmol/approx/run"
+	"github.com/jaqmol/approx/flow"
 )
 
-func newBoxRow(procs []run.Proc) *row {
+func newBoxRow(procs []*flow.ProcItem) *row {
 	printables := make([]printable, 0)
 	for i, p := range procs {
 		if i > 0 {
 			printables = append(printables, newGutter(2, 3))
 		}
-		n := p.Conf().Name()
+		n := p.Conf.Name()
 		b := newBox(
 			n,
-			len(p.Conf().Inputs()),
-			len(p.Conf().Outputs()),
+			len(p.Conf.Inputs()),
+			len(p.Conf.Outputs()),
 		)
 		printables = append(printables, b)
 	}

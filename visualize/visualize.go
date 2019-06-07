@@ -4,15 +4,15 @@ import (
 	"log"
 	"strings"
 
-	"github.com/jaqmol/approx/run"
+	"github.com/jaqmol/approx/flow"
 )
 
 // Hub ...
-func Hub(hub *run.Hub) {
+func Hub(flo *flow.Flow) {
 	log.Println("Running flow:")
 	log.Println("")
 
-	rows := injectArrowRows(makeBoxRows(hub))
+	rows := injectArrowRows(makeBoxRows(flo))
 	var sb strings.Builder
 
 	for _, r := range rows {
@@ -32,21 +32,11 @@ func findMaxWidth(rows []*row) int {
 	return mw
 }
 
-func makeBoxRows(hub *run.Hub) (rowsAcc []*row, maxWidth int) {
+func makeBoxRows(flo *flow.Flow) (rowsAcc []*row, maxWidth int) {
 	rowsAcc = make([]*row, 0)
-	for _, publicSource := range hub.PublicProcs {
-		sources := []run.Proc{publicSource}
-		rowsAcc = append(rowsAcc, newBoxRow(sources))
-		for sources != nil && len(sources) > 0 {
-			destinations := collectOuts(sources...)
-			rowsAcc = append(rowsAcc, newBoxRow(destinations))
-			if containsProc(destinations, publicSource) {
-				sources = nil
-			} else {
-				sources = destinations
-			}
-		}
-	}
+	flo.Iterate(func(procRow []*flow.ProcItem) {
+		rowsAcc = append(rowsAcc, newBoxRow(procRow))
+	})
 	maxWidth = findMaxWidth(rowsAcc)
 	for _, r := range rowsAcc {
 		r.center(maxWidth)
@@ -69,29 +59,4 @@ func injectArrowRows(boxRows []*row, maxWidth int) []*row {
 		}
 	}
 	return rowsAcc
-}
-
-func collectOuts(ps ...run.Proc) []run.Proc {
-	coll := make([]run.Proc, 0)
-	checker := make(map[string]bool)
-	for _, p := range ps {
-		for _, c := range p.Outs() {
-			toProcName := c.ToProc.Conf().Name()
-			_, contained := checker[toProcName]
-			if !contained {
-				coll = append(coll, c.ToProc)
-				checker[toProcName] = true
-			}
-		}
-	}
-	return coll
-}
-
-func containsProc(ps []run.Proc, subject run.Proc) bool {
-	for _, p := range ps {
-		if p == subject {
-			return true
-		}
-	}
-	return false
 }

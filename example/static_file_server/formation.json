@@ -1,14 +1,14 @@
 {
   "static_file_server": {
-    "type": "http",
+    "type": "http_server",
     "assign": {
       "$_read_file_base_path": "path"
     },
-    "proxy_out": "_fork_request",
-    "proxy_in": "_order_mime_type_first"
+    "out": "_fork_request",
+    "in": "_order_mime_type_first"
   },
 
-  "_fork_request": { 
+  "_fork_request": {
     "type": "fork",
     "distribute": "copy",
     "outs": [

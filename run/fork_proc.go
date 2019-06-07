@@ -1,54 +1,55 @@
 package run
 
-import (
-	"github.com/jaqmol/approx/conf"
-)
+// import (
+// 	"github.com/jaqmol/approx/conf"
+// )
 
-// NewForkProc ...
-func NewForkProc(conf *conf.ForkConf) (*ForkProc, error) {
-	return &ForkProc{
-		conf: conf,
-	}, nil
-}
-
-// ForkProc ...
-type ForkProc struct {
-	conf *conf.ForkConf
-	ins  []*Conn
-	outs []*Conn
-}
-
-// Type ...
-func (fp *ForkProc) Type() conf.Type {
-	return fp.conf.Type()
-}
-
-// // Name ...
-// func (fp *ForkProc) Name() string {
-// 	return fp.conf.Name()
+// // NewForkProc ...
+// func NewForkProc(conf *conf.ForkConf) (*ForkProc, error) {
+// 	return &ForkProc{
+// 		conf: conf,
+// 		ins:  make(map[string]*flow.Conn),
+// 		outs: make(map[string]*flow.Conn),
+// 	}, nil
 // }
 
-// Conf ...
-func (fp *ForkProc) Conf() conf.Conf {
-	return fp.conf
-}
+// // ForkProc ...
+// type ForkProc struct {
+// 	conf *conf.ForkConf
+// 	ins  map[string]*flow.Conn
+// 	outs map[string]*flow.Conn
+// }
 
-// Ins ...
-func (fp *ForkProc) Ins() []*Conn {
-	return fp.ins
-}
+// // Type ...
+// func (fp *ForkProc) Type() conf.Type {
+// 	return fp.conf.Type()
+// }
 
-// Outs ...
-func (fp *ForkProc) Outs() []*Conn {
-	return fp.outs
-}
+// // Conf ...
+// func (fp *ForkProc) Conf() conf.Conf {
+// 	return fp.conf
+// }
 
-// AddIn ...
-func (fp *ForkProc) AddIn(c *Conn) {
-	fp.ins = append(fp.ins, c)
-}
+// // In ...
+// func (fp *ForkProc) In(name string) *flow.Conn {
+// 	return fp.ins[name]
+// }
 
-// AddOut ...
-func (fp *ForkProc) AddOut(c *Conn) {
-	fp.outs = append(fp.outs, c)
-}
+// // Out ...
+// func (fp *ForkProc) Out(name string) *flow.Conn {
+// 	return fp.outs[name]
+// }
+
+// // AddIn ...
+// func (fp *ForkProc) AddIn(name string, c *flow.Conn) {
+// 	fp.ins[name] = c
+// }
+
+// // AddOut ...
+// func (fp *ForkProc) AddOut(name string, c *flow.Conn) {
+// 	fp.outs[name] = c
+// }
+
+// // Start ...
+// func (fp *ForkProc) Start(errChan chan<- error) {
+// }

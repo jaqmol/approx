@@ -6,15 +6,37 @@ import (
 	"strings"
 
 	"github.com/jaqmol/approx/conf"
+	"github.com/jaqmol/approx/flow"
 )
 
-// Run ...
-func Run() (hub *Hub, err error) {
+// Init ...
+func Init() (fl *flow.Flow, err error) {
 	fo := conf.ReadFormation()
 	re := conf.NewReqEnv(fo)
 	exitIfRequirementsAreMissing(re)
-	hub, err = NewHub(re, fo)
+	fl = flow.NewFlow(fo)
+	// hub, err = NewHub(re, fo)
 	return
+}
+
+// Run ...
+func Run(fl *flow.Flow) <-chan error {
+	errChan := make(chan error, 0)
+	// for _, publicSource := range hub.PublicProcs {
+	// 	sources := []proc.Proc{publicSource}
+	// 	for sources != nil && len(sources) > 0 {
+	// 		for _, s := range sources {
+	// 			s.Start(errChan)
+	// 		}
+	// 		destinations := utils.CollectOuts(sources...)
+	// 		if _, ok := destinations[] utils.ContainsProc(destinations, publicSource) {
+	// 			sources = nil
+	// 		} else {
+	// 			sources = destinations
+	// 		}
+	// 	}
+	// }
+	return errChan
 }
 
 func exitIfRequirementsAreMissing(re *conf.ReqEnv) {
