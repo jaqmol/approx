@@ -3,20 +3,33 @@ package errormsg
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"os"
 )
 
+// ErrorMsg ...
+type ErrorMsg struct {
+	Processor string
+}
+
+func (e *ErrorMsg) code(format string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(e.Processor))
+	h.Write([]byte(format))
+	return h.Sum32()
+}
+
 // LogFatal ...
-func LogFatal(processor string, id *int, code int, format string, a ...interface{}) {
-	Log(processor, id, code, format, a...)
+func (e *ErrorMsg) LogFatal(id *int, format string, a ...interface{}) {
+	e.Log(id, format, a...)
 	os.Exit(1)
 }
 
 // Log ...
-func Log(processor string, id *int, code int, format string, a ...interface{}) {
+func (e *ErrorMsg) Log(id *int, format string, a ...interface{}) {
 	message := fmt.Sprintf(format, a...)
-	msg := NewErrorMsg(processor, id, code, message)
+	msg := newJSONRPCErrorMsg(e.Processor, id, e.code(format), message)
 	bytes, err := json.Marshal(msg)
 	if err != nil {
 		log.Fatalf("Error marshalling error message: %v\n", message)
@@ -25,9 +38,9 @@ func Log(processor string, id *int, code int, format string, a ...interface{}) {
 	os.Stderr.Write(bytes)
 }
 
-// NewErrorMsg ...
-func NewErrorMsg(processor string, id *int, code int, message string) *ErrorMsg {
-	return &ErrorMsg{
+// newJSONRPCErrorMsg ...
+func newJSONRPCErrorMsg(processor string, id *int, code uint32, message string) *JSONRPCErrorMsg {
+	return &JSONRPCErrorMsg{
 		JSONRPC: "2.0",
 		ID:      id,
 		Error: Error{
@@ -40,8 +53,8 @@ func NewErrorMsg(processor string, id *int, code int, message string) *ErrorMsg 
 	}
 }
 
-// ErrorMsg ...
-type ErrorMsg struct {
+// JSONRPCErrorMsg ...
+type JSONRPCErrorMsg struct {
 	JSONRPC string `json:"jsonrpc"`
 	ID      *int   `json:"id"`
 	Error   Error  `json:"error"`
@@ -49,7 +62,7 @@ type ErrorMsg struct {
 
 // Error ...
 type Error struct {
-	Code    int    `json:"code"`
+	Code    uint32 `json:"code"`
 	Message string `json:"message"`
 	Data    Data   `json:"data,omitempty"`
 }
