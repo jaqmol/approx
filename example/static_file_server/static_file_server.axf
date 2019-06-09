@@ -1,0 +1,56 @@
+# Write a parser for it using:
+# https://blog.gopheracademy.com/advent-2014/parsers-lexers/
+
+public static_file_server {
+  type http_server
+  define env [
+    endpoint
+    path
+  ]
+  define args [
+    # none
+  ]
+  assign {
+    $read_file_base_path = env.path
+    # or args.path if args are used
+  }
+  -> fork_request
+  <- order_mime_type_first
+}
+
+fork_request {
+  type fork
+  distribute copy
+  -> [
+    lookup_mime_type
+    read_file
+  ]
+}
+
+order_mime_type_first { 
+  type process
+  command "node lib/order_mime_type_first"
+  <- merge_response
+},
+
+merge_response { 
+  type merge
+  pick as_comes
+  <- [
+    lookup_mime_type
+    read_file
+  ]
+},
+
+lookup_mime_type  {
+  type process
+  command "node lib/lookup_mime_type"
+},
+
+read_file {
+  type process
+  assign {
+    env.base_path = $read_file_base_path
+  }
+  command "node lib/read_file"
+}
