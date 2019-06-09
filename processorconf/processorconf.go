@@ -45,6 +45,11 @@ func NewProcessorConf(
 	}
 }
 
+// OptionalEnv ...
+func (p *ProcessorConf) OptionalEnv(name string) (string, bool) {
+	return os.LookupEnv(name)
+}
+
 func readAllEnvs(
 	errMsg *errormsg.ErrorMsg,
 	envNames []string,
