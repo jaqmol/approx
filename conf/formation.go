@@ -4,25 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/jaqmol/approx/errormsg"
 )
 
 // ReadFormation ...
-func ReadFormation() *Formation {
-	log.SetFlags(0)
-	configFileData := readConfigFile()
+func ReadFormation(errMsg *errormsg.ErrorMsg) *Formation {
+	configFileData := readConfigFile(errMsg)
 
 	var configMap map[string]interface{}
 	err := json.Unmarshal(configFileData, &configMap)
 	if err != nil {
-		log.Fatalf("Error parsing formation file: %v\n", err.Error())
+		errMsg.LogFatal(nil, "Error parsing formation file: %v", err.Error())
 	}
 
-	mainConf, privateConfs := createConfs(configMap)
-	exitOnUnspecifiedPublicPaths(mainConf, privateConfs)
-	exitOnUnassignedVariables(mainConf, privateConfs)
+	mainConf, privateConfs := createConfs(errMsg, configMap)
+	exitOnUnspecifiedPublicPaths(errMsg, mainConf, privateConfs)
+	exitOnUnassignedVariables(errMsg, mainConf, privateConfs)
 
 	return &Formation{
 		MainConf:     mainConf,
@@ -56,7 +56,7 @@ type Formation struct {
 // 	return acc
 // }
 
-func exitOnUnassignedVariables(mainConf Conf, privateConfs map[string]Conf) {
+func exitOnUnassignedVariables(errMsg *errormsg.ErrorMsg, mainConf Conf, privateConfs map[string]Conf) {
 	varsAssignedTo, varsAssignedFrom := make(map[string]bool), make(map[string]bool)
 	collectVarsFromConfs(privateConfs, varsAssignedTo, varsAssignedFrom)
 	collectVarsFromConfs(map[string]Conf{mainConf.Name(): mainConf}, varsAssignedTo, varsAssignedFrom)
@@ -66,7 +66,7 @@ func exitOnUnassignedVariables(mainConf Conf, privateConfs map[string]Conf) {
 		for k := range unassignedVars {
 			acc = append(acc, k)
 		}
-		log.Fatalf("Please resolve assignment of variables: %v\n", strings.Join(acc, ", "))
+		errMsg.LogFatal(nil, "Please resolve assignment of variables: %v", strings.Join(acc, ", "))
 	}
 }
 
@@ -121,7 +121,7 @@ func findPublicPathsOrExitOnUnspecified(mainConf Conf, privateConfs []Conf) (
 	publicOutputPathForName map[string]string,
 ) {
 */
-func exitOnUnspecifiedPublicPaths(mainConf Conf, privateConfs map[string]Conf) {
+func exitOnUnspecifiedPublicPaths(errMsg *errormsg.ErrorMsg, mainConf Conf, privateConfs map[string]Conf) {
 	privateConfForName := make(map[string]Conf)
 	requiredPrivateInputNames := make(map[string]bool)
 	requiredPrivateOutputNames := make(map[string]bool)
@@ -138,8 +138,8 @@ func exitOnUnspecifiedPublicPaths(mainConf Conf, privateConfs map[string]Conf) {
 	undefinedPrivateInputNames := findUnspecifiedPrivateInputNames(privateConfForName, requiredPrivateInputNames)
 	undefinedPrivateOutputNames := findUnspecifiedPrivateInputNames(privateConfForName, requiredPrivateOutputNames)
 
-	hasUnspecInputs := logUnspecifiedNames("private input", undefinedPrivateInputNames)
-	hasUnspecOutputs := logUnspecifiedNames("private output", undefinedPrivateOutputNames)
+	hasUnspecInputs := logUnspecifiedNames(errMsg, "private input", undefinedPrivateInputNames)
+	hasUnspecOutputs := logUnspecifiedNames(errMsg, "private output", undefinedPrivateOutputNames)
 	if hasUnspecInputs || hasUnspecOutputs {
 		os.Exit(1)
 	}
@@ -157,9 +157,9 @@ func keysFromStringBoolMap(aMap map[string]bool) (keys []string) {
 	return
 }
 
-func logUnspecifiedNames(info string, names []string) bool {
+func logUnspecifiedNames(errMsg *errormsg.ErrorMsg, info string, names []string) bool {
 	if len(names) > 0 {
-		log.Printf("Please define %v processes: %v\n", info, strings.Join(names, ", "))
+		errMsg.Log(nil, "Please define %v processes: %v", info, strings.Join(names, ", "))
 		return true
 	}
 	return false
@@ -197,20 +197,19 @@ func addPrivateConfNames(acc map[string]bool, confNames []string) {
 	}
 }
 
-func readConfigFile() []byte {
+func readConfigFile(errMsg *errormsg.ErrorMsg) []byte {
 	if len(os.Args) < 2 {
-		log.Fatalln("No formation file argument provided")
+		errMsg.LogFatal(nil, "No formation file argument provided")
 	}
 	formationFilePath := os.Args[1]
-	log.Printf("Loading app formation: %v", formationFilePath)
 	configFileData, err := ioutil.ReadFile(formationFilePath)
 	if err != nil {
-		log.Fatalf("Error reading formation file: %v\n", err.Error())
+		errMsg.LogFatal(nil, "Error reading formation file: %v", err.Error())
 	}
 	return configFileData
 }
 
-func createConfs(configMap map[string]interface{}) (Conf, map[string]Conf) {
+func createConfs(errMsg *errormsg.ErrorMsg, configMap map[string]interface{}) (Conf, map[string]Conf) {
 	var mainConf Conf
 	privateConfs := make(map[string]Conf)
 	for specName, untyped := range configMap {
@@ -219,7 +218,7 @@ func createConfs(configMap map[string]interface{}) (Conf, map[string]Conf) {
 			dec := newSpecDec(spec)
 			specType, ok := dec.string("type")
 			if !ok {
-				log.Fatalf("Spec \"%v\" has no type\n", specName)
+				errMsg.LogFatal(nil, "Spec \"%v\" has no type", specName)
 			}
 			var conf Conf
 			var err error
@@ -234,14 +233,14 @@ func createConfs(configMap map[string]interface{}) (Conf, map[string]Conf) {
 				conf, err = NewProcessConf(specName, dec)
 			}
 			if err != nil {
-				log.Fatalln(err.Error())
+				errMsg.LogFatal(nil, err.Error())
 			}
 			if conf != nil {
 				if isPrivate {
 					privateConfs[conf.Name()] = conf
 				} else {
 					if mainConf != nil {
-						log.Fatalf("There's more than one public spec: \"%v\", \"%v\"\n", mainConf.Name(), specName)
+						errMsg.LogFatal(nil, "There's more than one public spec: \"%v\", \"%v\"", mainConf.Name(), specName)
 					} else {
 						mainConf = conf
 					}

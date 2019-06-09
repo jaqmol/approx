@@ -2,7 +2,28 @@ package flow
 
 import (
 	"github.com/jaqmol/approx/conf"
+	"github.com/jaqmol/approx/errormsg"
 )
+
+// Init ...
+func Init(errMsg *errormsg.ErrorMsg) (fl *Flow) {
+	fo := conf.ReadFormation(errMsg)
+	re := conf.NewReqEnv(fo)
+	exitIfRequirementsAreMissing(errMsg, re)
+	fl = NewFlow(fo)
+	// hub, err = NewHub(re, fo)
+	return
+}
+
+func exitIfRequirementsAreMissing(errMsg *errormsg.ErrorMsg, re *conf.ReqEnv) {
+	allNames := make([]string, 0)
+	for name, hasValue := range re.HasValuesForNames {
+		allNames = append(allNames, name)
+		if !hasValue {
+			errMsg.LogFatal(nil, "Please provide environment variable: %v", name)
+		}
+	}
+}
 
 // Flow ...
 type Flow struct {
@@ -43,8 +64,8 @@ func NewFlow(form *conf.Formation) *Flow {
 	}
 }
 
-// Iterate ...
-func (f *Flow) Iterate(ito func(row []*ProcItem)) {
+// IterateProcs ...
+func (f *Flow) IterateProcs(ito func(row []*ProcItem)) {
 	currentProcs := NewProcSet(f.MainItem)
 	loopBackProcs := NewProcSet(f.MainItem)
 	for currentProcs.Len() > 0 {
@@ -63,5 +84,30 @@ func (f *Flow) Iterate(ito func(row []*ProcItem)) {
 	}
 	if loopBackProcs.Len() > 0 {
 		ito(loopBackProcs.Data())
+	}
+}
+
+// IterateConns ...
+func (f *Flow) IterateConns(ito func(row []*ConnItem)) {
+	currentConns := NewConnSet(f.MainItem.Next)
+	loopBackConns := NewConnSet(f.MainItem.Prev)
+	for currentConns.Len() > 0 {
+		noLoopBackConns := NewConnSet(nil)
+		for _, conn := range currentConns.Data() {
+			if conn.To == f.MainItem {
+				loopBackConns.Add(conn)
+			} else {
+				noLoopBackConns.Add(conn)
+			}
+		}
+		ito(noLoopBackConns.Data())
+		nextConns := NewConnSet(nil)
+		for _, conn := range noLoopBackConns.Data() {
+			nextConns.AddAll(conn.To.Next)
+		}
+		currentConns = nextConns
+	}
+	if loopBackConns.Len() > 0 {
+		ito(loopBackConns.Data())
 	}
 }

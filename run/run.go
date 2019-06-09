@@ -1,57 +1,72 @@
 package run
 
 import (
-	"log"
+	"fmt"
+	"io/ioutil"
 	"os"
-	"strings"
+	"path/filepath"
+	"syscall"
 
-	"github.com/jaqmol/approx/conf"
+	"github.com/jaqmol/approx/errormsg"
 	"github.com/jaqmol/approx/flow"
 )
 
-// Init ...
-func Init() (fl *flow.Flow, err error) {
-	fo := conf.ReadFormation()
-	re := conf.NewReqEnv(fo)
-	exitIfRequirementsAreMissing(re)
-	fl = flow.NewFlow(fo)
-	// hub, err = NewHub(re, fo)
-	return
+// State ...
+type State struct {
+	errMsg        *errormsg.ErrorMsg
+	pipesBasePath string
+	pipePaths     []string
 }
 
-// Run ...
-func Run(fl *flow.Flow) <-chan error {
-	errChan := make(chan error, 0)
-	// for _, publicSource := range hub.PublicProcs {
-	// 	sources := []proc.Proc{publicSource}
-	// 	for sources != nil && len(sources) > 0 {
-	// 		for _, s := range sources {
-	// 			s.Start(errChan)
-	// 		}
-	// 		destinations := utils.CollectOuts(sources...)
-	// 		if _, ok := destinations[] utils.ContainsProc(destinations, publicSource) {
-	// 			sources = nil
-	// 		} else {
-	// 			sources = destinations
-	// 		}
-	// 	}
-	// }
-	return errChan
+// Flow ...
+func Flow(errMsg *errormsg.ErrorMsg, fl *flow.Flow) *State {
+	tmpDir, err := ioutil.TempDir("", "approx")
+	if err != nil {
+		errMsg.LogFatal(nil, "Error getting temp dir: %v", err.Error())
+	}
+	basePath := filepath.Join(tmpDir, fl.MainItem.Conf.Name())
+	if _, err := os.Stat(basePath); os.IsNotExist(err) {
+		os.Mkdir(basePath, os.ModePerm)
+	}
+	s := &State{
+		errMsg:        errMsg,
+		pipesBasePath: basePath,
+		pipePaths:     make([]string, 0),
+	}
+	s.createPipes(fl)
+	return s
 }
 
-func exitIfRequirementsAreMissing(re *conf.ReqEnv) {
-	shouldExit := false
-	allNames := make([]string, 0)
-	for name, hasValue := range re.HasValuesForNames {
-		allNames = append(allNames, name)
-		if !hasValue {
-			log.Printf("Please provide environment variable: %v\n", name)
-			shouldExit = true
+func (s *State) createPipes(fl *flow.Flow) {
+	fl.IterateConns(func(row []*flow.ConnItem) {
+		for _, conn := range row {
+			pipeName := fmt.Sprintf("%v.pipe", conn.Hash)
+			pp := filepath.Join(s.pipesBasePath, pipeName)
+			err := syscall.Mkfifo(pp, 0600)
+			if err != nil {
+				s.errMsg.LogFatal(nil, "Error creating pipe: %v", err.Error())
+			}
+			s.pipePaths = append(s.pipePaths, pp)
+		}
+	})
+}
+
+// Cleanup ...
+func (s *State) Cleanup() []error {
+	errs := make([]error, 0)
+	for _, pp := range s.pipePaths {
+		err := os.Remove(pp)
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
-	if shouldExit {
-		os.Exit(1)
-	} else {
-		log.Printf("Using environment variables %v\n", strings.Join(allNames, ", "))
+	if len(errs) > 0 {
+		return errs
 	}
+	err := os.Remove(s.pipesBasePath)
+	if err != nil {
+		errs = append(errs, err)
+		return errs
+	}
+	return nil
 }

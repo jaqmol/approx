@@ -7,8 +7,9 @@ import (
 	"github.com/jaqmol/approx/flow"
 )
 
-// Hub ...
-func Hub(flo *flow.Flow) {
+// Flow ...
+func Flow(flo *flow.Flow) {
+	log.SetFlags(0)
 	log.Println("Running flow:")
 	log.Println("")
 
@@ -34,7 +35,7 @@ func findMaxWidth(rows []*row) int {
 
 func makeBoxRows(flo *flow.Flow) (rowsAcc []*row, maxWidth int) {
 	rowsAcc = make([]*row, 0)
-	flo.Iterate(func(procRow []*flow.ProcItem) {
+	flo.IterateProcs(func(procRow []*flow.ProcItem) {
 		rowsAcc = append(rowsAcc, newBoxRow(procRow))
 	})
 	maxWidth = findMaxWidth(rowsAcc)
