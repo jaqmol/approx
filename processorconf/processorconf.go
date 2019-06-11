@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/jaqmol/approx/errormsg"
+	"github.com/jaqmol/approx/axmsg"
 )
 
 // ProcessorConf ...
@@ -21,7 +21,7 @@ func NewProcessorConf(
 	processorName string,
 	requiredEnvs []string,
 ) *ProcessorConf {
-	errMsg := &errormsg.ErrorMsg{Processor: processorName}
+	errMsg := &axmsg.Errors{Source: processorName}
 	return &ProcessorConf{
 		Envs: readAllEnvs(errMsg, requiredEnvs),
 		Inputs: openInputs(
@@ -51,7 +51,7 @@ func (p *ProcessorConf) OptionalEnv(name string) (string, bool) {
 }
 
 func readAllEnvs(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	envNames []string,
 ) map[string]string {
 	values := make(map[string]string)
@@ -62,7 +62,7 @@ func readAllEnvs(
 }
 
 func readEnv(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	envName string,
 ) string {
 	value, ok := os.LookupEnv(envName)
@@ -73,7 +73,7 @@ func readEnv(
 }
 
 func openInputs(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	inValues []string,
 ) []*bufio.Reader {
 	inputs := make([]*bufio.Reader, 0)
@@ -92,7 +92,7 @@ func openInputs(
 }
 
 func openOutputs(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	outValues []string,
 ) []*bufio.Writer {
 	outputs := make([]*bufio.Writer, 0)
@@ -111,7 +111,7 @@ func openOutputs(
 }
 
 func readAllPrefixedEnvs(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	prefix string,
 	count int,
 	fallback string,
@@ -129,7 +129,7 @@ func readAllPrefixedEnvs(
 }
 
 func parseIntEnv(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	name string,
 	fallback int,
 ) int {
@@ -145,7 +145,7 @@ func parseIntEnv(
 }
 
 func readIndexedEnv(
-	errMsg *errormsg.ErrorMsg,
+	errMsg *axmsg.Errors,
 	prefix string,
 	index int,
 ) string {

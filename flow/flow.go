@@ -1,12 +1,12 @@
 package flow
 
 import (
+	"github.com/jaqmol/approx/axmsg"
 	"github.com/jaqmol/approx/conf"
-	"github.com/jaqmol/approx/errormsg"
 )
 
 // Init ...
-func Init(errMsg *errormsg.ErrorMsg) (fl *Flow) {
+func Init(errMsg *axmsg.Errors) (fl *Flow) {
 	fo := conf.ReadFormation(errMsg)
 	re := conf.NewReqEnv(fo)
 	exitIfRequirementsAreMissing(errMsg, re)
@@ -15,7 +15,7 @@ func Init(errMsg *errormsg.ErrorMsg) (fl *Flow) {
 	return
 }
 
-func exitIfRequirementsAreMissing(errMsg *errormsg.ErrorMsg, re *conf.ReqEnv) {
+func exitIfRequirementsAreMissing(errMsg *axmsg.Errors, re *conf.ReqEnv) {
 	allNames := make([]string, 0)
 	for name, hasValue := range re.HasValuesForNames {
 		allNames = append(allNames, name)
@@ -27,7 +27,8 @@ func exitIfRequirementsAreMissing(errMsg *errormsg.ErrorMsg, re *conf.ReqEnv) {
 
 // Flow ...
 type Flow struct {
-	MainItem *ProcItem
+	FormationBasePath string
+	MainItem          *ProcItem
 	// structure [][]Item
 }
 
@@ -60,7 +61,8 @@ func NewFlow(form *conf.Formation) *Flow {
 	}
 
 	return &Flow{
-		MainItem: mainItem,
+		FormationBasePath: form.BasePath,
+		MainItem:          mainItem,
 	}
 }
 

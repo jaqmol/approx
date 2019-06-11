@@ -10,6 +10,7 @@ func NewHTTPServerConf(name string, dec *specDec) (*HTTPServerConf, error) {
 	}
 	port, ok := dec.integer("port")
 	if !ok {
+		required["port"] = RequiredTypeProperty
 		port = 3000
 	}
 	out, ok := dec.string("out")

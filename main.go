@@ -5,24 +5,25 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jaqmol/approx/errormsg"
+	"github.com/jaqmol/approx/axmsg"
 	"github.com/jaqmol/approx/flow"
 	"github.com/jaqmol/approx/run"
 	"github.com/jaqmol/approx/visualize"
 )
 
 func main() {
-	errMsg := &errormsg.ErrorMsg{Processor: "approx"}
+	errMsg := &axmsg.Errors{Source: "approx"}
 	fl := flow.Init(errMsg)
 	visualize.Flow(fl)
 
-	state := run.Flow(errMsg, fl)
+	rnnr := run.NewRunner(errMsg, fl)
+	rnnr.Start()
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	// go func() {
 	<-c
-	state.Cleanup()
+	rnnr.Cleanup()
 	os.Exit(1)
 	// }()
 

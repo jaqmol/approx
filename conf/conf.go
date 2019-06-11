@@ -19,6 +19,7 @@ const (
 	TypeHTTPServer
 	TypeFork
 	TypeMerge
+	TypeCheck
 )
 
 // RequiredType ...

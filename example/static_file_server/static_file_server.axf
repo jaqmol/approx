@@ -2,8 +2,7 @@
 # Write a parser for it using:
 # https://blog.gopheracademy.com/advent-2014/parsers-lexers/
 
-public static_file_server {
-  type http_server
+public http_server static_file_server {
   define env [
     endpoint
     path
@@ -19,8 +18,7 @@ public static_file_server {
   <- order_mime_type_first
 }
 
-fork_request {
-  type fork
+fork fork_request {
   distribute copy
   -> [
     lookup_mime_type
@@ -28,14 +26,12 @@ fork_request {
   ]
 }
 
-order_mime_type_first { 
-  type process
+process order_mime_type_first { 
   command "node lib/order_mime_type_first"
   <- merge_response
 },
 
-merge_response { 
-  type merge
+merge merge_response { 
   pick as_comes
   <- [
     lookup_mime_type
@@ -43,13 +39,11 @@ merge_response {
   ]
 },
 
-lookup_mime_type  {
-  type process
+process lookup_mime_type  {
   command "node lib/lookup_mime_type"
 },
 
-read_file {
-  type process
+process read_file {
   assign {
     env.base_path = $read_file_base_path
   }

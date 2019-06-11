@@ -2,17 +2,17 @@ package conf
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/jaqmol/approx/errormsg"
+	"github.com/jaqmol/approx/axmsg"
 )
 
 // ReadFormation ...
-func ReadFormation(errMsg *errormsg.ErrorMsg) *Formation {
-	configFileData := readConfigFile(errMsg)
+func ReadFormation(errMsg *axmsg.Errors) *Formation {
+	configFileData, formationBasePath := readConfigFile(errMsg)
 
 	var configMap map[string]interface{}
 	err := json.Unmarshal(configFileData, &configMap)
@@ -25,6 +25,7 @@ func ReadFormation(errMsg *errormsg.ErrorMsg) *Formation {
 	exitOnUnassignedVariables(errMsg, mainConf, privateConfs)
 
 	return &Formation{
+		BasePath:     formationBasePath,
 		MainConf:     mainConf,
 		PrivateConfs: privateConfs,
 		// PublicInputPathForName:  publicInputPathForName,
@@ -34,6 +35,7 @@ func ReadFormation(errMsg *errormsg.ErrorMsg) *Formation {
 
 // Formation ...
 type Formation struct {
+	BasePath     string
 	MainConf     Conf
 	PrivateConfs map[string]Conf
 	// PublicInputPathForName  map[string]string
@@ -56,7 +58,7 @@ type Formation struct {
 // 	return acc
 // }
 
-func exitOnUnassignedVariables(errMsg *errormsg.ErrorMsg, mainConf Conf, privateConfs map[string]Conf) {
+func exitOnUnassignedVariables(errMsg *axmsg.Errors, mainConf Conf, privateConfs map[string]Conf) {
 	varsAssignedTo, varsAssignedFrom := make(map[string]bool), make(map[string]bool)
 	collectVarsFromConfs(privateConfs, varsAssignedTo, varsAssignedFrom)
 	collectVarsFromConfs(map[string]Conf{mainConf.Name(): mainConf}, varsAssignedTo, varsAssignedFrom)
@@ -121,7 +123,7 @@ func findPublicPathsOrExitOnUnspecified(mainConf Conf, privateConfs []Conf) (
 	publicOutputPathForName map[string]string,
 ) {
 */
-func exitOnUnspecifiedPublicPaths(errMsg *errormsg.ErrorMsg, mainConf Conf, privateConfs map[string]Conf) {
+func exitOnUnspecifiedPublicPaths(errMsg *axmsg.Errors, mainConf Conf, privateConfs map[string]Conf) {
 	privateConfForName := make(map[string]Conf)
 	requiredPrivateInputNames := make(map[string]bool)
 	requiredPrivateOutputNames := make(map[string]bool)
@@ -157,7 +159,7 @@ func keysFromStringBoolMap(aMap map[string]bool) (keys []string) {
 	return
 }
 
-func logUnspecifiedNames(errMsg *errormsg.ErrorMsg, info string, names []string) bool {
+func logUnspecifiedNames(errMsg *axmsg.Errors, info string, names []string) bool {
 	if len(names) > 0 {
 		errMsg.Log(nil, "Please define %v processes: %v", info, strings.Join(names, ", "))
 		return true
@@ -165,19 +167,19 @@ func logUnspecifiedNames(errMsg *errormsg.ErrorMsg, info string, names []string)
 	return false
 }
 
-func findEnvSpecifiedPipePaths(prefix string, confNames []string) (map[string]string, []string) {
-	specNames := make(map[string]string)
-	unspecNames := make([]string, 0)
-	for _, pn := range confNames {
-		envName := strings.ToUpper(fmt.Sprintf("%v_%v", prefix, pn))
-		if value, ok := os.LookupEnv(envName); ok {
-			specNames[pn] = value
-		} else {
-			unspecNames = append(unspecNames, pn)
-		}
-	}
-	return specNames, unspecNames
-}
+// func findEnvSpecifiedPipePaths(prefix string, confNames []string) (map[string]string, []string) {
+// 	specNames := make(map[string]string)
+// 	unspecNames := make([]string, 0)
+// 	for _, pn := range confNames {
+// 		envName := strings.ToUpper(fmt.Sprintf("%v_%v", prefix, pn))
+// 		if value, ok := os.LookupEnv(envName); ok {
+// 			specNames[pn] = value
+// 		} else {
+// 			unspecNames = append(unspecNames, pn)
+// 		}
+// 	}
+// 	return specNames, unspecNames
+// }
 
 func findUnspecifiedPrivateInputNames(definedConfs map[string]Conf, requiredNames map[string]bool) []string {
 	acc := make([]string, 0)
@@ -197,19 +199,23 @@ func addPrivateConfNames(acc map[string]bool, confNames []string) {
 	}
 }
 
-func readConfigFile(errMsg *errormsg.ErrorMsg) []byte {
+func readConfigFile(errMsg *axmsg.Errors) ([]byte, string) {
 	if len(os.Args) < 2 {
 		errMsg.LogFatal(nil, "No formation file argument provided")
 	}
 	formationFilePath := os.Args[1]
+	formationBasePath, err := filepath.Abs(filepath.Dir(formationFilePath))
+	if err != nil {
+		errMsg.LogFatal(nil, "Unable to retrieve formation base-path: %v", err.Error())
+	}
 	configFileData, err := ioutil.ReadFile(formationFilePath)
 	if err != nil {
 		errMsg.LogFatal(nil, "Error reading formation file: %v", err.Error())
 	}
-	return configFileData
+	return configFileData, formationBasePath
 }
 
-func createConfs(errMsg *errormsg.ErrorMsg, configMap map[string]interface{}) (Conf, map[string]Conf) {
+func createConfs(errMsg *axmsg.Errors, configMap map[string]interface{}) (Conf, map[string]Conf) {
 	var mainConf Conf
 	privateConfs := make(map[string]Conf)
 	for specName, untyped := range configMap {
