@@ -75,7 +75,7 @@ func (c *ConnItem) openFile() *os.File {
 		if err != nil {
 			c.errMsg.LogFatal(
 				nil,
-				"Can't open pipe @ %v",
+				"Can't open pipe @ %v: %v",
 				c.PipePath(),
 				err.Error(),
 			)
