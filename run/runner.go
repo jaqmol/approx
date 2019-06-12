@@ -2,6 +2,7 @@ package run
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -16,6 +17,7 @@ type Runner struct {
 	pipeBasePath string
 	connForHash  map[uint32]*ConnItem
 	procForName  map[string]*ProcItem
+	// errChan      chan error
 }
 
 // NewRunner ...
@@ -26,6 +28,7 @@ func NewRunner(errMsg *axmsg.Errors, fl *flow.Flow) *Runner {
 		errMsg:       errMsg,
 		pipeBasePath: pipeBasePath,
 		connForHash:  createConnections(errMsg, pipeBasePath, fl),
+		// errChan:      make(chan error, 0),
 	}
 	r.procForName = createProcessors(errMsg, r, fl)
 	return r
@@ -38,7 +41,7 @@ func preparePipeBasePath(errMsg *axmsg.Errors, fl *flow.Flow) string {
 	}
 	basePath := filepath.Join(tmpDir, fl.MainItem.Conf.Name())
 	if _, err := os.Stat(basePath); os.IsNotExist(err) {
-		os.Mkdir(basePath, os.ModePerm)
+		os.MkdirAll(basePath, os.ModePerm)
 	}
 	return basePath
 }
@@ -57,11 +60,11 @@ func createConnections(errMsg *axmsg.Errors, pipeBasePath string, fl *flow.Flow)
 	return acc
 }
 
-func createProcessors(errMsg *axmsg.Errors, DataProv DataProvider, fl *flow.Flow) map[string]*ProcItem {
+func createProcessors(errMsg *axmsg.Errors, dataProv DataProvider, fl *flow.Flow) map[string]*ProcItem {
 	acc := make(map[string]*ProcItem, 0)
 	fl.IterateProcs(func(row []*flow.ProcItem) {
 		for _, flowProc := range row {
-			runProc := NewProcItem(errMsg, DataProv, flowProc)
+			runProc := NewProcItem(errMsg, dataProv, flowProc)
 			acc[flowProc.Conf.Name()] = runProc
 		}
 	})
@@ -98,9 +101,37 @@ func (r *Runner) FormationBasePath() string {
 	return r.flow.FormationBasePath
 }
 
+// CheckViability ...
+func (r *Runner) CheckViability() {
+
+}
+
+// InitProcessors ...
+func (r *Runner) InitProcessors() {
+	check := NewViabilityCheck()
+	for _, proc := range r.procForName {
+		proc.Init(check)
+	}
+	if check.InsAndOutsAreBalanced() {
+		log.Println("Flow is operable, inputs and outputs are balanced")
+	} else {
+		log.Println("Flow is not operable, inputs and outputs are not balanced")
+	}
+}
+
 // Start ...
 func (r *Runner) Start() {
-	for _, proc := range r.procForName {
-		proc.Start()
+	prematureExitChan := make(chan string, 0)
+	errChan := make(chan error, 0)
+	go func() {
+		for _, proc := range r.procForName {
+			proc.Start(prematureExitChan, errChan)
+		}
+	}()
+	select {
+	case procName := <-prematureExitChan:
+		r.errMsg.Log(nil, "Processor %v exited prematurely, please make sure the process is long running", procName)
+	case err := <-errChan:
+		r.errMsg.LogFatal(nil, err.Error())
 	}
 }

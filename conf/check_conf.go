@@ -18,50 +18,57 @@ func NewCheckConf(name string, dec *specDec) (*CheckConf, error) {
 		assign = map[string]string{}
 	}
 	fc := CheckConf{
-		name:     name,
-		ins:      []string{in},
-		outs:     []string{out},
-		assign:   assign,
-		required: required,
+		name:        name,
+		ins:         []string{in},
+		outs:        []string{out},
+		assign:      assign,
+		required:    required,
+		environment: []string{},
 	}
 	return &fc, nil
 }
 
 // CheckConf ...
 type CheckConf struct {
-	name     string
-	ins      []string
-	outs     []string
-	assign   map[string]string
-	required map[string]RequiredType
+	name        string
+	ins         []string
+	outs        []string
+	assign      map[string]string
+	required    map[string]RequiredType
+	environment []string
 }
 
 // Type ...
-func (fc *CheckConf) Type() Type {
+func (cc *CheckConf) Type() Type {
 	return TypeCheck
 }
 
 // Name ...
-func (fc *CheckConf) Name() string {
-	return fc.name
+func (cc *CheckConf) Name() string {
+	return cc.name
 }
 
 // Inputs ...
-func (fc *CheckConf) Inputs() []string {
-	return fc.ins
+func (cc *CheckConf) Inputs() []string {
+	return cc.ins
 }
 
 // Outputs ...
-func (fc *CheckConf) Outputs() []string {
-	return fc.outs
+func (cc *CheckConf) Outputs() []string {
+	return cc.outs
 }
 
 // Assign ...
-func (fc *CheckConf) Assign() map[string]string {
-	return fc.assign
+func (cc *CheckConf) Assign() map[string]string {
+	return cc.assign
 }
 
 // Required ...
-func (fc *CheckConf) Required() map[string]RequiredType {
-	return fc.required
+func (cc *CheckConf) Required() map[string]RequiredType {
+	return cc.required
+}
+
+// Environment ...
+func (cc *CheckConf) Environment() []string {
+	return cc.environment
 }

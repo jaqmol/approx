@@ -6,14 +6,17 @@ import (
 
 // NewForkConf ...
 func NewForkConf(name string, dec *specDec) (*ForkConf, error) {
+	environment := make([]string, 0)
 	distributeStr, ok := dec.string("distribute")
 	var distribute ForkDistribute
 	if ok {
 		switch distributeStr {
 		case "copy":
 			distribute = ForkDistributeCopy
+			environment = append(environment, "DISTRIBUTE=copy")
 		case "round_robin":
 			distribute = ForkDistributeRoundRobin
+			environment = append(environment, "DISTRIBUTE=round_robin")
 		}
 	} else {
 		distribute = ForkDistributeCopy
@@ -33,25 +36,28 @@ func NewForkConf(name string, dec *specDec) (*ForkConf, error) {
 	} else {
 		assign = map[string]string{}
 	}
+
 	fc := ForkConf{
-		name:       name,
-		distribute: distribute,
-		ins:        []string{in},
-		outs:       outs,
-		assign:     assign,
-		required:   required,
+		name:        name,
+		distribute:  distribute,
+		ins:         []string{in},
+		outs:        outs,
+		assign:      assign,
+		required:    required,
+		environment: environment,
 	}
 	return &fc, nil
 }
 
 // ForkConf ...
 type ForkConf struct {
-	name       string
-	distribute ForkDistribute
-	ins        []string
-	outs       []string
-	assign     map[string]string
-	required   map[string]RequiredType
+	name        string
+	distribute  ForkDistribute
+	ins         []string
+	outs        []string
+	assign      map[string]string
+	required    map[string]RequiredType
+	environment []string
 }
 
 // ForkDistribute ...
@@ -96,4 +102,9 @@ func (fc *ForkConf) Assign() map[string]string {
 // Required ...
 func (fc *ForkConf) Required() map[string]RequiredType {
 	return fc.required
+}
+
+// Environment ...
+func (fc *ForkConf) Environment() []string {
+	return fc.environment
 }

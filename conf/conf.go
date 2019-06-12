@@ -6,6 +6,7 @@ type Conf interface {
 	Name() string
 	Inputs() []string
 	Outputs() []string
+	Environment() []string
 	Assign() map[string]string
 	Required() map[string]RequiredType
 }

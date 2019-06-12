@@ -4,14 +4,17 @@ import "fmt"
 
 // NewMergeConf ...
 func NewMergeConf(name string, dec *specDec) (*MergeConf, error) {
+	environment := make([]string, 0)
 	pickStr, ok := dec.string("pick")
 	var pick MergePick
 	if ok {
 		switch pickStr {
 		case "as_comes":
 			pick = MergePickAsComes
+			environment = append(environment, "PICK=copy")
 		case "round_robin":
 			pick = MergePickRoundRobin
+			environment = append(environment, "PICK=round_robin")
 		}
 	} else {
 		pick = MergePickAsComes
@@ -32,24 +35,26 @@ func NewMergeConf(name string, dec *specDec) (*MergeConf, error) {
 		assign = map[string]string{}
 	}
 	mc := MergeConf{
-		name:     name,
-		pick:     pick,
-		ins:      ins,
-		outs:     []string{out},
-		assign:   assign,
-		required: map[string]RequiredType{},
+		name:        name,
+		pick:        pick,
+		ins:         ins,
+		outs:        []string{out},
+		assign:      assign,
+		required:    map[string]RequiredType{},
+		environment: environment,
 	}
 	return &mc, nil
 }
 
 // MergeConf ...
 type MergeConf struct {
-	name     string
-	pick     MergePick
-	ins      []string
-	outs     []string
-	assign   map[string]string
-	required map[string]RequiredType
+	name        string
+	pick        MergePick
+	ins         []string
+	outs        []string
+	assign      map[string]string
+	required    map[string]RequiredType
+	environment []string
 }
 
 // MergePick ...
@@ -94,4 +99,9 @@ func (mc *MergeConf) Assign() map[string]string {
 // Required ...
 func (mc *MergeConf) Required() map[string]RequiredType {
 	return mc.required
+}
+
+// Environment ...
+func (mc *MergeConf) Environment() []string {
+	return mc.environment
 }

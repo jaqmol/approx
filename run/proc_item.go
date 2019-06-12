@@ -16,7 +16,7 @@ import (
 // ProcItem ...
 type ProcItem struct {
 	errMsg   *axmsg.Errors
-	FlowProc *flow.ProcItem
+	flowProc *flow.ProcItem
 	dataProv DataProvider
 	cmd      *exec.Cmd
 }
@@ -25,56 +25,86 @@ type ProcItem struct {
 func NewProcItem(errMsg *axmsg.Errors, dataProv DataProvider, flowProc *flow.ProcItem) *ProcItem {
 	return &ProcItem{
 		errMsg:   errMsg,
-		FlowProc: flowProc,
+		flowProc: flowProc,
 		dataProv: dataProv,
 	}
 }
 
-// Start ...
-func (p *ProcItem) Start() {
+// Init ...
+func (p *ProcItem) Init(check *ViabilityCheck) {
 	workDir, cmdStr, args := p.commandAndArgs()
 	p.cmd = exec.Command(cmdStr, args...)
 	p.cmd.Dir = workDir
+	p.cmd.Stderr = os.Stderr
 	envs := make([]string, 0)
 	envs = append(envs, os.Environ()...)
-	envs = p.attachInEnvs(envs)
-	envs = p.attachOutEnvs(envs)
-	log.Printf("%v\n", envs)
+	envs = p.attachInEnvs(envs, check)
+	envs = p.attachOutEnvs(envs, check)
+	envs = append(envs, os.Environ()...)
+	envs = append(envs, p.flowProc.Conf.Environment()...)
 	p.cmd.Env = envs
 }
 
-func (p *ProcItem) attachInEnvs(envs []string) []string {
+// Start ...
+func (p *ProcItem) Start(prematureExitChan chan<- string, errChan chan<- error) {
+	err := p.cmd.Start()
+	if err != nil {
+		errChan <- err
+	} else {
+		// TODO: Check why this is not working
+		log.Printf("0: Processor »%v« exited prematurely\n", p.flowProc.Conf.Name())
+		prematureExitChan <- p.flowProc.Conf.Name()
+	}
+	go func() {
+		err := p.cmd.Wait()
+		if err != nil {
+			errChan <- err
+		} else {
+			// TODO: Check why this is not working
+			log.Printf("1: Processor »%v« exited prematurely\n", p.flowProc.Conf.Name())
+			prematureExitChan <- p.flowProc.Conf.Name()
+		}
+	}()
+}
+
+func (p *ProcItem) attachInEnvs(envs []string, check *ViabilityCheck) []string {
 	if p.inputIsStdin() {
-		inFlowConn := p.FlowProc.Prev[0]
+		inFlowConn := p.flowProc.Prev[0]
 		runConn := p.dataProv.Connection(inFlowConn.Hash)
 		p.cmd.Stdin = runConn.Reader()
+		check.AddInType(inFlowConn.Hash, ConnectionTypeStdin)
+		// log.Printf("Using reader for pipe »%v« as output\n", inFlowConn.Hash)
 	} else {
 		envs = append(envs, p.envInCount())
-		for i, inFlowConn := range p.FlowProc.Prev {
+		for i, inFlowConn := range p.flowProc.Prev {
 			rc := p.dataProv.Connection(inFlowConn.Hash)
 			envs = append(envs, envInIdxPath(i, rc.PipePath()))
+			check.AddInType(inFlowConn.Hash, ConnectionTypeEnvInPipe)
 		}
 	}
 	return envs
 }
 
-func (p *ProcItem) attachOutEnvs(envs []string) []string {
+func (p *ProcItem) attachOutEnvs(envs []string, check *ViabilityCheck) []string {
 	if p.outputIsStdout() {
-		outFlowConn := p.FlowProc.Next[0]
+		outFlowConn := p.flowProc.Next[0]
 		runConn := p.dataProv.Connection(outFlowConn.Hash)
 		p.cmd.Stdout = runConn.Writer()
+		check.AddOutType(outFlowConn.Hash, ConnectionTypeStdout)
+		// log.Printf("Using writer for pipe »%v« as output\n", outFlowConn.Hash)
 	} else {
 		envs = append(envs, p.envOutCount())
-		for i, outFlowConn := range p.FlowProc.Next {
+		for i, outFlowConn := range p.flowProc.Next {
 			rc := p.dataProv.Connection(outFlowConn.Hash)
 			envs = append(envs, envOutIdxPath(i, rc.PipePath()))
+			check.AddOutType(outFlowConn.Hash, ConnectionTypeEnvOutPipe)
 		}
 	}
 	return envs
 }
 
 func (p *ProcItem) envInCount() string {
-	return fmt.Sprintf("IN_COUNT=%v", len(p.FlowProc.Prev))
+	return fmt.Sprintf("IN_COUNT=%v", len(p.flowProc.Prev))
 }
 
 func envInIdxPath(idx int, path string) string {
@@ -82,7 +112,7 @@ func envInIdxPath(idx int, path string) string {
 }
 
 func (p *ProcItem) envOutCount() string {
-	return fmt.Sprintf("OUT_COUNT=%v", len(p.FlowProc.Next))
+	return fmt.Sprintf("OUT_COUNT=%v", len(p.flowProc.Next))
 }
 
 func envOutIdxPath(idx int, path string) string {
@@ -90,15 +120,15 @@ func envOutIdxPath(idx int, path string) string {
 }
 
 func (p *ProcItem) inputIsStdin() bool {
-	if len(p.FlowProc.Prev) == 1 {
-		return "stdin" == p.FlowProc.Conf.Inputs()[0]
+	if len(p.flowProc.Prev) == 1 {
+		return "stdin" == p.flowProc.Conf.Inputs()[0]
 	}
 	return false
 }
 
 func (p *ProcItem) outputIsStdout() bool {
-	if len(p.FlowProc.Next) == 1 {
-		return "stdout" == p.FlowProc.Conf.Outputs()[0]
+	if len(p.flowProc.Next) == 1 {
+		return "stdout" == p.flowProc.Conf.Outputs()[0]
 	}
 	return false
 }
@@ -107,10 +137,10 @@ func (p *ProcItem) commandAndArgs() (string, string, []string) {
 	var workingDirectory string
 	var command string
 	var args []string
-	switch p.FlowProc.Conf.Type() {
+	switch p.flowProc.Conf.Type() {
 	case conf.TypeProcess:
 		workingDirectory = p.dataProv.FormationBasePath()
-		processorConf := p.FlowProc.Conf.(*conf.ProcessConf)
+		processorConf := p.flowProc.Conf.(*conf.ProcessConf)
 		command = processorConf.Command()
 		args = processorConf.Arguments()
 	case conf.TypeHTTPServer:

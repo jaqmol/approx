@@ -4,9 +4,10 @@ import "fmt"
 
 // NewProcessConf ...
 func NewProcessConf(name string, dec *specDec) (*ProcessConf, error) {
-	environment, ok := dec.stringStringMap("environment")
+	environment := make([]string, 0)
+	defEnvs, ok := dec.stringStringMap("environment")
 	if !ok {
-		environment = map[string]string{}
+		defEnvs = map[string]string{}
 	}
 	arguments, ok := dec.stringSlice("arguments")
 	if !ok {
@@ -31,6 +32,12 @@ func NewProcessConf(name string, dec *specDec) (*ProcessConf, error) {
 	} else {
 		assign = map[string]string{}
 	}
+	for name, value := range defEnvs {
+		environment = append(
+			environment,
+			fmt.Sprintf("%v=%v", name, value),
+		)
+	}
 	return &ProcessConf{
 		name:        name,
 		environment: environment,
@@ -46,7 +53,7 @@ func NewProcessConf(name string, dec *specDec) (*ProcessConf, error) {
 // ProcessConf ...
 type ProcessConf struct {
 	name        string
-	environment map[string]string
+	environment []string
 	arguments   []string
 	command     string
 	ins         []string
@@ -66,7 +73,7 @@ func (pc *ProcessConf) Name() string {
 }
 
 // Environment ...
-func (pc *ProcessConf) Environment() map[string]string {
+func (pc *ProcessConf) Environment() []string {
 	return pc.environment
 }
 

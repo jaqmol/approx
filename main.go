@@ -17,6 +17,7 @@ func main() {
 	visualize.Flow(fl)
 
 	rnnr := run.NewRunner(errMsg, fl)
+	rnnr.InitProcessors()
 	rnnr.Start()
 
 	c := make(chan os.Signal)

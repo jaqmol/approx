@@ -18,7 +18,7 @@ type ConnItem struct {
 	pipeBasePath string
 	FlowConn     *flow.ConnItem
 	PipeName     string
-	file         *os.File
+	_file        *os.File
 	reader       *bufio.Reader
 	writer       *bufio.Writer
 }
@@ -55,7 +55,7 @@ func (c *ConnItem) Cleanup() error {
 // Reader ...
 func (c *ConnItem) Reader() *bufio.Reader {
 	if c.reader == nil {
-		c.reader = bufio.NewReader(c.openFile())
+		c.reader = bufio.NewReader(c.file())
 	}
 	return c.reader
 }
@@ -63,15 +63,15 @@ func (c *ConnItem) Reader() *bufio.Reader {
 // Writer ...
 func (c *ConnItem) Writer() *bufio.Writer {
 	if c.writer == nil {
-		c.writer = bufio.NewWriter(c.openFile())
+		c.writer = bufio.NewWriter(c.file())
 	}
 	return c.writer
 }
 
-func (c *ConnItem) openFile() *os.File {
-	if c.file == nil {
+func (c *ConnItem) file() *os.File {
+	if c._file == nil {
 		var err error
-		c.file, err = os.OpenFile(c.PipePath(), os.O_RDWR, 0600)
+		c._file, err = os.OpenFile(c.PipePath(), os.O_RDWR, 0600)
 		if err != nil {
 			c.errMsg.LogFatal(
 				nil,
@@ -81,5 +81,5 @@ func (c *ConnItem) openFile() *os.File {
 			)
 		}
 	}
-	return c.file
+	return c._file
 }
