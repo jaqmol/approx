@@ -2,7 +2,6 @@ package run
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,8 +50,6 @@ func (p *ProcItem) Start(prematureExitChan chan<- string, errChan chan<- error) 
 	if err != nil {
 		errChan <- err
 	} else {
-		// TODO: Check why this is not working
-		log.Printf("0: Processor »%v« exited prematurely\n", p.flowProc.Conf.Name())
 		prematureExitChan <- p.flowProc.Conf.Name()
 	}
 	go func() {
@@ -60,8 +57,6 @@ func (p *ProcItem) Start(prematureExitChan chan<- string, errChan chan<- error) 
 		if err != nil {
 			errChan <- err
 		} else {
-			// TODO: Check why this is not working
-			log.Printf("1: Processor »%v« exited prematurely\n", p.flowProc.Conf.Name())
 			prematureExitChan <- p.flowProc.Conf.Name()
 		}
 	}()
