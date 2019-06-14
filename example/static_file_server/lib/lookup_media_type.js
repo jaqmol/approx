@@ -14,7 +14,7 @@ readMediaTypeForExtension((err, mediaTypeForExt) => {
 
 function listenForInput(mediaTypeForExt) {
   reader.on((action) => {
-        // input example:
+    // input example:
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/index.html"}}
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/images/logo.png"}}
     if (action.axmsg === 1 && action.role === 'http-request' && action.data.method === 'GET') {
