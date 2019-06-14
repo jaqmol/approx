@@ -1,60 +1,35 @@
 const fs = require('fs');
-const readline = require('readline');
+const axmsg = require('./axmsg');
+const errors = new axmsg.Errors('lookup_media_type');
+const reader = new axmsg.Reader(process.stdin);
+const writer = new axmsg.Writer(process.stdout);
 
 readMediaTypeForExtension((err, mediaTypeForExt) => {
   if (err) {
-    logError(err);
-    process.exit(1);
+    errors.logFatal(err);
   } else {
     listenForInput(mediaTypeForExt);
   }
-})
-
-function logError(id, err) {
-  const errActn = {
-    axmsg: 1,
-    id,
-    role: 'error',
-    data: {
-      source: "lookup_mime_type",
-      code: 10001,
-      message: err.message,
-      fileName: err.fileName,
-      lineNumber: err.lineNumber,
-    },
-  };
-  const errStr = JSON.stringify(errActn) + '\n';
-  process.std.write(errStr, 'utf8');
-}
+});
 
 function listenForInput(mediaTypeForExt) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    crlfDelay: Infinity
-  });
-
-  rl.on('line', (line) => {
-    // input example:
+  reader.on((action) => {
+        // input example:
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/index.html"}}
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/images/logo.png"}}
-    const inActn = JSON.parse(line);
-    if (inActn.axmsg === 1 && inActn.role === 'http-request' && inActn.data.method === 'GET') {
-      let extension = filenameExtension(inActn.data.url);
+    if (action.axmsg === 1 && action.role === 'http-request' && action.data.method === 'GET') {
+      let extension = filenameExtension(action.data.url);
       extension = extension === '' ? '.html' : extension;
       const mediaType = mediaTypeForExt[extension];
-      const outActn = {
-        axmsg: 1,
-        id: inActn.id,
-        seq: inActn.seq,
+      writer.write({
+        id: action.id,
+        seq: action.seq,
         role: 'media-type',
         cmd: 'set-content-type',
-        data: {
-          extension,
-          mediaType,
-        },
-      };
-      const outputStr = JSON.stringify(outActn) + '\n';
-      process.stdout.write(outputStr, 'utf8');
+      }, {
+        extension,
+        mediaType,
+      });
     }
   });
 }
