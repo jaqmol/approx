@@ -5,7 +5,7 @@
       "$_read_file_base_path": "path"
     },
     "out": "_fork_request",
-    "in": "_order_mime_type_first"
+    "in": "_order_media_type_first"
   },
 
   "_fork_request": {
@@ -17,9 +17,9 @@
     ]
   },
 
-  "_order_mime_type_first": { 
+  "_order_media_type_first": { 
     "type": "process",
-    "command": "node lib/order_mime_type_first",
+    "command": "node lib/order_media_type_first",
     "in": "_merge_response"
   },
 

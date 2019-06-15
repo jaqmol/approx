@@ -49,6 +49,9 @@ class Writer {
   write(params, data) {
     const action = Object.assign({axmsg: 1}, params);
     action.data = data;
+    this.writeAction(action);
+  }
+  writeAction(action) {
     const output = JSON.stringify(action) + '\n';
     this.writable.write(output, 'utf8');
   }

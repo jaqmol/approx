@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const axmsg = require('./axmsg');
 const errors = new axmsg.Errors('lookup_media_type');
 const reader = new axmsg.Reader(process.stdin);
@@ -15,11 +16,11 @@ readMediaTypeForExtension((err, mediaTypeForExt) => {
 function listenForInput(mediaTypeForExt) {
   reader.on((action) => {
     // input example:
-    // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/index.html"}}
-    // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","url":"http://localhost:3000/images/logo.png"}}
+    // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","filePath":"../static/files/index.html"}}
+    // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","filePath":"../static/files/images/logo.png"}}
     if (action.axmsg === 1 && action.role === 'http-request' && action.data.method === 'GET') {
-      let extension = filenameExtension(action.data.url);
-      extension = extension === '' ? '.html' : extension;
+      const rawExt = path.extname(action.data.filePath);
+      const extension = rawExt === '' ? '.html' : rawExt;
       const mediaType = mediaTypeForExt[extension];
       writer.write({
         id: action.id,
@@ -32,13 +33,6 @@ function listenForInput(mediaTypeForExt) {
       });
     }
   });
-}
-
-function filenameExtension(urlString) {
-  const url = new URL(urlString);
-  const comps = url.pathname.split('/');
-  const filename = comps[comps.length-1];
-  return filename.slice(filename.lastIndexOf('.'));
 }
 
 function readMediaTypeForExtension(callback) {

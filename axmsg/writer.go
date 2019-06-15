@@ -14,6 +14,16 @@ func NewWriter(writer *bufio.Writer) *Writer {
 	}
 }
 
+// NewWriters ...
+func NewWriters(writers []bufio.Writer) []Writer {
+	acc := make([]Writer, 0)
+	for _, w := range writers {
+		msgWriter := NewWriter(&w)
+		acc = append(acc, *msgWriter)
+	}
+	return acc
+}
+
 func (w *Writer) Write(action *Action) error {
 	ab, err := action.Bytes()
 	if err != nil {
