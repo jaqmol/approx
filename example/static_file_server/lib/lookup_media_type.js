@@ -1,21 +1,38 @@
 const fs = require('fs');
 const path = require('path');
 const axmsg = require('./axmsg');
+const axenvs = require('./axenvs');
 const errors = new axmsg.Errors('lookup_media_type');
-const reader = new axmsg.Reader(process.stdin);
-const writer = new axmsg.Writer(process.stdout);
+const envs = new axenvs.Envs('lookup_media_type');
 
 readMediaTypeForExtension((err, mediaTypeForExt) => {
   if (err) {
     errors.logFatal(err);
   } else {
-    listenForInput(mediaTypeForExt);
+    openInputOutputAndListen(mediaTypeForExt);
   }
 });
 
-function listenForInput(mediaTypeForExt) {
+function openInputOutputAndListen(mediaTypeForExt) {
+  const [ins, outs] = envs.insOuts();
+  let fatalErrors = false;
+  if (ins.length !== 1) {
+    errors.log(null, new Error(`Exactly 1 input expected, but got: ${ins.length}`));
+    fatalErrors = true;
+  }
+  if (outs.length !== 1) {
+    errors.log(null, new Error(`Exactly 1 output expected, but got: ${out.length}`));
+    fatalErrors = true;
+  }
+  if (fatalErrors) {
+    errors.logFatal(null, new Error("Too many fatal errors, can't run"));
+  }
+  startListening(ins[0], outs[0], mediaTypeForExt);
+}
+
+function startListening(reader, writer, mediaTypeForExt) {
   reader.on((action) => {
-    // input example:
+    // input examples:
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","filePath":"../static/files/index.html"}}
     // {"axmsg":1,"id":21,"role":"http-request","data":{"method":"GET","filePath":"../static/files/images/logo.png"}}
     if (action.axmsg === 1 && action.role === 'http-request' && action.data.method === 'GET') {

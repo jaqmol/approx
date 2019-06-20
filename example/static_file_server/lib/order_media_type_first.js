@@ -1,47 +1,93 @@
-const fs = require('fs');
 const axmsg = require('./axmsg');
-// const errors = new axmsg.Errors('read_file');
-const reader = new axmsg.Reader(process.stdin);
-const writer = new axmsg.Writer(process.stdout);
+const axenvs = require('./axenvs');
+const errors = new axmsg.Errors('order_media_type_first');
+const envs = new axenvs.Envs('order_media_type_first');
 
-let mediaTypeForId = {};
-let dataForId = {};
+const [ins, outs] = envs.insOuts();
+let fatalErrors = false;
+if (ins.length !== 1) {
+  errors.log(null, new Error(`Exactly 1 input expected, but got: ${ins.length}`));
+  fatalErrors = true;
+}
+if (outs.length !== 1) {
+  errors.log(null, new Error(`Exactly 1 output expected, but got: ${out.length}`));
+  fatalErrors = true;
+}
+if (fatalErrors) {
+  errors.logFatal(null, new Error("Too many fatal errors, can't run"));
+}
+startListening(ins[0], outs[0]);
 
-reader.on((action) => {
-  // input example:
-  // {"axmsg":1,"id":21,"role":"media-type","cmd":"set-content-type","data":{"extension":".html","mediaType":"text/html"}}
-  // {"axmsg":1,"id":21,"role":"response-data","cmd":"respond-with-data","data":{"status":200,"bodyB64":"bG9vaywgdGhlcmUncyBubyBvdXRzaWRl"}}
-  // {"axmsg":1,"id":21,"role":"response-data","cmd":"respond-with-error","data":{"status":404}}
-  if (action.axmsg === 1) {
-    if (action.role === 'media-type' && action.cmd === 'set-content-type') {
-      mediaTypeForId[action.id] = action;
-    } else if (action.role === 'response-data') {
-      dataForId[action.id] = action;
-    }
-  }
-  const flushedIDs = flushIfPossible();
-  clearAllForIDs(flushedIDs);
-});
-
-function flushIfPossible() {
-  const acc = [];
-  for (var id in mediaTypeForId) {
-    const data = dataForId[id];
-    if (data) {
-      if (data.cmd === 'respond-with-data') {
-        const mediaType = mediaTypeForId[id];
-        writer.writeAction(mediaType  );
+function startListening(reader, writer) {
+  const actionsBuffer = composeBuffer(writer);
+  reader.on(action => {
+    // input example:
+    // {"axmsg":1,"id":21,"role":"media-type","cmd":"set-content-type","data":{"extension":".html","mediaType":"text/html"}}
+    // {"axmsg":1,"id":21,"role":"response-data","cmd":"respond-with-data","data":{"status":200,"bodyB64":"bG9vaywgdGhlcmUncyBubyBvdXRzaWRl"}}
+    // {"axmsg":1,"id":21,"role":"response-data","cmd":"respond-with-error","data":{"status":404}}
+    if (actionsBuffer.addMediaTypeActionIfViable(action)) {
+      actionsBuffer.flushIfViable();
+    } else if (actionsBuffer.addResponseDataActionIfViable(action)) {
+      actionsBuffer.flushIfViable();
+    } else {
+      if (action.id) {
+        actionsBuffer.clearIDs([action.id]);
       }
-      writer.writeAction(data);
-      acc.push(id);
+      errors.log(action.id, new Error(`Unknown action: ${JSON.stringify(action)}`));
     }
-  }
-  return acc;
+  });
 }
 
-function clearAllForIDs(ids) {
-  for (let id of ids) {
-    mediaTypeForId[id] = undefined;
-    dataForId[id] = undefined;
-  }
+function composeBuffer(writer) {
+  const mediaTypeActions = {};
+  const responseDataActions = {};
+
+  const isMediaTypeAction = action => {
+    return action.axmsg === 1 && action.role === 'media-type' && action.cmd === 'set-content-type';
+  };
+  
+  const isResponseDataAction = action => {
+    return action.axmsg === 1 && action.role === 'response-data';
+  };
+
+  const addMediaTypeActionIfViable = action => {
+    if (!isMediaTypeAction(action)) return false;
+    mediaTypeActions[action.id] = action;
+    return true;
+  };
+
+  const addResponseDataActionIfViable = action => {
+    if (!isResponseDataAction(action)) return false;
+    responseDataActions[action.id] = action;
+    return true;
+  };
+
+  const flushIfViable = () => {
+    const flushableIDs = Object.keys(mediaTypeActions);
+    const clearableIDs = [];
+    for (let id of flushableIDs) {
+      const responseData = responseDataActions[id];
+      if (responseData) {
+        const mediaType = mediaTypeActions[id];
+        writer.writeAction(mediaType);
+        writer.writeAction(responseData);
+        clearableIDs.push(id);
+      }
+    }
+    clearIDs(clearableIDs);
+  };
+
+  const clearIDs = ids => {
+    for (let id of ids) {
+      delete mediaTypeActions[id];
+      delete responseDataActions[id];
+    }
+  };
+
+  return {
+    addMediaTypeActionIfViable,
+    addResponseDataActionIfViable,
+    flushIfViable,
+    clearIDs,
+  };
 }
