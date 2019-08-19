@@ -1,0 +1,26 @@
+HttpServer StaticFileServer:
+  ASSIGN:
+    $staticBasePath: ENV.PATH
+
+Fork forkRequest:
+  ENV.DISTRIBUTE: copy
+   
+Process orderMediaTypeFirst:
+  COMMAND: node lib/orderMediaTypeFirst
+
+Merge mergeResponse:
+  ENV.PICK: as_comes
+
+Process lookupMediaType:
+  COMMAND: node lib/lookupMediaType
+
+Process readFile:
+  ASSIGN:
+    ENV.BASE_PATH: $staticBasePath
+  COMMAND: node lib/readFile
+
+Flow:
+  - StaticFileServer -> forkRequest
+  - forkRequest -> lookupMediaType -> mergeResponse
+  - forkRequest -> readFile -> mergeResponse
+  - mergeResponse -> orderMediaTypeFirst -> StaticFileServer

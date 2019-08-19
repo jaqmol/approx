@@ -1,34 +1,32 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"fmt"
+	"io/ioutil"
+	"log"
 
-	"github.com/jaqmol/approx/axmsg"
-	"github.com/jaqmol/approx/flow"
-	"github.com/jaqmol/approx/run"
-	"github.com/jaqmol/approx/visualize"
+	"gopkg.in/yaml.v2"
 )
 
+// Definition ...
+type Definition struct {
+	Assign  map[string]string
+	Env     map[string]string
+	Command string
+}
+
 func main() {
-	errMsg := &axmsg.Errors{Source: "approx"}
-	fl := flow.Init(errMsg)
-	visualize.Flow(fl)
+	files, err := ioutil.ReadDir("./")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	rnnr := run.NewRunner(errMsg, fl)
-	rnnr.InitProcessors()
-	rnnr.Start()
+	for _, f := range files {
+		fmt.Println(f.Name())
+	}
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	// go func() {
-	<-c
-	rnnr.Cleanup()
-	os.Exit(1)
-	// }()
-
-	// for err := range errChan {
-	// 	log.Fatalln(err.Error())
-	// }
+	var dat map[string]interface{}
+	if err := yaml.Unmarshal(byt, &dat); err != nil {
+		panic(err)
+	}
 }
