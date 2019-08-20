@@ -3,13 +3,15 @@ HttpServer StaticFileServer:
     $staticBasePath: ENV.PATH
 
 Fork forkRequest:
-  ENV.DISTRIBUTE: copy
+  ENV:
+    DISTRIBUTE: copy
    
 Process orderMediaTypeFirst:
   COMMAND: node lib/orderMediaTypeFirst
 
 Merge mergeResponse:
-  ENV.PICK: as_comes
+  ENV:
+    PICK: as_comes
 
 Process lookupMediaType:
   COMMAND: node lib/lookupMediaType
