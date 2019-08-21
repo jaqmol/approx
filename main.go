@@ -7,7 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jaqmol/approx/check"
 	"github.com/jaqmol/approx/definition"
+	"github.com/jaqmol/approx/flow"
+	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
 )
 
@@ -45,11 +48,20 @@ func main() {
 		log.Fatalf("error: %v", err)
 	}
 
-	rawFlow := findRawFlow(rawFormation)
-	fmt.Printf("rawFlow: %v\n", rawFlow)
+	flows := flow.Parse(rawFormation)
+	fmt.Printf("flows: %v\n", flows)
 
 	definitions := definition.Parse(rawFormation)
 	fmt.Printf("definitions: %v\n", definitions)
+
+	processors := run.MakeProcessors(definitions)
+	pipes := run.MakePipes(processors, flows)
+
+	run.Connect(processors, flows, pipes)
+
+	// TODO: Should start
+
+	check.Check(definitions, flows)
 }
 
 func formationFilePath() string {
@@ -58,19 +70,4 @@ func formationFilePath() string {
 		log.Fatal(err)
 	}
 	return formationPath
-}
-
-func findRawFlow(rawFormation map[interface{}]interface{}) []string {
-	for key, value := range rawFormation {
-		if key == "Flow" {
-			interfaceSlice := value.([]interface{})
-			rawFlow := make([]string, len(interfaceSlice))
-			for _, interfaceLine := range interfaceSlice {
-				line := interfaceLine.(string)
-				rawFlow = append(rawFlow, line)
-			}
-			return rawFlow
-		}
-	}
-	return nil
 }

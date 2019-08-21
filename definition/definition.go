@@ -17,8 +17,8 @@ func (d *Definition) IsPublic() bool {
 	return first == strings.ToUpper(first)
 }
 
-// IsPrivate ...
-func (d *Definition) IsPrivate() bool {
-	first := d.Name[:1]
-	return first == strings.ToLower(first)
-}
+// // IsPrivate ...
+// func (d *Definition) IsPrivate() bool {
+// 	first := d.Name[:1]
+// 	return first == strings.ToLower(first)
+// }
