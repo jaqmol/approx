@@ -49,16 +49,18 @@ func main() {
 		log.Fatalf("error: %v", err)
 	}
 
-	flows := flow.Parse(rawFormation)
-	fmt.Printf("flows: %v\n", flows)
-
 	definitions := definition.Parse(rawFormation)
 	fmt.Printf("definitions: %v\n", definitions)
+
+	assigns := assign.Parse(rawFormation)
+	fmt.Printf("assigns: %v\n", assigns)
+
+	flows := flow.Parse(rawFormation)
+	fmt.Printf("flows: %v\n", flows)
 
 	processors := run.MakeProcessors(definitions, flows)
 	pipes := run.MakePipes(processors, flows)
 
-	assign.Variables(definitions)
 	run.Connect(processors, flows, pipes)
 
 	// TODO: Should start

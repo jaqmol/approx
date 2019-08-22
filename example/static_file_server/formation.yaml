@@ -1,8 +1,7 @@
 HttpServer StaticFileServer:
   ENV:
     PATH: null
-  ASSIGN:
-    $staticBasePath: ENV.PATH
+    PORT: 8080
 
 Fork forkRequest:
   ENV.DISTRIBUTE: copy
@@ -18,9 +17,11 @@ Process lookupMediaType:
   COMMAND: node lib/lookupMediaType
 
 Process readFile:
-  ASSIGN:
-    ENV.BASE_PATH: $staticBasePath
+  ENV.BASE_PATH: $staticBasePath
   COMMAND: node lib/readFile
+
+Assign:
+  $staticBasePath: StaticFileServer.ENV.PATH
 
 Flow:
   - StaticFileServer -> forkRequest

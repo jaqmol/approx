@@ -9,7 +9,6 @@ import (
 type Definition struct {
 	Type    Type
 	Name    string
-	Assign  map[string]string
 	Env     map[string]*string
 	Command string
 }
