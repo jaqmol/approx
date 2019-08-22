@@ -17,14 +17,36 @@ func Parse(rawFormation map[interface{}]interface{}) []Definition {
 				case "ASSIGN":
 					definition.Assign = toStringMap(interfaceValue)
 				case "ENV":
-					definition.Env = toStringMap(interfaceValue)
+					definition.Env = toStringPointerMap(interfaceValue)
 				case "COMMAND":
 					definition.Command = interfaceValue.(string)
+				default:
+					if strings.HasPrefix(key, "ENV") {
+						definition.Env = parseKeyPathEnvAssignment(key, interfaceValue)
+					}
 				}
 			}
-			// fmt.Printf("definition: %v\n", definition)
 			acc = append(acc, definition)
 		}
+	}
+	return acc
+}
+
+func parseKeyPathEnvAssignment(keyPathEnv string, interfaceValue interface{}) map[string]*string {
+	env := make(map[string]*string)
+	keyIdx := strings.Index(keyPathEnv, ".") + 1
+	key := keyPathEnv[keyIdx:]
+	value := interfaceValue.(string)
+	env[key] = &value
+	return env
+}
+
+func toStringSlice(interfaceValue interface{}) []string {
+	interfaceSlice := interfaceValue.([]interface{})
+	acc := make([]string, 0)
+	for _, interfaceValue := range interfaceSlice {
+		value := interfaceValue.(string)
+		acc = append(acc, value)
 	}
 	return acc
 }
@@ -36,6 +58,21 @@ func toStringMap(interfaceValue interface{}) map[string]string {
 		key := interfaceKey.(string)
 		value := interfaceValue.(string)
 		acc[key] = value
+	}
+	return acc
+}
+
+func toStringPointerMap(interfaceValue interface{}) map[string]*string {
+	interfaceMap := interfaceValue.(map[interface{}]interface{})
+	acc := make(map[string]*string)
+	for interfaceKey, interfaceValue := range interfaceMap {
+		key := interfaceKey.(string)
+		if interfaceValue == nil {
+			acc[key] = nil
+		} else {
+			value := interfaceValue.(*string)
+			acc[key] = value
+		}
 	}
 	return acc
 }

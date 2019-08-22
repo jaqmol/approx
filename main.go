@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jaqmol/approx/assign"
 	"github.com/jaqmol/approx/check"
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/flow"
@@ -54,9 +55,10 @@ func main() {
 	definitions := definition.Parse(rawFormation)
 	fmt.Printf("definitions: %v\n", definitions)
 
-	processors := run.MakeProcessors(definitions)
+	processors := run.MakeProcessors(definitions, flows)
 	pipes := run.MakePipes(processors, flows)
 
+	assign.Variables(definitions)
 	run.Connect(processors, flows, pipes)
 
 	// TODO: Should start

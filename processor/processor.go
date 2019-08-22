@@ -10,5 +10,7 @@ import (
 type Processor interface {
 	SetStdin(io.Reader)
 	SetStdout(io.Writer)
-	Definition() definition.Definition
+	SetStderr(io.Writer)
+	Definition() *definition.Definition
+	Start()
 }

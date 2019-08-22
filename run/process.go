@@ -1,47 +1,58 @@
 package run
 
 import (
-	"fmt"
 	"io"
+	"os"
 	"os/exec"
 
+	"github.com/jaqmol/approx/builtin"
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/processor"
 )
 
 // Process ...
 type Process struct {
-	Cmd exec.Cmd
-	Def definition.Definition
+	cmd exec.Cmd
+	def definition.Definition
 }
 
 // SetStdin ...
 func (p *Process) SetStdin(r io.Reader) {
-	p.Cmd.Stdin = r
+	p.cmd.Stdin = r
 }
 
 // SetStdout ...
 func (p *Process) SetStdout(w io.Writer) {
-	p.Cmd.Stdout = w
+	p.cmd.Stdout = w
+}
+
+// SetStderr ...
+func (p *Process) SetStderr(w io.Writer) {
+	p.cmd.Stderr = w
 }
 
 // Definition ...
-func (p *Process) Definition() definition.Definition {
-	return p.Def
+func (p *Process) Definition() *definition.Definition {
+	return &p.def
+}
+
+// Start ...
+func (p *Process) Start() {
+
 }
 
 // MakeProcess ...
 func MakeProcess(def *definition.Definition) *Process {
 	proc := Process{
-		Cmd: *exec.Command(def.Command),
-		Def: *def,
+		cmd: *exec.Command(def.Command),
+		def: *def,
 	}
-	proc.Cmd.Env = envSliceFromMap(def.Env)
+	proc.cmd.Env = def.EnvSlice()
 	return &proc
 }
 
 // MakeProcessors ...
-func MakeProcessors(definitions []definition.Definition) []processor.Processor {
+func MakeProcessors(definitions []definition.Definition, flows map[string][]string) []processor.Processor {
 	processors := make([]processor.Processor, len(definitions))
 
 	idx := 0
@@ -57,20 +68,11 @@ func MakeProcessors(definitions []definition.Definition) []processor.Processor {
 		case definition.TypeProcess:
 			proc = MakeProcess(&def)
 		}
+		proc.SetStderr(os.Stderr)
 		// ^^ append(os.Environ(), ...)
 		processors[idx] = proc
 		idx++
 	}
 
 	return processors
-}
-
-func envSliceFromMap(envMap map[string]string) []string {
-	acc := make([]string, len(envMap))
-	idx := 0
-	for key, value := range envMap {
-		acc[idx] = fmt.Sprintf("%v=%v", key, value)
-		idx++
-	}
-	return acc
 }

@@ -1,17 +1,18 @@
 HttpServer StaticFileServer:
+  ENV:
+    PATH: null
   ASSIGN:
     $staticBasePath: ENV.PATH
 
 Fork forkRequest:
-  ENV:
-    DISTRIBUTE: copy
+  ENV.DISTRIBUTE: copy
    
 Process orderMediaTypeFirst:
   COMMAND: node lib/orderMediaTypeFirst
 
-Merge mergeResponse:
-  ENV:
-    PICK: as_comes
+# There don't seem to be reasons to have this configurable
+# ENV.PICK: as_comes
+Merge mergeResponse: {}
 
 Process lookupMediaType:
   COMMAND: node lib/lookupMediaType
