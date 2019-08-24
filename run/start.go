@@ -6,5 +6,7 @@ import (
 
 // Start ...
 func Start(procs []processor.Processor) {
-	// TODO
+	for _, p := range procs {
+		p.Start()
+	}
 }

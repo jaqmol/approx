@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -59,8 +61,10 @@ func main() {
 	processors := run.MakeProcessors(definitions, flows)
 	pipes := run.MakePipes(processors, flows)
 
-	run.Connect(processors, flows, pipes)
-	run.Start(processors) // TODO
+	errReader, errWriter := io.Pipe()
+	run.Connect(processors, flows, pipes, errWriter)
+	run.Start(processors)
+	expectErrorMessages(errReader)
 }
 
 func formationFilePath() string {
@@ -69,4 +73,19 @@ func formationFilePath() string {
 		log.Fatal(err)
 	}
 	return formationPath
+}
+
+func expectErrorMessages(errReader io.Reader) {
+	scanner := bufio.NewScanner(errReader)
+	for scanner.Scan() {
+		errBytes := scanner.Bytes()
+		os.Stderr.Write(errBytes)
+		// var msg message.Message
+		// err := json.Unmarshal(errBytes, &msg)
+		// if err != nil {
+		// 	message.WriteError(f.stderr, "", err.Error())
+		// } else {
+		// 	f.writeDistribute(&msg)
+		// }
+	}
 }

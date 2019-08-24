@@ -1,10 +1,12 @@
-package builtin
+package httpserver
 
 import (
-	"fmt"
 	"io"
-	"net/http"
+	"log"
+	"os"
+	"time"
 
+	"github.com/ReneKroon/ttlcache"
 	"github.com/jaqmol/approx/definition"
 )
 
@@ -17,6 +19,7 @@ type HTTPServer struct {
 	stdout  io.Writer
 	stderr  io.Writer
 	running bool
+	cache   *ttlcache.Cache
 }
 
 // SetStdin ...
@@ -41,14 +44,29 @@ func (h *HTTPServer) Definition() *definition.Definition {
 
 // Start ...
 func (h *HTTPServer) Start() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Welcome to my website!")
-	})
+	portStr := *h.def.Env["PORT"]
+	port := strToInt(portStr)
+	go h.startReceiving(port)
+	go h.startResponding()
+	log.Printf("Server running at %v\n", port)
 }
 
 // MakeHTTPServer ...
-func MakeHTTPServer(def *definition.Definition) *HTTPServer {
-	return &HTTPServer{
-		def: *def,
+func MakeHTTPServer(def *definition.Definition, upstreamTimeout time.Duration) *HTTPServer {
+	if upstreamTimeout <= 0 {
+		upstreamTimeout = 10000
+	}
+	h := &HTTPServer{
+		def:   *def,
+		cache: ttlcache.NewCache(),
+	}
+	h.cache.SetTTL(upstreamTimeout)
+	return h
+}
+
+func catch(err error) {
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(-1)
 	}
 }

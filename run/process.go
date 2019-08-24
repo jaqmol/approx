@@ -2,7 +2,6 @@ package run
 
 import (
 	"io"
-	"os"
 	"os/exec"
 
 	"github.com/jaqmol/approx/builtin"
@@ -68,8 +67,6 @@ func MakeProcessors(definitions []definition.Definition, flows map[string][]stri
 		case definition.TypeProcess:
 			proc = MakeProcess(&def)
 		}
-		proc.SetStderr(os.Stderr)
-		// ^^ append(os.Environ(), ...)
 		processors[idx] = proc
 		idx++
 	}
