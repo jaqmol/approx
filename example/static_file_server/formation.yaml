@@ -1,6 +1,6 @@
 HttpServer StaticFileServer:
   ENV:
-    PATH: null
+    STATIC_PATH: null
     PORT: 8080
 
 Fork forkRequest:
@@ -21,7 +21,7 @@ Process readFile:
   COMMAND: node lib/readFile
 
 Assign:
-  $staticBasePath: StaticFileServer.ENV.PATH
+  $staticBasePath: StaticFileServer.ENV.STATIC_PATH
 
 Flow:
   - StaticFileServer -> forkRequest

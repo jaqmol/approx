@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"github.com/jaqmol/approx/assign"
 	"github.com/jaqmol/approx/check"
 	"github.com/jaqmol/approx/definition"
+	"github.com/jaqmol/approx/env"
 	"github.com/jaqmol/approx/flow"
 	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
@@ -50,13 +50,11 @@ func main() {
 	}
 
 	definitions := definition.Parse(rawFormation)
-	fmt.Printf("definitions: %v\n", definitions)
-
-	assigns := assign.Parse(rawFormation)
-	fmt.Printf("assigns: %v\n", assigns)
+	env.AugmentMissing(definitions)                    // 1. order is important
+	assign.ResolveVariables(rawFormation, definitions) // 2. order is important
 
 	flows := flow.Parse(rawFormation)
-	fmt.Printf("flows: %v\n", flows)
+	check.Check(definitions, flows)
 
 	processors := run.MakeProcessors(definitions, flows)
 	pipes := run.MakePipes(processors, flows)
@@ -64,8 +62,6 @@ func main() {
 	run.Connect(processors, flows, pipes)
 
 	// TODO: Should start
-
-	check.Check(definitions, flows)
 }
 
 func formationFilePath() string {

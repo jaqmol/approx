@@ -8,16 +8,14 @@ import (
 
 // Check ...
 func Check(definitions []definition.Definition, flows map[string][]string) {
-	if !hasOnePublicDefinition(definitions) {
-		log.Fatal("Found more than one public definition")
-	}
+	hasOnePublicDefinition(definitions)
 	defTypeForName := makeDefTypeForNameMap(definitions)
 	forkesHaveCorrectFlow(flows, defTypeForName)
 	mergesHaveCorrectFlow(flows, defTypeForName)
 	processesHaveCorrectFlow(flows, defTypeForName)
 }
 
-func hasOnePublicDefinition(definitions []definition.Definition) bool {
+func hasOnePublicDefinition(definitions []definition.Definition) {
 	counter := 0
 	for _, d := range definitions {
 		if d.IsPublic() {
@@ -27,7 +25,9 @@ func hasOnePublicDefinition(definitions []definition.Definition) bool {
 			}
 		}
 	}
-	return counter == 1
+	if counter != 1 {
+		log.Fatal("Found more than one public definition")
+	}
 }
 
 func forkesHaveCorrectFlow(flows map[string][]string, defTypeForName map[string]definition.Type) {
