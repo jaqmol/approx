@@ -60,8 +60,7 @@ func main() {
 	pipes := run.MakePipes(processors, flows)
 
 	run.Connect(processors, flows, pipes)
-
-	// TODO: Should start
+	run.Start(processors) // TODO
 }
 
 func formationFilePath() string {
