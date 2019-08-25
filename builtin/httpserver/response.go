@@ -17,65 +17,58 @@ func (h *HTTPServer) startResponding() {
 		var msg message.Message
 		err := json.Unmarshal(msgBytes, &msg)
 		if err != nil {
-			message.WriteError(h.stderr, "", err.Error())
+			message.WriteError(h.stderr, message.Fail, "", err.Error())
 		} else {
 			h.respond(&msg)
 		}
 	}
 }
 
-func (h *HTTPServer) respond(msg *message.Message) {
-	// {}{
-	// 	"method":  r.Method,
-	// 	"url":     urlMap(r),
-	// 	"headers": headerToMap(r.Header),
-	// 	"body":    *body,
-	// }
+func (h *HTTPServer) respond(msg *message.Message) bool {
 	rw, ok := h.uncacheResponseWriter(msg.ID)
 	if ok {
 		payloadBytes := msg.Payload
 		var payload map[string]interface{}
 		err := json.Unmarshal(payloadBytes, &payload)
 		if err != nil {
-			message.WriteError(rw, msg.ID, err.Error())
-			rw.WriteHeader(500)
-			return
+			return respond500Error(rw, msg, err)
 		}
 		status, err := statusFromResponsePayload(payload)
 		if err != nil {
-			message.WriteError(rw, msg.ID, err.Error())
-			rw.WriteHeader(500)
-			return
+			return respond500Error(rw, msg, err)
 		}
 		contentType, err := contentTypeFromResponsePayload(payload)
 		if err != nil {
-			message.WriteError(rw, msg.ID, err.Error())
-			rw.WriteHeader(500)
-			return
+			return respond500Error(rw, msg, err)
 		}
 		rw.Header().Set("Content-Type", contentType)
 		body, err := bodyFromResponsePayload(payload)
 		if err != nil {
-			message.WriteError(rw, msg.ID, err.Error())
-			rw.WriteHeader(500)
-			return
+			return respond500Error(rw, msg, err)
 		}
 		_, err = rw.Write(body)
 		if err != nil {
-			message.WriteError(rw, msg.ID, err.Error())
-			rw.WriteHeader(500)
-			return
+			return respond500Error(rw, msg, err)
 		}
 		rw.WriteHeader(status)
-	} else {
-		message.WriteError(h.stderr, msg.ID, "Response timeout: message too late for response")
+		return true
 	}
+	message.WriteError(h.stderr, message.Fail, msg.ID, "Response timeout: message too late for response")
+	return false
 }
 
-func (h *HTTPServer) uncacheResponseWriter(id string) (w http.ResponseWriter, ok bool) {
+func respond500Error(rw http.ResponseWriter, msg *message.Message, err error) bool {
+	rw.Header().Set("Content-Type", "application/json")
+	message.WriteError(rw, message.Fail, msg.ID, err.Error())
+	rw.WriteHeader(500)
+	return false
+}
+
+func (h *HTTPServer) uncacheResponseWriter(id string) (rw http.ResponseWriter, ok bool) {
 	wInfh, ok := h.cache.Get(id)
 	if ok {
-		w = wInfh.(http.ResponseWriter)
+		rw = wInfh.(http.ResponseWriter)
+		h.cache.Remove(id)
 	}
 	return
 }

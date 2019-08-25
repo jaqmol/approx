@@ -1,6 +1,7 @@
 HttpServer StaticFileServer:
   ENV:
     STATIC_PATH: null
+    TIMEOUT: 10s
     PORT: 8080
 
 Fork forkRequest:

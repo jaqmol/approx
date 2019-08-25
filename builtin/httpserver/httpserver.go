@@ -52,15 +52,23 @@ func (h *HTTPServer) Start() {
 }
 
 // MakeHTTPServer ...
-func MakeHTTPServer(def *definition.Definition, upstreamTimeout time.Duration) *HTTPServer {
-	if upstreamTimeout <= 0 {
-		upstreamTimeout = 10000
-	}
+func MakeHTTPServer(def *definition.Definition) *HTTPServer {
 	h := &HTTPServer{
 		def:   *def,
 		cache: ttlcache.NewCache(),
 	}
-	h.cache.SetTTL(upstreamTimeout)
+	var timeout time.Duration
+	timeoutStr, ok := def.Env["TIMEOUT"]
+	if ok && len(*timeoutStr) > 0 {
+		var err error
+		timeout, err = time.ParseDuration(*timeoutStr)
+		if err != nil {
+			catch(err)
+		}
+	} else {
+		timeout, _ = time.ParseDuration("10s")
+	}
+	h.cache.SetTTL(timeout)
 	return h
 }
 

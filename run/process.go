@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/jaqmol/approx/builtin"
+	"github.com/jaqmol/approx/builtin/httpserver"
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/processor"
 )
@@ -59,7 +60,7 @@ func MakeProcessors(definitions []definition.Definition, flows map[string][]stri
 		var proc processor.Processor
 		switch def.Type {
 		case definition.TypeHTTPServer:
-			proc = builtin.MakeHTTPServer(&def)
+			proc = httpserver.MakeHTTPServer(&def)
 		case definition.TypeFork:
 			proc = builtin.MakeFork(&def)
 		case definition.TypeMerge:

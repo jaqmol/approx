@@ -80,6 +80,13 @@ func expectErrorMessages(errReader io.Reader) {
 	for scanner.Scan() {
 		errBytes := scanner.Bytes()
 		os.Stderr.Write(errBytes)
+		// TODO:
+		// Handle logging and error messages:
+		// - Inform
+		// - Warn
+		// - Fail
+		// - Exit
+
 		// var msg message.Message
 		// err := json.Unmarshal(errBytes, &msg)
 		// if err != nil {
