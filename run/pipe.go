@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jaqmol/approx/processor"
+	"github.com/jaqmol/approx/definition"
 )
 
 // MakePipes ...
-func MakePipes(processors []processor.Processor, flows map[string][]string) map[string]Pipe {
+func MakePipes(definitions []definition.Definition, flows map[string][]string) map[string]Pipe {
 	acc := make(map[string]Pipe)
 
-	for _, fromProc := range processors {
-		fromName := fromProc.Definition().Name
+	for _, fromDef := range definitions {
+		fromName := fromDef.Name
 		toNames := flows[fromName]
 
 		for _, toName := range toNames {
@@ -20,6 +20,18 @@ func MakePipes(processors []processor.Processor, flows map[string][]string) map[
 			reader, writer := io.Pipe()
 			acc[key] = Pipe{Reader: reader, Writer: writer}
 		}
+	}
+
+	return acc
+}
+
+// MakeStderrs ...
+func MakeStderrs(definitions []definition.Definition) map[string]Pipe {
+	acc := make(map[string]Pipe)
+
+	for _, def := range definitions {
+		reader, writer := io.Pipe()
+		acc[def.Name] = Pipe{Reader: reader, Writer: writer}
 	}
 
 	return acc

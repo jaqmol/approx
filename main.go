@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,6 +15,7 @@ import (
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/env"
 	"github.com/jaqmol/approx/flow"
+	"github.com/jaqmol/approx/message"
 	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
 )
@@ -59,12 +62,12 @@ func main() {
 	check.Check(definitions, flows)
 
 	processors := run.MakeProcessors(definitions, flows)
-	pipes := run.MakePipes(processors, flows)
+	pipes := run.MakePipes(definitions, flows)
+	stdErrs := run.MakeStderrs(definitions)
 
-	errReader, errWriter := io.Pipe()
-	run.Connect(processors, flows, pipes, errWriter)
+	run.Connect(processors, flows, pipes, stdErrs)
 	run.Start(processors)
-	expectErrorMessages(errReader)
+	listenForErrorMessages(stdErrs)
 }
 
 func formationFilePath() string {
@@ -75,24 +78,31 @@ func formationFilePath() string {
 	return formationPath
 }
 
-func expectErrorMessages(errReader io.Reader) {
+func listenForErrorMessages(stdErrs map[string]run.Pipe) {
+	errChan := make(chan message.SourcedErrorMessage)
+	for procName, errPipe := range stdErrs {
+		go listenForErrorMessage(errChan, procName, errPipe.Reader)
+	}
+	for errMsg := range errChan {
+		errType := message.ErrorTypeForString[errMsg.Cmd]
+		errMsg.WriteTo(os.Stderr)
+		if errType == message.Exit {
+			os.Exit(-1)
+		}
+	}
+}
+
+func listenForErrorMessage(errChan chan<- message.SourcedErrorMessage, procName string, errReader io.Reader) {
 	scanner := bufio.NewScanner(errReader)
 	for scanner.Scan() {
 		errBytes := scanner.Bytes()
-		os.Stderr.Write(errBytes)
-		// TODO:
-		// Handle logging and error messages:
-		// - Inform
-		// - Warn
-		// - Fail
-		// - Exit
-
-		// var msg message.Message
-		// err := json.Unmarshal(errBytes, &msg)
-		// if err != nil {
-		// 	message.WriteError(f.stderr, "", err.Error())
-		// } else {
-		// 	f.writeDistribute(&msg)
-		// }
+		var msg *message.Message
+		err := json.Unmarshal(errBytes, msg)
+		if err != nil {
+			errStr := fmt.Sprintf("Error parsing error-message from processor %v: %v", procName, err.Error())
+			msg = message.NewError(message.Exit, "", errStr)
+		}
+		sourcedMsg := msg.ToSourcedErrorMessage(procName)
+		errChan <- *sourcedMsg
 	}
 }
