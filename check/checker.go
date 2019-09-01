@@ -2,6 +2,8 @@ package check
 
 import (
 	"log"
+	"os/exec"
+	"strings"
 
 	"github.com/jaqmol/approx/definition"
 )
@@ -13,6 +15,7 @@ func Check(definitions []definition.Definition, flows map[string][]string) {
 	forkesHaveCorrectFlow(flows, defTypeForName)
 	mergesHaveCorrectFlow(flows, defTypeForName)
 	processesHaveCorrectFlow(flows, defTypeForName)
+	executablesExist(definitions)
 }
 
 func hasOnePublicDefinition(definitions []definition.Definition) {
@@ -149,4 +152,20 @@ func insAndOutsForType(
 		}
 	}
 	return insCount, outsCount
+}
+
+func executablesExist(definitions []definition.Definition) {
+	notFound := make([]string, 0)
+	for _, d := range definitions {
+		if d.Type == definition.TypeProcess {
+			executable := strings.Split(d.Command, " ")[0]
+			_, err := exec.LookPath(executable)
+			if err != nil {
+				notFound = append(notFound, executable)
+			}
+		}
+	}
+	if len(notFound) > 0 {
+		log.Fatalf("Process executables not found: %v\n", strings.Join(notFound, ", "))
+	}
 }

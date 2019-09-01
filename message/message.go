@@ -15,5 +15,5 @@ type Message struct {
 	// If fork is used for parallelizing, sequence indicates on which parallel code path (sequence) a message is running
 	Sequence int `json:"sequence,omitempty"`
 	// Represents the transport payload of a message, binary data is represented as a base-64 string
-	Payload json.RawMessage `json:"payload,omitempty"`
+	Payload *json.RawMessage `json:"payload,omitempty"`
 }

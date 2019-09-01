@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -48,7 +49,7 @@ func (m *Message) ToSourcedErrorMessage(source string) *SourcedErrorMessage {
 		Sequence: m.Sequence,
 		Payload: SourcedErrorMessagePayload{
 			Processor: source,
-			Message:   string(m.Payload),
+			Message:   string(*m.Payload),
 		},
 	}
 }
@@ -88,11 +89,13 @@ var ErrorTypeForString = map[string]ErrorType{
 
 // NewError ...
 func NewError(eType ErrorType, id string, errStr string) *Message {
+	payloadString := fmt.Sprintf("\"%v\"", errStr)
+	payload := json.RawMessage(payloadString)
 	return &Message{
 		ID:      id,
 		Role:    "error",
 		Cmd:     StringForErrorType[eType],
-		Payload: []byte(errStr),
+		Payload: &payload,
 	}
 }
 

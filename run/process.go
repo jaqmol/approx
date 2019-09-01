@@ -1,7 +1,10 @@
 package run
 
 import (
+	"fmt"
 	"io"
+	"log"
+	"os"
 	"os/exec"
 
 	"github.com/jaqmol/approx/builtin"
@@ -38,7 +41,20 @@ func (p *Process) Definition() *definition.Definition {
 
 // Start ...
 func (p *Process) Start() {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Starting process in working directory: %v\n", dir)
+	go p.start()
+}
 
+func (p *Process) start() {
+	// p.cmd.Start()
+	err := p.cmd.Run()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // MakeProcess ...
@@ -47,7 +63,7 @@ func MakeProcess(def *definition.Definition) *Process {
 		cmd: *exec.Command(def.Command),
 		def: *def,
 	}
-	proc.cmd.Env = def.EnvSlice()
+	proc.cmd.Env = append(os.Environ(), def.EnvSlice()...)
 	return &proc
 }
 

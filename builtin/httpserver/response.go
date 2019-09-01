@@ -4,11 +4,16 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/jaqmol/approx/message"
 )
+
+type responsePayload struct {
+	Status      int    `json:"status"`
+	ContentType string `json:"contentType"`
+	Body        string `json:"body"`
+}
 
 func (h *HTTPServer) startResponding() {
 	scanner := bufio.NewScanner(h.stdin)
@@ -28,29 +33,32 @@ func (h *HTTPServer) respond(msg *message.Message) bool {
 	rw, ok := h.uncacheResponseWriter(msg.ID)
 	if ok {
 		payloadBytes := msg.Payload
-		var payload map[string]interface{}
-		err := json.Unmarshal(payloadBytes, &payload)
+		var payload responsePayload
+		// var payload map[string]interface{}
+		err := json.Unmarshal(*payloadBytes, &payload)
 		if err != nil {
 			return respond500Error(rw, msg, err)
 		}
-		status, err := statusFromResponsePayload(payload)
+		// status, err := statusFromResponsePayload(payload)
+		// if err != nil {
+		// 	return respond500Error(rw, msg, err)
+		// }
+		// contentType, err := contentTypeFromResponsePayload(payload)
+		// if err != nil {
+		// 	return respond500Error(rw, msg, err)
+		// }
+		rw.Header().Set("Content-Type", payload.ContentType)
+		body, err := bodyFromPayloadBody(payload.Body)
 		if err != nil {
 			return respond500Error(rw, msg, err)
 		}
-		contentType, err := contentTypeFromResponsePayload(payload)
-		if err != nil {
-			return respond500Error(rw, msg, err)
+		if body != nil {
+			_, err = rw.Write(body)
+			if err != nil {
+				return respond500Error(rw, msg, err)
+			}
 		}
-		rw.Header().Set("Content-Type", contentType)
-		body, err := bodyFromResponsePayload(payload)
-		if err != nil {
-			return respond500Error(rw, msg, err)
-		}
-		_, err = rw.Write(body)
-		if err != nil {
-			return respond500Error(rw, msg, err)
-		}
-		rw.WriteHeader(status)
+		rw.WriteHeader(payload.Status)
 		return true
 	}
 	message.WriteError(h.stderr, message.Fail, msg.ID, "Response timeout: message too late for response")
@@ -73,40 +81,35 @@ func (h *HTTPServer) uncacheResponseWriter(id string) (rw http.ResponseWriter, o
 	return
 }
 
-func statusFromResponsePayload(payload map[string]interface{}) (int, error) {
-	ifStatus, ok := payload["status"]
-	if !ok {
-		return -1, fmt.Errorf("Status code missing in response message")
-	}
-	status, ok := ifStatus.(int)
-	if !ok {
-		return -1, fmt.Errorf("Status code has wrong type in response message")
-	}
-	return status, nil
-}
+// func statusFromResponsePayload(payload map[string]interface{}) (int, error) {
+// 	ifStatus, ok := payload["status"]
+// 	if !ok {
+// 		return -1, fmt.Errorf("Status code missing in response message")
+// 	}
+// 	status, ok := ifStatus.(int)
+// 	if !ok {
+// 		return -1, fmt.Errorf("Status code has wrong type in response message")
+// 	}
+// 	return status, nil
+// }
 
-func contentTypeFromResponsePayload(payload map[string]interface{}) (string, error) {
-	ifContType, ok := payload["content-type"]
-	if !ok {
-		return "", fmt.Errorf("Content type missing in response message")
-	}
-	contType, ok := ifContType.(string)
-	if !ok {
-		return "", fmt.Errorf("Content type has wrong type in response message")
-	}
-	return contType, nil
-}
+// func contentTypeFromResponsePayload(payload map[string]interface{}) (string, error) {
+// 	ifContType, ok := payload["contentType"]
+// 	if !ok {
+// 		return "", fmt.Errorf("Content type missing in response message")
+// 	}
+// 	contType, ok := ifContType.(string)
+// 	if !ok {
+// 		return "", fmt.Errorf("Content type has wrong type in response message")
+// 	}
+// 	return contType, nil
+// }
 
-func bodyFromResponsePayload(payload map[string]interface{}) ([]byte, error) {
-	ifBodyStr, ok := payload["body"]
-	if !ok {
-		return nil, fmt.Errorf("Body missing in response message")
+func bodyFromPayloadBody(payloadBody string) ([]byte, error) {
+	if len(payloadBody) == 0 {
+		return nil, nil
 	}
-	bodyStr, ok := ifBodyStr.(string)
-	if !ok {
-		return nil, fmt.Errorf("Body has wrong type in response message")
-	}
-	bytes, err := base64.StdEncoding.DecodeString(bodyStr)
+	bytes, err := base64.StdEncoding.DecodeString(payloadBody)
 	if err != nil {
 		return nil, err
 	}

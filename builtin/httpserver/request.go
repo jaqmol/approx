@@ -16,22 +16,24 @@ import (
 
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		payloadBytes := payload(r)
+		payloadRawMsg := payload(r)
 		msg := message.Message{
 			ID:      createID(),
 			Role:    "request",
-			Payload: payloadBytes,
+			Payload: payloadRawMsg,
 		}
 		msgBytes, err := json.Marshal(msg)
 		catch(err)
-		// _, err = h.stdout.Write(msgBytes)
-		// catch(err)
 
 		h.cacheResponseWriter(msg.ID, w)
-		fmt.Fprint(w, string(msgBytes))
+		h.dispatchLine(msgBytes)
 	})
 	addr := fmt.Sprintf(":%v", port)
 	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+func (h *HTTPServer) dispatchLine(lineBytes []byte) {
+	fmt.Fprintf(h.stdout, "%v\n", string(lineBytes))
 }
 
 func (h *HTTPServer) cacheResponseWriter(id string, w http.ResponseWriter) {
@@ -44,7 +46,7 @@ func createID() string {
 	return u.String()
 }
 
-func payload(r *http.Request) []byte {
+func payload(r *http.Request) *json.RawMessage {
 	body := readBody(r)
 	payload := map[string]interface{}{
 		"method":  r.Method,
@@ -54,7 +56,8 @@ func payload(r *http.Request) []byte {
 	}
 	bytes, err := json.Marshal(payload)
 	catch(err)
-	return bytes
+	rawMsg := json.RawMessage(bytes)
+	return &rawMsg
 }
 
 func strToInt(str string) int {
