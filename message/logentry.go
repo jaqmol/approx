@@ -60,7 +60,7 @@ func (m *Message) ToSourcedLogEntry(source string) *SourcedLogEntry {
 func MakeSourcedLogEntry(processor string, id string, eType LogEntryType, message string) *SourcedLogEntry {
 	return &SourcedLogEntry{
 		ID:   id,
-		Role: "error",
+		Role: "log",
 		Cmd:  StringForLogEntryType[eType],
 		Payload: SourcedLogEntryPayload{
 			Processor: processor,
@@ -108,7 +108,7 @@ func NewLogEntry(eType LogEntryType, id string, msgStr string) *Message {
 	payload := json.RawMessage(payloadString)
 	return &Message{
 		ID:      id,
-		Role:    "error",
+		Role:    "log",
 		Cmd:     StringForLogEntryType[eType],
 		Payload: &payload,
 	}

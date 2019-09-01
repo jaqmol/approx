@@ -50,7 +50,7 @@ func main() {
 
 	err = yaml.Unmarshal(formationBytes, &rawFormation)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalln(err.Error())
 	}
 
 	definitions := definition.Parse(rawFormation)

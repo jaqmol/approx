@@ -13,7 +13,7 @@ reader.on('line', (input) => {
 function inform(msg) {
   const info = {
     id: msg.id,
-    role: 'error',
+    role: 'log',
     cmd: 'inform',
     payload: "Hi from node",
   };
