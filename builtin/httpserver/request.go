@@ -14,6 +14,13 @@ import (
 	"github.com/jaqmol/approx/message"
 )
 
+type requestPayload struct {
+	Method  string              `json:"method"`
+	URL     requestURL          `json:"url"`
+	Headers map[string][]string `json:"headers"`
+	Body    string              `json:"body"`
+}
+
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		payloadRawMsg := payload(r)
@@ -25,8 +32,12 @@ func (h *HTTPServer) startReceiving(port int) {
 		msgBytes, err := json.Marshal(msg)
 		catch(err)
 
-		h.cacheResponseWriter(msg.ID, w)
+		rc := make(chan *message.Message)
+		h.cacheResponseChannel(msg.ID, rc)
 		h.dispatchLine(msgBytes)
+
+		response := <-rc
+		h.respond(w, response)
 	})
 	addr := fmt.Sprintf(":%v", port)
 	log.Fatal(http.ListenAndServe(addr, nil))
@@ -36,8 +47,8 @@ func (h *HTTPServer) dispatchLine(lineBytes []byte) {
 	fmt.Fprintf(h.stdout, "%v\n", string(lineBytes))
 }
 
-func (h *HTTPServer) cacheResponseWriter(id string, w http.ResponseWriter) {
-	h.cache.Set(id, w)
+func (h *HTTPServer) cacheResponseChannel(id string, rc chan<- *message.Message) {
+	h.cache.Set(id, rc)
 }
 
 func createID() string {
@@ -48,11 +59,12 @@ func createID() string {
 
 func payload(r *http.Request) *json.RawMessage {
 	body := readBody(r)
-	payload := map[string]interface{}{
-		"method":  r.Method,
-		"url":     urlMap(r),
-		"headers": headerToMap(r.Header),
-		"body":    *body,
+	url := makeRequestURL(r)
+	payload := requestPayload{
+		Method:  r.Method,
+		URL:     *url,
+		Headers: headerToMap(r.Header),
+		Body:    *body,
 	}
 	bytes, err := json.Marshal(payload)
 	catch(err)
@@ -69,11 +81,17 @@ func strToInt(str string) int {
 	return i
 }
 
-func urlMap(r *http.Request) map[string]interface{} {
-	return map[string]interface{}{
-		"host":  r.Host,
-		"path":  r.URL.Path,
-		"query": urlValuesToMap(r.URL.Query()),
+type requestURL struct {
+	Host  string              `json:"host"`
+	Path  string              `json:"path"`
+	Query map[string][]string `json:"query"`
+}
+
+func makeRequestURL(r *http.Request) *requestURL {
+	return &requestURL{
+		Host:  r.Host,
+		Path:  r.URL.Path,
+		Query: urlValuesToMap(r.URL.Query()),
 	}
 }
 

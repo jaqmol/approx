@@ -74,9 +74,9 @@ func (m *Merge) startWriting() {
 			var msg message.Message
 			err2 := json.Unmarshal(bytes, &msg)
 			if err2 != nil {
-				message.WriteError(m.stderr, message.Fail, "", err.Error())
+				message.WriteLogEntry(m.stderr, message.Fail, "", err.Error())
 			} else {
-				message.WriteError(m.stderr, message.Fail, msg.ID, err.Error())
+				message.WriteLogEntry(m.stderr, message.Fail, msg.ID, err.Error())
 			}
 		}
 	}

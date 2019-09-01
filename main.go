@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -67,7 +66,7 @@ func main() {
 
 	run.Connect(processors, flows, pipes, stdErrs)
 	run.Start(processors)
-	listenForErrorMessages(stdErrs)
+	listenForLogEntries(stdErrs)
 }
 
 func formationFilePath() string {
@@ -78,31 +77,34 @@ func formationFilePath() string {
 	return formationPath
 }
 
-func listenForErrorMessages(stdErrs map[string]run.Pipe) {
-	errChan := make(chan message.SourcedErrorMessage)
+func listenForLogEntries(stdErrs map[string]run.Pipe) {
+	logChan := make(chan message.SourcedLogEntry)
 	for procName, errPipe := range stdErrs {
-		go listenForErrorMessage(errChan, procName, errPipe.Reader)
+		go listenForLogEntry(logChan, procName, errPipe.Reader)
 	}
-	for errMsg := range errChan {
-		errType := message.ErrorTypeForString[errMsg.Cmd]
+	for errMsg := range logChan {
+		logType := message.LogEntryTypeForString[errMsg.Cmd]
 		errMsg.WriteTo(os.Stderr)
-		if errType == message.Exit {
+		if logType == message.Exit {
 			os.Exit(-1)
 		}
 	}
 }
 
-func listenForErrorMessage(errChan chan<- message.SourcedErrorMessage, procName string, errReader io.Reader) {
+func listenForLogEntry(errChan chan<- message.SourcedLogEntry, procName string, errReader io.Reader) {
 	scanner := bufio.NewScanner(errReader)
 	for scanner.Scan() {
 		errBytes := scanner.Bytes()
-		var msg *message.Message
-		err := json.Unmarshal(errBytes, msg)
+		var msg message.Message
+		err := json.Unmarshal(errBytes, &msg)
 		if err != nil {
-			errStr := fmt.Sprintf("Error parsing error-message from processor %v: %v", procName, err.Error())
-			msg = message.NewError(message.Exit, "", errStr)
+			errMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, err.Error())
+			errChan <- *errMsg
+			strErrMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, string(errBytes))
+			errChan <- *strErrMsg
+		} else {
+			sourcedMsg := msg.ToSourcedLogEntry(procName)
+			errChan <- *sourcedMsg
 		}
-		sourcedMsg := msg.ToSourcedErrorMessage(procName)
-		errChan <- *sourcedMsg
 	}
 }

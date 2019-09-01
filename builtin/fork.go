@@ -89,7 +89,7 @@ func (f *Fork) start() {
 		var msg message.Message
 		err := json.Unmarshal(inputeBytes, &msg)
 		if err != nil {
-			message.WriteError(f.stderr, message.Fail, "", err.Error())
+			message.WriteLogEntry(f.stderr, message.Fail, "", err.Error())
 		} else {
 			f.writeDistribute(&msg)
 		}
@@ -117,11 +117,11 @@ func (f *Fork) writeDistribute(msg *message.Message) {
 func (f *Fork) write(stdout io.Writer, msg *message.Message) {
 	outputBytes, err := json.Marshal(msg)
 	if err != nil {
-		message.WriteError(f.stderr, message.Fail, msg.ID, err.Error())
+		message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
 	} else {
 		_, err = stdout.Write(outputBytes)
 		if err != nil {
-			message.WriteError(f.stderr, message.Fail, msg.ID, err.Error())
+			message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
 		}
 	}
 }

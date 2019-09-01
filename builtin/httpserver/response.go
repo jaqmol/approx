@@ -22,88 +22,55 @@ func (h *HTTPServer) startResponding() {
 		var msg message.Message
 		err := json.Unmarshal(msgBytes, &msg)
 		if err != nil {
-			message.WriteError(h.stderr, message.Fail, "", err.Error())
+			message.WriteLogEntry(h.stderr, message.Fail, "", err.Error())
 		} else {
-			h.respond(&msg)
+			rc, ok := h.uncacheResponseChannel(msg.ID)
+			if ok {
+				rc <- &msg
+			} else {
+				message.WriteLogEntry(h.stderr, message.Fail, msg.ID, "No response channel found, most likely due to timeout")
+			}
 		}
 	}
 }
 
-func (h *HTTPServer) respond(msg *message.Message) bool {
-	rw, ok := h.uncacheResponseWriter(msg.ID)
-	if ok {
-		payloadBytes := msg.Payload
-		var payload responsePayload
-		// var payload map[string]interface{}
-		err := json.Unmarshal(*payloadBytes, &payload)
-		if err != nil {
-			return respond500Error(rw, msg, err)
-		}
-		// status, err := statusFromResponsePayload(payload)
-		// if err != nil {
-		// 	return respond500Error(rw, msg, err)
-		// }
-		// contentType, err := contentTypeFromResponsePayload(payload)
-		// if err != nil {
-		// 	return respond500Error(rw, msg, err)
-		// }
-		rw.Header().Set("Content-Type", payload.ContentType)
-		body, err := bodyFromPayloadBody(payload.Body)
-		if err != nil {
-			return respond500Error(rw, msg, err)
-		}
-		if body != nil {
-			_, err = rw.Write(body)
-			if err != nil {
-				return respond500Error(rw, msg, err)
-			}
-		}
-		rw.WriteHeader(payload.Status)
-		return true
+func (h *HTTPServer) respond(rw http.ResponseWriter, msg *message.Message) bool {
+	payloadBytes := msg.Payload
+	var payload responsePayload
+	err := json.Unmarshal(*payloadBytes, &payload)
+	if err != nil {
+		return respond500Error(rw, msg, err)
 	}
-	message.WriteError(h.stderr, message.Fail, msg.ID, "Response timeout: message too late for response")
-	return false
+	rw.WriteHeader(payload.Status)
+	rw.Header().Set("Content-Type", payload.ContentType)
+	body, err := bodyFromPayloadBody(payload.Body)
+	if err != nil {
+		return respond500Error(rw, msg, err)
+	}
+	if body != nil {
+		_, err = rw.Write(body)
+		if err != nil {
+			return respond500Error(rw, msg, err)
+		}
+	}
+	return true
 }
 
 func respond500Error(rw http.ResponseWriter, msg *message.Message, err error) bool {
 	rw.Header().Set("Content-Type", "application/json")
-	message.WriteError(rw, message.Fail, msg.ID, err.Error())
-	rw.WriteHeader(500)
+	rw.WriteHeader(http.StatusInternalServerError)
+	message.WriteLogEntry(rw, message.Fail, msg.ID, err.Error())
 	return false
 }
 
-func (h *HTTPServer) uncacheResponseWriter(id string) (rw http.ResponseWriter, ok bool) {
-	wInfh, ok := h.cache.Get(id)
+func (h *HTTPServer) uncacheResponseChannel(id string) (rc chan<- *message.Message, ok bool) {
+	rcIf, ok := h.cache.Get(id)
 	if ok {
-		rw = wInfh.(http.ResponseWriter)
+		rc = rcIf.(chan<- *message.Message)
 		h.cache.Remove(id)
 	}
 	return
 }
-
-// func statusFromResponsePayload(payload map[string]interface{}) (int, error) {
-// 	ifStatus, ok := payload["status"]
-// 	if !ok {
-// 		return -1, fmt.Errorf("Status code missing in response message")
-// 	}
-// 	status, ok := ifStatus.(int)
-// 	if !ok {
-// 		return -1, fmt.Errorf("Status code has wrong type in response message")
-// 	}
-// 	return status, nil
-// }
-
-// func contentTypeFromResponsePayload(payload map[string]interface{}) (string, error) {
-// 	ifContType, ok := payload["contentType"]
-// 	if !ok {
-// 		return "", fmt.Errorf("Content type missing in response message")
-// 	}
-// 	contType, ok := ifContType.(string)
-// 	if !ok {
-// 		return "", fmt.Errorf("Content type has wrong type in response message")
-// 	}
-// 	return contType, nil
-// }
 
 func bodyFromPayloadBody(payloadBody string) ([]byte, error) {
 	if len(payloadBody) == 0 {

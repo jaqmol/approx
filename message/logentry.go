@@ -6,15 +6,16 @@ import (
 	"io"
 )
 
-// Error messages are not only used for errors but for logging as well.
-// To indicate this, error types are passed on via the "cmd" property.
+// Log entries are send via stderr and are used for error and other stage logging.
+// To indicate this, log entry types are passed on via the "cmd" property.
 // The type "inform" indicates an info-level logging message.
 // The type "warn" indicates an warning-level logging message.
 // The type "fail" indicates a runtime error that's expected / a recoverable.
 // The type "exit" indicates a non-recoverable exception, that's not expected.
+//   Approx will exit itself if a log message with command "exit" ist received.
 
-// SourcedErrorMessage ...
-type SourcedErrorMessage struct {
+// SourcedLogEntry ...
+type SourcedLogEntry struct {
 	// ID helps to identify relations between messages, for instance if a response (role) has the same ID as a request (role)
 	ID string `json:"id"`
 	// Role is the context in which the message is supposed to be interpreted, like request, error or response
@@ -26,82 +27,96 @@ type SourcedErrorMessage struct {
 	// If fork is used for parallelizing, sequence indicates on which parallel code path (sequence) a message is running
 	Sequence int `json:"sequence,omitempty"`
 	// Represents the transport payload of a message, binary data is represented as a base-64 string
-	Payload SourcedErrorMessagePayload `json:"payload"`
+	Payload SourcedLogEntryPayload `json:"payload"`
 }
 
 // WriteTo ...
-func (sem *SourcedErrorMessage) WriteTo(w io.Writer) (int64, error) {
+func (sem *SourcedLogEntry) WriteTo(w io.Writer) (int64, error) {
 	bytes, err := json.Marshal(sem)
 	if err != nil {
 		panic(err)
 	}
 	i, err := w.Write(bytes)
+	w.Write([]byte("\n"))
 	return int64(i), err
 }
 
-// ToSourcedErrorMessage ...
-func (m *Message) ToSourcedErrorMessage(source string) *SourcedErrorMessage {
-	return &SourcedErrorMessage{
+// ToSourcedLogEntry ...
+func (m *Message) ToSourcedLogEntry(source string) *SourcedLogEntry {
+	return &SourcedLogEntry{
 		ID:       m.ID,
 		Role:     m.Role,
 		Cmd:      m.Cmd,
 		Index:    m.Index,
 		Sequence: m.Sequence,
-		Payload: SourcedErrorMessagePayload{
+		Payload: SourcedLogEntryPayload{
 			Processor: source,
 			Message:   string(*m.Payload),
 		},
 	}
 }
 
-// SourcedErrorMessagePayload ...
-type SourcedErrorMessagePayload struct {
+// MakeSourcedLogEntry ...
+func MakeSourcedLogEntry(processor string, id string, eType LogEntryType, message string) *SourcedLogEntry {
+	return &SourcedLogEntry{
+		ID:   id,
+		Role: "error",
+		Cmd:  StringForLogEntryType[eType],
+		Payload: SourcedLogEntryPayload{
+			Processor: processor,
+			Message:   message,
+		},
+	}
+}
+
+// SourcedLogEntryPayload ...
+type SourcedLogEntryPayload struct {
 	Processor string `json:"processor"`
 	Message   string `json:"message"`
 }
 
-// ErrorType ...
-type ErrorType int
+// LogEntryType ...
+type LogEntryType int
 
 // Error-Levels, also useful in logging
 const (
-	Inform ErrorType = iota
+	Inform LogEntryType = iota
 	Warn
 	Fail
 	Exit
 )
 
-// StringForErrorType ...
-var StringForErrorType = map[ErrorType]string{
+// StringForLogEntryType ...
+var StringForLogEntryType = map[LogEntryType]string{
 	Inform: "inform",
 	Warn:   "warn",
 	Fail:   "fail",
 	Exit:   "exit",
 }
 
-// ErrorTypeForString ...
-var ErrorTypeForString = map[string]ErrorType{
+// LogEntryTypeForString ...
+var LogEntryTypeForString = map[string]LogEntryType{
 	"inform": Inform,
 	"warn":   Warn,
 	"fail":   Fail,
 	"exit":   Exit,
 }
 
-// NewError ...
-func NewError(eType ErrorType, id string, errStr string) *Message {
-	payloadString := fmt.Sprintf("\"%v\"", errStr)
+// NewLogEntry ...
+func NewLogEntry(eType LogEntryType, id string, msgStr string) *Message {
+	payloadString := fmt.Sprintf("\"%v\"", msgStr)
 	payload := json.RawMessage(payloadString)
 	return &Message{
 		ID:      id,
 		Role:    "error",
-		Cmd:     StringForErrorType[eType],
+		Cmd:     StringForLogEntryType[eType],
 		Payload: &payload,
 	}
 }
 
-// WriteError ...
-func WriteError(w io.Writer, eType ErrorType, id string, errStr string) {
-	msg := NewError(eType, id, errStr)
+// WriteLogEntry ...
+func WriteLogEntry(w io.Writer, eType LogEntryType, id string, msgStr string) {
+	msg := NewLogEntry(eType, id, msgStr)
 	bytes, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)

@@ -4,7 +4,7 @@ HttpServer Server:
     PORT: 8080
 
 Process logAndReturn:
-  COMMAND: node ./log-and-return.js
+  COMMAND: node log-and-return.js
 
 Flow:
   - Server -> logAndReturn -> Server

@@ -12,21 +12,25 @@ reader.on('line', (input) => {
 
 function inform(msg) {
   const info = {
+    id: msg.id,
     role: 'error',
     cmd: 'inform',
-    payload: msg,
+    payload: "Hi from node",
   };
   const infoJson = JSON.stringify(info, 2);
   process.stderr.write(`${infoJson}\n`, 'utf8');
 }
 
 function respond(msg) {
+  let bodyStr = JSON.stringify(msg, null, 2);
+  let body = Buffer.from(bodyStr).toString('base64');
   const resp = {
+    id: msg.id,
     role: 'response',
     payload: {
       status: 200,
       contentType: 'application/json',
-      body: msg
+      body,
     },
   };
   const respJson = JSON.stringify(resp, 2);

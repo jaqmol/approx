@@ -1,11 +1,10 @@
 package run
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/jaqmol/approx/builtin"
 	"github.com/jaqmol/approx/builtin/httpserver"
@@ -41,11 +40,11 @@ func (p *Process) Definition() *definition.Definition {
 
 // Start ...
 func (p *Process) Start() {
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Starting process in working directory: %v\n", dir)
+	// dir, err := os.Getwd()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Printf("Starting process in working directory: %v\n", dir)
 	go p.start()
 }
 
@@ -59,8 +58,9 @@ func (p *Process) start() {
 
 // MakeProcess ...
 func MakeProcess(def *definition.Definition) *Process {
+	cmd, args := commandComponents(def.Command)
 	proc := Process{
-		cmd: *exec.Command(def.Command),
+		cmd: *exec.Command(cmd, args...),
 		def: *def,
 	}
 	proc.cmd.Env = append(os.Environ(), def.EnvSlice()...)
@@ -89,4 +89,15 @@ func MakeProcessors(definitions []definition.Definition, flows map[string][]stri
 	}
 
 	return processors
+}
+
+func commandComponents(command string) (string, []string) {
+	comps := make([]string, 0)
+	rawComps := strings.Split(command, " ")
+	for _, cmp := range rawComps {
+		if len(cmp) > 0 {
+			comps = append(comps, cmp)
+		}
+	}
+	return comps[0], comps[1:]
 }
