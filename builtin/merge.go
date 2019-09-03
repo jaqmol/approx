@@ -11,12 +11,12 @@ import (
 
 // Merge ...
 type Merge struct {
-	def          definition.Definition
-	stdins       []io.Reader
-	stdout       io.Writer
-	stderr       io.Writer
-	running      bool
-	stdoutWriter chan []byte
+	def               definition.Definition
+	stdins            []io.Reader
+	stdout            io.Writer
+	stderr            io.Writer
+	running           bool
+	writeToStdoutChan chan []byte
 }
 
 // SetStdin ...
@@ -53,9 +53,9 @@ func (m *Merge) Start() {
 // MakeMerge ...
 func MakeMerge(def *definition.Definition) *Merge {
 	return &Merge{
-		def:          *def,
-		stdins:       make([]io.Reader, 0),
-		stdoutWriter: make(chan []byte),
+		def:               *def,
+		stdins:            make([]io.Reader, 0),
+		writeToStdoutChan: make(chan []byte),
 	}
 }
 
@@ -63,12 +63,13 @@ func (m *Merge) startReading(aStdin io.Reader) {
 	scanner := bufio.NewScanner(aStdin)
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
-		m.stdoutWriter <- bytes
+		m.writeToStdoutChan <- bytes
 	}
 }
 
 func (m *Merge) startWriting() {
-	for bytes := range m.stdoutWriter {
+	for bytes := range m.writeToStdoutChan {
+		bytes = append(bytes, []byte("\n")...)
 		_, err := m.stdout.Write(bytes)
 		if err != nil {
 			var msg message.Message

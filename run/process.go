@@ -1,6 +1,7 @@
 package run
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -79,6 +80,7 @@ func MakeProcessors(definitions []definition.Definition, flows map[string][]stri
 			proc = httpserver.MakeHTTPServer(&def)
 		case definition.TypeFork:
 			proc = builtin.MakeFork(&def)
+			fmt.Fprintf(os.Stderr, "Did create fork: %v\n", proc)
 		case definition.TypeMerge:
 			proc = builtin.MakeMerge(&def)
 		case definition.TypeProcess:

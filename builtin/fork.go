@@ -86,8 +86,10 @@ func (f *Fork) start() {
 	scanner := bufio.NewScanner(f.stdin)
 	for scanner.Scan() {
 		inputeBytes := scanner.Bytes()
+
 		var msg message.Message
 		err := json.Unmarshal(inputeBytes, &msg)
+
 		if err != nil {
 			message.WriteLogEntry(f.stderr, message.Fail, "", err.Error())
 		} else {
@@ -100,12 +102,12 @@ func (f *Fork) writeDistribute(msg *message.Message) {
 	switch f.distribute {
 	case distributeCopy:
 		for i, stdout := range f.stdouts {
-			msg.Index = i
+			msg.Index = &i
 			f.write(stdout, msg)
 		}
 	case distributeCycle:
 		stdout := f.stdouts[f.cycleIndex]
-		msg.Index = f.cycleIndex
+		msg.Index = &f.cycleIndex
 		f.write(stdout, msg)
 		f.cycleIndex++
 		if f.cycleIndex >= len(f.stdouts) {
@@ -115,11 +117,12 @@ func (f *Fork) writeDistribute(msg *message.Message) {
 }
 
 func (f *Fork) write(stdout io.Writer, msg *message.Message) {
-	outputBytes, err := json.Marshal(msg)
+	bytes, err := json.Marshal(msg)
 	if err != nil {
 		message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
 	} else {
-		_, err = stdout.Write(outputBytes)
+		bytes = append(bytes, []byte("\n")...)
+		_, err = stdout.Write(bytes)
 		if err != nil {
 			message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
 		}

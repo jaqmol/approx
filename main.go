@@ -82,29 +82,29 @@ func listenForLogEntries(stdErrs map[string]run.Pipe) {
 	for procName, errPipe := range stdErrs {
 		go listenForLogEntry(logChan, procName, errPipe.Reader)
 	}
-	for errMsg := range logChan {
-		logType := message.LogEntryTypeForString[errMsg.Cmd]
-		errMsg.WriteTo(os.Stderr)
+	for logMsg := range logChan {
+		logType := message.LogEntryTypeForString[logMsg.Cmd]
+		logMsg.WriteTo(os.Stderr)
 		if logType == message.Exit {
 			os.Exit(-1)
 		}
 	}
 }
 
-func listenForLogEntry(errChan chan<- message.SourcedLogEntry, procName string, errReader io.Reader) {
+func listenForLogEntry(logChan chan<- message.SourcedLogEntry, procName string, errReader io.Reader) {
 	scanner := bufio.NewScanner(errReader)
 	for scanner.Scan() {
 		errBytes := scanner.Bytes()
 		var msg message.Message
 		err := json.Unmarshal(errBytes, &msg)
 		if err != nil {
-			errMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, err.Error())
-			errChan <- *errMsg
+			// errMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, err.Error())
+			// logChan <- *errMsg
 			strErrMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, string(errBytes))
-			errChan <- *strErrMsg
+			logChan <- *strErrMsg
 		} else {
 			sourcedMsg := msg.ToSourcedLogEntry(procName)
-			errChan <- *sourcedMsg
+			logChan <- *sourcedMsg
 		}
 	}
 }

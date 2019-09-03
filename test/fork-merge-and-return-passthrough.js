@@ -6,7 +6,7 @@ const reader = readline.createInterface({
 
 reader.on('line', (input) => {
   const msg = JSON.parse(input);
-  inform(msg);
+  // inform(msg);
   respond(msg);
 });
 
@@ -15,7 +15,7 @@ function inform(msg) {
     id: msg.id,
     role: 'log',
     cmd: 'inform',
-    payload: "Info message from log-and-return.js",
+    payload: "\"fork-merge-and-return.js got an event\"",
   };
   const infoJson = JSON.stringify(info, 2);
   process.stderr.write(`${infoJson}\n`, 'utf8');

@@ -2,7 +2,6 @@ package message
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 )
 
@@ -23,9 +22,9 @@ type SourcedLogEntry struct {
 	// Cmd can be used to indicate which action is expected on behalf of a message
 	Cmd string `json:"cmd,omitempty"`
 	// Index might indicate the order of a message in a stream of related chunks
-	Index int `json:"index,omitempty"`
+	Index *int `json:"index,omitempty"`
 	// If fork is used for parallelizing, sequence indicates on which parallel code path (sequence) a message is running
-	Sequence int `json:"sequence,omitempty"`
+	Sequence *int `json:"sequence,omitempty"`
 	// Represents the transport payload of a message, binary data is represented as a base-64 string
 	Payload SourcedLogEntryPayload `json:"payload"`
 }
@@ -36,8 +35,8 @@ func (sem *SourcedLogEntry) WriteTo(w io.Writer) (int64, error) {
 	if err != nil {
 		panic(err)
 	}
-	i, err := w.Write(bytes)
-	w.Write([]byte("\n"))
+	toWrite := append(bytes, []byte("\n")...)
+	i, err := w.Write(toWrite)
 	return int64(i), err
 }
 
@@ -104,8 +103,8 @@ var LogEntryTypeForString = map[string]LogEntryType{
 
 // NewLogEntry ...
 func NewLogEntry(eType LogEntryType, id string, msgStr string) *Message {
-	payloadString := fmt.Sprintf("\"%v\"", msgStr)
-	payload := json.RawMessage(payloadString)
+	payloadBytes := append([]byte("\""), append([]byte(msgStr), []byte("\"")...)...)
+	payload := json.RawMessage(payloadBytes)
 	return &Message{
 		ID:      id,
 		Role:    "log",
@@ -121,7 +120,18 @@ func WriteLogEntry(w io.Writer, eType LogEntryType, id string, msgStr string) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = w.Write(bytes)
+	toWrite := append(bytes, []byte("\n")...)
+	_, err = w.Write(toWrite)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// WriteSourcedLogEntry ...
+func WriteSourcedLogEntry(w io.Writer, eType LogEntryType, processor string, id string, msgStr string) {
+	msg := NewLogEntry(eType, id, msgStr)
+	sourcedMsg := msg.ToSourcedLogEntry(processor)
+	_, err := sourcedMsg.WriteTo(w)
 	if err != nil {
 		panic(err)
 	}

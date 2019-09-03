@@ -43,8 +43,10 @@ func (h *HTTPServer) startReceiving(port int) {
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func (h *HTTPServer) dispatchLine(lineBytes []byte) {
-	fmt.Fprintf(h.stdout, "%v\n", string(lineBytes))
+func (h *HTTPServer) dispatchLine(bytes []byte) {
+	bytes = append(bytes, []byte("\n")...)
+	_, err := h.stdout.Write(bytes)
+	catch(err)
 }
 
 func (h *HTTPServer) cacheResponseChannel(id string, rc chan<- *message.Message) {
