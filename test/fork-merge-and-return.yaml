@@ -1,23 +1,23 @@
-HttpServer Server:
+gateway Server:
   ENV:
     TIMEOUT: 10s
     PORT: 8080
 
-Fork forkRequest:
+fork forkRequest:
   ENV.DISTRIBUTE: copy
    
-Merge mergeResponse: {}
+merge mergeResponse: {}
 
-Process passthroughA:
+proc passthroughA:
   COMMAND: node fork-merge-and-return-passthrough.js
 
-Process passthroughB:
+proc passthroughB:
   COMMAND: node fork-merge-and-return-passthrough.js
 
-Process collectAndReturn:
+proc collectAndReturn:
   COMMAND: node fork-merge-and-return-collector.js
 
-Flow:
+flow:
   - Server -> forkRequest
   - forkRequest -> passthroughA -> mergeResponse
   - forkRequest -> passthroughB -> mergeResponse

@@ -29,7 +29,8 @@ func Parse(rawFormation map[interface{}]interface{}) map[string][]string {
 
 func findRawFlow(rawFormation map[interface{}]interface{}) [][]string {
 	for key, value := range rawFormation {
-		if key == "Flow" {
+		KEY := strings.ToUpper(key.(string))
+		if KEY == "FLOW" {
 			interfaceSlice := value.([]interface{})
 			rawFlow := make([][]string, 0) // ?
 			for _, interfaceLine := range interfaceSlice {

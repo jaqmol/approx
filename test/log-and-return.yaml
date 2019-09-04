@@ -1,11 +1,11 @@
-HttpServer Server:
+gateway Server:
   ENV:
     TIMEOUT: 10s
     PORT: 8080
 
-Process logAndReturn:
+proc logAndReturn:
   COMMAND: node log-and-return.js
 
-Flow:
+flow:
   - Server -> logAndReturn -> Server
   

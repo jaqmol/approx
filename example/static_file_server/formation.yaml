@@ -1,30 +1,30 @@
-HttpServer StaticFileServer:
+gateway StaticFileServer:
   ENV:
     STATIC_PATH: null
     TIMEOUT: 10s
     PORT: 8080
 
-Fork forkRequest:
+fork forkRequest:
   ENV.DISTRIBUTE: copy
    
-Process orderMediaTypeFirst:
+proc orderMediaTypeFirst:
   COMMAND: node lib/orderMediaTypeFirst
 
 # There don't seem to be reasons to have this configurable
 # ENV.PICK: as_comes
-Merge mergeResponse: {}
+merge mergeResponse: {}
 
-Process lookupMediaType:
+proc lookupMediaType:
   COMMAND: node lib/lookupMediaType
 
-Process readFile:
+proc readFile:
   ENV.BASE_PATH: $staticBasePath
   COMMAND: node lib/readFile
 
-Assign:
+assign:
   $staticBasePath: StaticFileServer.ENV.STATIC_PATH
 
-Flow:
+flow:
   - StaticFileServer -> forkRequest
   - forkRequest -> lookupMediaType -> mergeResponse
   - forkRequest -> readFile -> mergeResponse

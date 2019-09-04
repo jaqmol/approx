@@ -9,10 +9,11 @@ import (
 func Parse(rawFormation map[interface{}]interface{}) []Definition {
 	acc := make([]Definition, 0)
 	for interfaceDifinitionHead, interfaceDifinitionBody := range rawFormation {
-		difinitionHead := interfaceDifinitionHead.(string)
-		if difinitionHead != "Flow" && difinitionHead != "Assign" {
+		definitionHead := interfaceDifinitionHead.(string)
+		DIFINITIONHEAD := strings.ToUpper(definitionHead)
+		if DIFINITIONHEAD != "FLOW" && DIFINITIONHEAD != "ASSIGN" {
 			difinitionBodyInterfaceMap := interfaceDifinitionBody.(map[interface{}]interface{})
-			defType, defName := definitionTypeAndName(difinitionHead)
+			defType, defName := definitionTypeAndName(definitionHead)
 			definition := Definition{Type: defType, Name: defName}
 			for interfaceKey, interfaceValue := range difinitionBodyInterfaceMap {
 				key := interfaceKey.(string)
@@ -80,16 +81,20 @@ func toStringSlice(interfaceValue interface{}) []string {
 
 func definitionTypeAndName(definition string) (Type, string) {
 	firstSpaceIdx := strings.Index(definition, " ")
-	typeStr := definition[:firstSpaceIdx]
+	typeStr := strings.ToUpper(definition[:firstSpaceIdx])
 	var defType Type
 	switch typeStr {
-	case "HttpServer":
+	case "GATEWAY":
+		fallthrough
+	case "GW":
 		defType = TypeHTTPServer
-	case "Fork":
+	case "FORK":
 		defType = TypeFork
-	case "Merge":
+	case "MERGE":
 		defType = TypeMerge
-	case "Process":
+	case "PROCESS":
+		fallthrough
+	case "PROC":
 		defType = TypeProcess
 	}
 	return defType, strings.TrimSpace(definition[firstSpaceIdx:])
