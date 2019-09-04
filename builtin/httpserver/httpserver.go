@@ -19,6 +19,7 @@ type HTTPServer struct {
 	stdout  io.Writer
 	stderr  io.Writer
 	running bool
+	timeout time.Duration
 	cache   *ttlcache.Cache
 }
 
@@ -51,13 +52,7 @@ func (h *HTTPServer) Start() {
 	log.Printf("Server running at %v\n", port)
 }
 
-// MakeHTTPServer ...
-func MakeHTTPServer(def *definition.Definition) *HTTPServer {
-	h := &HTTPServer{
-		def:   *def,
-		cache: ttlcache.NewCache(),
-	}
-	var timeout time.Duration
+func parseTimeout(def *definition.Definition) (timeout time.Duration) {
 	timeoutStr, ok := def.Env["TIMEOUT"]
 	if ok && len(*timeoutStr) > 0 {
 		var err error
@@ -68,7 +63,17 @@ func MakeHTTPServer(def *definition.Definition) *HTTPServer {
 	} else {
 		timeout, _ = time.ParseDuration("10s")
 	}
-	h.cache.SetTTL(timeout)
+	return
+}
+
+// MakeHTTPServer ...
+func MakeHTTPServer(def *definition.Definition) *HTTPServer {
+	h := &HTTPServer{
+		def:     *def,
+		timeout: parseTimeout(def),
+		cache:   ttlcache.NewCache(),
+	}
+	h.cache.SetTTL(h.timeout)
 	return h
 }
 

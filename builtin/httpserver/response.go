@@ -41,8 +41,10 @@ func (h *HTTPServer) respond(rw http.ResponseWriter, msg *message.Message) bool 
 	if err != nil {
 		return respond500Error(rw, msg, err)
 	}
-	rw.WriteHeader(payload.Status)
+
 	rw.Header().Set("Content-Type", payload.ContentType)
+	rw.WriteHeader(payload.Status)
+
 	body, err := bodyFromPayloadBody(payload.Body)
 	if err != nil {
 		return respond500Error(rw, msg, err)
@@ -52,6 +54,30 @@ func (h *HTTPServer) respond(rw http.ResponseWriter, msg *message.Message) bool 
 		if err != nil {
 			return respond500Error(rw, msg, err)
 		}
+	}
+	return true
+}
+
+func (h *HTTPServer) respondWithPipelineResponseTimeout(rw http.ResponseWriter, id string) bool {
+	payload := json.RawMessage([]byte(`"Upstream pipeline response timeout"`))
+	msg := message.Message{
+		ID:      id,
+		Role:    "response",
+		Cmd:     "timeout",
+		Payload: &payload,
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusInternalServerError)
+
+	bytes, err := json.Marshal(&msg)
+	if err != nil {
+		return respond500Error(rw, &msg, err)
+	}
+
+	_, err = rw.Write(bytes)
+	if err != nil {
+		return respond500Error(rw, &msg, err)
 	}
 	return true
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jaqmol/approx/message"
@@ -36,8 +37,12 @@ func (h *HTTPServer) startReceiving(port int) {
 		h.cacheResponseChannel(msg.ID, rc)
 		h.dispatchLine(msgBytes)
 
-		response := <-rc
-		h.respond(w, response)
+		select {
+		case response := <-rc:
+			h.respond(w, response)
+		case <-time.After(h.timeout):
+			h.respondWithPipelineResponseTimeout(w, msg.ID)
+		}
 	})
 	addr := fmt.Sprintf(":%v", port)
 	log.Fatal(http.ListenAndServe(addr, nil))

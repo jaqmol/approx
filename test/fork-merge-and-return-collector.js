@@ -32,7 +32,7 @@ function inform(msg) {
     payload: "\"fork-merge-and-return.js got an event\"",
   };
   const infoJson = JSON.stringify(info, 2);
-  process.stderr.write(`${infoJson}\n`, 'utf8');
+  writeTo(process.stderr, infoJson);
 }
 
 function respond(id, allMsgs) {
@@ -48,5 +48,7 @@ function respond(id, allMsgs) {
     },
   };
   const respJson = JSON.stringify(resp, 2);
-  process.stdout.write(`${respJson}\n`, 'utf8');
+  writeTo(process.stdout, respJson);
 }
+
+const writeTo = (stream, message) => stream.write(`${message}\n`, 'utf8');

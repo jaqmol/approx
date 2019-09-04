@@ -1,7 +1,6 @@
 package run
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -41,16 +40,10 @@ func (p *Process) Definition() *definition.Definition {
 
 // Start ...
 func (p *Process) Start() {
-	// dir, err := os.Getwd()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Printf("Starting process in working directory: %v\n", dir)
 	go p.start()
 }
 
 func (p *Process) start() {
-	// p.cmd.Start()
 	err := p.cmd.Run()
 	if err != nil {
 		panic(err)
@@ -80,7 +73,6 @@ func MakeProcessors(definitions []definition.Definition, flows map[string][]stri
 			proc = httpserver.MakeHTTPServer(&def)
 		case definition.TypeFork:
 			proc = builtin.MakeFork(&def)
-			fmt.Fprintf(os.Stderr, "Did create fork: %v\n", proc)
 		case definition.TypeMerge:
 			proc = builtin.MakeMerge(&def)
 		case definition.TypeProcess:

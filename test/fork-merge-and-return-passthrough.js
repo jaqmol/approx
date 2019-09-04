@@ -18,21 +18,23 @@ function inform(msg) {
     payload: "\"fork-merge-and-return.js got an event\"",
   };
   const infoJson = JSON.stringify(info, 2);
-  process.stderr.write(`${infoJson}\n`, 'utf8');
+  writeTo(process.stderr, infoJson);
 }
 
 function respond(msg) {
-  let bodyStr = JSON.stringify(msg, null, 2);
-  let body = Buffer.from(bodyStr).toString('base64');
+  let originalRequestJson = JSON.stringify(msg, null, 2);
+  let originalRequest = Buffer.from(originalRequestJson).toString('base64');
   const resp = {
     id: msg.id,
-    role: 'response',
+    index: msg.index,
+    role: 'passthrought',
     payload: {
-      status: 200,
-      contentType: 'application/json',
-      body,
+      originalRequest,
+      message: `Hello from passthrough ${msg.index === 0 ? 'A' : 'B'}`,
     },
   };
   const respJson = JSON.stringify(resp, 2);
-  process.stdout.write(`${respJson}\n`, 'utf8');
+  writeTo(process.stdout, respJson);
 }
+
+const writeTo = (stream, message) => stream.write(`${message}\n`, 'utf8');

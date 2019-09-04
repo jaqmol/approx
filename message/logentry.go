@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -125,6 +126,12 @@ func WriteLogEntry(w io.Writer, eType LogEntryType, id string, msgStr string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// WriteLogEntryF ...
+func WriteLogEntryF(w io.Writer, eType LogEntryType, id string, format string, values ...interface{}) {
+	msgStr := fmt.Sprintf(format, values...)
+	WriteLogEntry(w, eType, id, msgStr)
 }
 
 // WriteSourcedLogEntry ...
