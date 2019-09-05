@@ -1,0 +1,1 @@
+TIMEOUT=60 STATIC_PATH=./static go run ../main.go ./file_server.yaml

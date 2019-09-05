@@ -24,7 +24,7 @@ func (d *Definition) EnvSlice() []string {
 	acc := make([]string, len(d.Env))
 	idx := 0
 	for key, value := range d.Env {
-		acc[idx] = fmt.Sprintf("%v=%v", key, value)
+		acc[idx] = fmt.Sprintf("%v=%v", key, *value)
 		idx++
 	}
 	return acc

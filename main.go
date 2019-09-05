@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -40,6 +41,8 @@ const (
 )
 
 func main() {
+	showHelpAndExitIfNeeded()
+
 	formationPath := formationFilePath()
 	formationBytes, err := ioutil.ReadFile(formationPath)
 	if err != nil {
@@ -67,6 +70,18 @@ func main() {
 	run.Connect(processors, flows, pipes, stdErrs)
 	run.Start(processors)
 	listenForLogEntries(stdErrs)
+}
+
+func showHelpAndExitIfNeeded() {
+	args := os.Args[1:]
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			fmt.Println("APPROX HELP:")
+			fmt.Println("--help        | -h      Show this help.")
+			fmt.Println("--json-output | -jo     Output log messages as JSON.")
+			os.Exit(0)
+		}
+	}
 }
 
 func formationFilePath() string {

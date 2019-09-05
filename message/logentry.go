@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 )
 
 // Log entries are send via stderr and are used for error and other stage logging.
@@ -13,6 +14,28 @@ import (
 // The type "fail" indicates a runtime error that's expected / a recoverable.
 // The type "exit" indicates a non-recoverable exception, that's not expected.
 //   Approx will exit itself if a log message with command "exit" ist received.
+
+func init() {
+	outputType = humanReadableOutput
+	args := os.Args[1:]
+	for _, a := range args {
+		if a == "--json-output" || a == "-jo" {
+			outputType = jsonOutput
+			break
+		}
+	}
+}
+
+var outputType logOutputType
+
+// logOutputType ...
+type logOutputType int
+
+// Error-Levels, also useful in logging
+const (
+	humanReadableOutput logOutputType = iota
+	jsonOutput
+)
 
 // SourcedLogEntry ...
 type SourcedLogEntry struct {
@@ -30,13 +53,27 @@ type SourcedLogEntry struct {
 	Payload SourcedLogEntryPayload `json:"payload"`
 }
 
+// SourcedLogEntryPayload ...
+type SourcedLogEntryPayload struct {
+	Processor string `json:"processor"`
+	Message   string `json:"message"`
+}
+
 // WriteTo ...
 func (sem *SourcedLogEntry) WriteTo(w io.Writer) (int64, error) {
-	bytes, err := json.Marshal(sem)
-	if err != nil {
-		panic(err)
+	var toWrite []byte
+	switch outputType {
+	case humanReadableOutput:
+		msg := fmt.Sprintf("%v	%v	%v\n", sem.Payload.Processor, sem.Cmd, sem.Payload.Message)
+		toWrite = []byte(msg)
+	case jsonOutput:
+		bytes, err := json.Marshal(sem)
+		if err != nil {
+			panic(err)
+		}
+		toWrite = append(bytes, []byte("\n")...)
 	}
-	toWrite := append(bytes, []byte("\n")...)
+
 	i, err := w.Write(toWrite)
 	return int64(i), err
 }
@@ -67,12 +104,6 @@ func MakeSourcedLogEntry(processor string, id string, eType LogEntryType, messag
 			Message:   message,
 		},
 	}
-}
-
-// SourcedLogEntryPayload ...
-type SourcedLogEntryPayload struct {
-	Processor string `json:"processor"`
-	Message   string `json:"message"`
 }
 
 // LogEntryType ...

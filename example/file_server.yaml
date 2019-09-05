@@ -1,31 +1,31 @@
-gateway StaticFileServer:
+gateway Server:
   ENV:
     STATIC_PATH: null
-    TIMEOUT: 10s
+    TIMEOUT: 5m
     PORT: 8080
 
 fork forkRequest:
   ENV.DISTRIBUTE: copy
    
-proc orderMediaTypeFirst:
-  COMMAND: node lib/orderMediaTypeFirst
+proc mediaTypeAndFileContent:
+  COMMAND: node lib/media_type_and_file_content
 
 # There don't seem to be reasons to have this configurable
 # ENV.PICK: as_comes
 merge mergeResponse: {}
 
 proc lookupMediaType:
-  COMMAND: node lib/lookupMediaType
+  COMMAND: node lib/lookup_media_type
 
 proc readFile:
   ENV.BASE_PATH: $staticBasePath
-  COMMAND: node lib/readFile
+  COMMAND: node lib/read_file
 
 assign:
-  $staticBasePath: StaticFileServer.ENV.STATIC_PATH
+  $staticBasePath: Server.ENV.STATIC_PATH
 
 flow:
-  - StaticFileServer -> forkRequest
+  - Server -> forkRequest
   - forkRequest -> lookupMediaType -> mergeResponse
   - forkRequest -> readFile -> mergeResponse
-  - mergeResponse -> orderMediaTypeFirst -> StaticFileServer
+  - mergeResponse -> mediaTypeAndFileContent -> Server
