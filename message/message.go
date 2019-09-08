@@ -1,19 +1,84 @@
 package message
 
-import "encoding/json"
+import (
+	"bytes"
+	"strconv"
+	"strings"
+)
 
 // Message ...
 type Message struct {
-	// ID helps to identify relations between messages, for instance if a response (role) has the same ID as a request (role)
-	ID string `json:"id,omitempty"`
-	// Role is the context in which the message is supposed to be interpreted, like request, error or response
-	Role string `json:"role,omitempty"`
-	// Cmd can be used to indicate which action is expected on behalf of a message
-	Cmd string `json:"cmd,omitempty"`
-	// Index might indicate the order of a message in a stream of related chunks
-	Index *int `json:"index,omitempty"`
-	// If fork is used for parallelizing, sequence indicates on which parallel code path (sequence) a message is running
-	Sequence *int `json:"sequence,omitempty"`
-	// Represents the transport payload of a message, binary data is represented as a base-64 string
-	Payload *json.RawMessage `json:"payload,omitempty"`
+	ID        string
+	Role      string
+	Seq       int
+	IsEnd     bool
+	Status    int
+	MediaType string
+	Encoding  string
+	Body      []byte
+}
+
+// ParseMessage ...
+func ParseMessage(byteSlice []byte) *Message {
+	semicolonIndex := bytes.IndexRune(byteSlice, ';')
+	if semicolonIndex == -1 {
+		return nil
+	}
+	msgBytes := byteSlice[:semicolonIndex]
+	msgString := string(msgBytes)
+	comps := strings.Split(msgString, ",")
+	if len(comps) != 7 {
+		return nil
+	}
+	return &Message{
+		ID:        comps[0],
+		Role:      comps[1],
+		Seq:       parseInt(comps[2]),
+		IsEnd:     parseBool(comps[3]),
+		Status:    parseInt(comps[4]),
+		MediaType: comps[5],
+		Encoding:  comps[6],
+		Body:      byteSlice[semicolonIndex+1:],
+	}
+}
+
+// ToBytes ...
+func (m *Message) ToBytes() []byte {
+	comps := []string{
+		m.ID,
+		m.Role,
+		formatInt(m.Seq),
+		strconv.FormatBool(m.IsEnd),
+		formatInt(m.Status),
+		m.MediaType,
+		m.Encoding,
+	}
+	headerString := strings.Join(comps, ",")
+	acc := []byte(headerString)
+	acc = append(acc, []byte(";")...)
+	acc = append(acc, m.Body...)
+	acc = append(acc, []byte("\n")...)
+	return acc
+}
+
+func parseInt(comp string) int {
+	value, err := strconv.ParseInt(comp, 10, 32)
+	catch(err)
+	return int(value)
+}
+
+func formatInt(value int) string {
+	return strconv.FormatInt(int64(value), 10)
+}
+
+func parseBool(comp string) bool {
+	value, err := strconv.ParseBool(comp)
+	catch(err)
+	return value
+}
+
+func catch(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

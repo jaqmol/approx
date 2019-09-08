@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -94,31 +93,20 @@ func formationFilePath() string {
 }
 
 func listenForLogEntries(stdErrs map[string]pipe.Pipe) {
-	logChan := make(chan message.SourcedLogEntry)
+	logChan := make(chan message.LogEntry)
 	for procName, errPipe := range stdErrs {
 		go listenForLogEntry(logChan, procName, errPipe.Reader)
 	}
 	for logMsg := range logChan {
-		logType := message.LogEntryTypeForString[logMsg.Cmd]
 		logMsg.WriteTo(os.Stderr)
-		if logType == message.Exit {
-			os.Exit(-1)
-		}
 	}
 }
 
-func listenForLogEntry(logChan chan<- message.SourcedLogEntry, procName string, errReader io.Reader) {
+func listenForLogEntry(logChan chan<- message.LogEntry, procName string, errReader io.Reader) {
 	scanner := bufio.NewScanner(errReader)
 	for scanner.Scan() {
-		errBytes := scanner.Bytes()
-		var msg message.Message
-		err := json.Unmarshal(errBytes, &msg)
-		if err != nil {
-			strErrMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, string(errBytes))
-			logChan <- *strErrMsg
-		} else {
-			sourcedMsg := msg.ToSourcedLogEntry(procName)
-			logChan <- *sourcedMsg
-		}
+		entryBytes := scanner.Bytes()
+		entry := message.LogEntry{Source: procName, Message: string(entryBytes)}
+		logChan <- entry
 	}
 }

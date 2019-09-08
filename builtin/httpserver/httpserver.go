@@ -1,40 +1,41 @@
 package httpserver
 
 import (
-	"io"
 	"log"
 	"os"
 	"time"
 
 	"github.com/ReneKroon/ttlcache"
 	"github.com/jaqmol/approx/definition"
+	"github.com/jaqmol/approx/pipe"
 )
 
 // uuid.NewRandom()
 
 // HTTPServer ...
 type HTTPServer struct {
-	def     definition.Definition
-	stdin   io.Reader
-	stdout  io.Writer
-	stderr  io.Writer
-	running bool
-	timeout time.Duration
-	cache   *ttlcache.Cache
+	def             definition.Definition
+	stdin           *pipe.Reader
+	stdout          *pipe.Writer
+	stderr          *pipe.Writer
+	running         bool
+	timeout         time.Duration
+	cache           *ttlcache.Cache
+	dispatchChannel chan *dispatchData
 }
 
 // SetStdin ...
-func (h *HTTPServer) SetStdin(r io.Reader) {
+func (h *HTTPServer) SetStdin(r *pipe.Reader) {
 	h.stdin = r
 }
 
 // SetStdout ...
-func (h *HTTPServer) SetStdout(w io.Writer) {
+func (h *HTTPServer) SetStdout(w *pipe.Writer) {
 	h.stdout = w
 }
 
 // SetStderr ...
-func (h *HTTPServer) SetStderr(w io.Writer) {
+func (h *HTTPServer) SetStderr(w *pipe.Writer) {
 	h.stderr = w
 }
 
@@ -49,6 +50,7 @@ func (h *HTTPServer) Start() {
 	port := strToInt(portStr)
 	go h.startReceiving(port)
 	go h.startResponding()
+	go h.startDispatching()
 	log.Printf("Server running at %v\n", port)
 }
 
@@ -69,9 +71,10 @@ func parseTimeout(def *definition.Definition) (timeout time.Duration) {
 // MakeHTTPServer ...
 func MakeHTTPServer(def *definition.Definition) *HTTPServer {
 	h := &HTTPServer{
-		def:     *def,
-		timeout: parseTimeout(def),
-		cache:   ttlcache.NewCache(),
+		def:             *def,
+		timeout:         parseTimeout(def),
+		cache:           ttlcache.NewCache(),
+		dispatchChannel: make(chan *dispatchData),
 	}
 	h.cache.SetTTL(h.timeout)
 	return h

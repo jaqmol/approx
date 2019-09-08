@@ -1,0 +1,11 @@
+gateway Server:
+  ENV:
+    TIMEOUT: 10s
+    PORT: 8080
+
+proc getMediaType:
+  COMMAND: node get-media-type.js
+
+flow:
+  - Server -> getMediaType -> Server
+  

@@ -1,7 +1,6 @@
 package run
 
 import (
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/jaqmol/approx/builtin"
 	"github.com/jaqmol/approx/builtin/httpserver"
 	"github.com/jaqmol/approx/definition"
+	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/processor"
 )
 
@@ -20,17 +20,17 @@ type Process struct {
 }
 
 // SetStdin ...
-func (p *Process) SetStdin(r io.Reader) {
+func (p *Process) SetStdin(r *pipe.Reader) {
 	p.cmd.Stdin = r
 }
 
 // SetStdout ...
-func (p *Process) SetStdout(w io.Writer) {
+func (p *Process) SetStdout(w *pipe.Writer) {
 	p.cmd.Stdout = w
 }
 
 // SetStderr ...
-func (p *Process) SetStderr(w io.Writer) {
+func (p *Process) SetStderr(w *pipe.Writer) {
 	p.cmd.Stderr = w
 }
 

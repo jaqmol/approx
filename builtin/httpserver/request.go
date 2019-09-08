@@ -15,42 +15,48 @@ import (
 	"github.com/jaqmol/approx/message"
 )
 
-type requestPayload struct {
-	Method  string              `json:"method"`
-	URL     requestURL          `json:"url"`
-	Headers map[string][]string `json:"headers"`
-	Body    string              `json:"body"`
-}
-
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		payloadRawMsg := payload(r)
-		msg := message.Message{
-			ID:      createID(),
-			Role:    "request",
-			Payload: payloadRawMsg,
+		channel := make(chan *message.Message)
+		dd := dispatchData{
+			request: message.Message{
+				ID:        createID(),
+				Role:      "request",
+				IsEnd:     true,
+				MediaType: "application/json",
+				Body:      makeRequestPayload(r),
+			},
+			channel: channel,
 		}
-		msgBytes, err := json.Marshal(msg)
-		catch(err)
-
-		rc := make(chan *message.Message)
-		h.cacheResponseChannel(msg.ID, rc)
-		h.dispatchLine(msgBytes)
-
+		h.dispatchChannel <- &dd // TODO: Must use pipe channel
 		select {
-		case response := <-rc:
+		case response := <-channel:
 			h.respond(w, response)
 		case <-time.After(h.timeout):
-			h.respondWithPipelineResponseTimeout(w, msg.ID)
+			h.respondWithPipelineResponseTimeout(w, dd.request.ID)
 		}
 	})
 	addr := fmt.Sprintf(":%v", port)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
+func (h *HTTPServer) startDispatching() {
+	for dd := range h.dispatchChannel {
+		h.cacheResponseChannel(dd.request.ID, dd.channel)
+		byteSlice := dd.request.ToBytes()
+		_, err := h.stdout.Write(byteSlice) // TODO: Must use pipe channel
+		catch(err)
+	}
+}
+
+type dispatchData struct {
+	request message.Message
+	channel chan<- *message.Message
+}
+
 func (h *HTTPServer) dispatchLine(bytes []byte) {
 	bytes = append(bytes, []byte("\n")...)
-	_, err := h.stdout.Write(bytes)
+	_, err := h.stdout.Write(bytes) // TODO: Must use pipe channel
 	catch(err)
 }
 
@@ -64,19 +70,25 @@ func createID() string {
 	return u.String()
 }
 
-func payload(r *http.Request) *json.RawMessage {
+type requestPayload struct {
+	Method  string              `json:"method"`
+	URL     requestURL          `json:"url"`
+	Headers map[string][]string `json:"headers"`
+	Body    string              `json:"body"`
+}
+
+func makeRequestPayload(r *http.Request) (bytes []byte) {
 	body := readBody(r)
 	url := makeRequestURL(r)
-	payload := requestPayload{
+	rp := requestPayload{
 		Method:  r.Method,
 		URL:     *url,
 		Headers: headerToMap(r.Header),
 		Body:    *body,
 	}
-	bytes, err := json.Marshal(payload)
+	bytes, err := json.Marshal(rp)
 	catch(err)
-	rawMsg := json.RawMessage(bytes)
-	return &rawMsg
+	return
 }
 
 func strToInt(str string) int {

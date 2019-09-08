@@ -1,4 +1,6 @@
 const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
 
 const reader = readline.createInterface({
   input: process.stdin
@@ -43,3 +45,20 @@ function parseHeader(msgStr) {
 
 const stringifyHeader = (id, role, seq, isEnd, status, mediaType, encoding) => 
   `${id},${role},${seq},${isEnd},${status},${mediaType},${encoding};`;
+
+function readMediaTypes(callback) {
+  const csvFilePath = path.join(__dirname, 'media-types.csv');
+  fs.readFile(csvFilePath, 'utf8', (err, data) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const acc = {};
+    const lines = data.split('\n');
+    for (let l of lines) {
+      const cell = l.split(',');
+      acc[cell[0]] = cell[1];
+    }
+    callback(null, acc);
+  });
+}

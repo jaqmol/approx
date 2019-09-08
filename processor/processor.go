@@ -1,16 +1,15 @@
 package processor
 
 import (
-	"io"
-
 	"github.com/jaqmol/approx/definition"
+	"github.com/jaqmol/approx/pipe"
 )
 
 // Processor ...
 type Processor interface {
-	SetStdin(io.Reader)
-	SetStdout(io.Writer)
-	SetStderr(io.Writer)
+	SetStdin(*pipe.Reader)
+	SetStdout(*pipe.Writer)
+	SetStderr(*pipe.Writer)
 	Definition() *definition.Definition
 	Start()
 }

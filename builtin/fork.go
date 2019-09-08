@@ -2,19 +2,17 @@ package builtin
 
 import (
 	"bufio"
-	"encoding/json"
-	"io"
 
 	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/pipe"
 )
 
 // Fork ...
 type Fork struct {
 	def        definition.Definition
-	stdin      io.Reader
-	stdouts    []io.Writer
-	stderr     io.Writer
+	stdin      *pipe.Reader
+	stdouts    []pipe.Writer
+	stderr     *pipe.Writer
 	running    bool
 	cycleIndex int
 	distribute int
@@ -32,17 +30,17 @@ const (
 )
 
 // SetStdin ...
-func (f *Fork) SetStdin(r io.Reader) {
+func (f *Fork) SetStdin(r *pipe.Reader) {
 	f.stdin = r
 }
 
 // SetStdout ...
-func (f *Fork) SetStdout(w io.Writer) {
-	f.stdouts = append(f.stdouts, w)
+func (f *Fork) SetStdout(w *pipe.Writer) {
+	f.stdouts = append(f.stdouts, *w)
 }
 
 // SetStderr ...
-func (f *Fork) SetStderr(w io.Writer) {
+func (f *Fork) SetStderr(w *pipe.Writer) {
 	f.stderr = w
 }
 
@@ -77,54 +75,31 @@ func MakeFork(def *definition.Definition) *Fork {
 	}
 	return &Fork{
 		def:        *def,
-		stdouts:    make([]io.Writer, 0),
+		stdouts:    make([]pipe.Writer, 0),
 		distribute: distribute,
 	}
 }
 
 func (f *Fork) start() {
-	scanner := bufio.NewScanner(f.stdin)
+	scanner := bufio.NewScanner(f.stdin) // TODO: Must use pipe channel
 	for scanner.Scan() {
 		inputeBytes := scanner.Bytes()
-
-		var msg message.Message
-		err := json.Unmarshal(inputeBytes, &msg)
-
-		if err != nil {
-			message.WriteLogEntry(f.stderr, message.Fail, "", err.Error())
-		} else {
-			f.writeDistribute(&msg)
-		}
+		f.writeDistribute(inputeBytes)
 	}
 }
 
-func (f *Fork) writeDistribute(msg *message.Message) {
+func (f *Fork) writeDistribute(msgBytes []byte) {
 	switch f.distribute {
 	case distributeCopy:
-		for i, stdout := range f.stdouts {
-			msg.Index = &i
-			f.write(stdout, msg)
+		for _, stdout := range f.stdouts {
+			stdout.Write(msgBytes) // TODO: Must use pipe channel
 		}
 	case distributeCycle:
 		stdout := f.stdouts[f.cycleIndex]
-		msg.Index = &f.cycleIndex
-		f.write(stdout, msg)
+		stdout.Write(msgBytes) // TODO: Must use pipe channel
 		f.cycleIndex++
 		if f.cycleIndex >= len(f.stdouts) {
 			f.cycleIndex = 0
-		}
-	}
-}
-
-func (f *Fork) write(stdout io.Writer, msg *message.Message) {
-	bytes, err := json.Marshal(msg)
-	if err != nil {
-		message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
-	} else {
-		bytes = append(bytes, []byte("\n")...)
-		_, err = stdout.Write(bytes)
-		if err != nil {
-			message.WriteLogEntry(f.stderr, message.Fail, msg.ID, err.Error())
 		}
 	}
 }
