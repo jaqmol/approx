@@ -9,12 +9,12 @@ import (
 
 // Merge ...
 type Merge struct {
-	def               definition.Definition
-	stdins            []pipe.Reader
-	stdout            *pipe.Writer
-	stderr            *pipe.Writer
-	running           bool
-	writeToStdoutChan chan []byte
+	def     definition.Definition
+	stdins  []pipe.Reader
+	stdout  *pipe.Writer
+	stderr  *pipe.Writer
+	running bool
+	// writeToStdoutChan chan []byte
 }
 
 // SetStdin ...
@@ -43,7 +43,7 @@ func (m *Merge) Start() {
 		for _, stdin := range m.stdins {
 			go m.startReading(&stdin)
 		}
-		go m.startWriting()
+		// go m.startWriting()
 		m.running = true
 	}
 }
@@ -51,22 +51,23 @@ func (m *Merge) Start() {
 // MakeMerge ...
 func MakeMerge(def *definition.Definition) *Merge {
 	return &Merge{
-		def:               *def,
-		stdins:            make([]pipe.Reader, 0),
-		writeToStdoutChan: make(chan []byte),
+		def:    *def,
+		stdins: make([]pipe.Reader, 0),
+		// writeToStdoutChan: make(chan []byte),
 	}
 }
 
 func (m *Merge) startReading(aStdin *pipe.Reader) {
-	scanner := bufio.NewScanner(aStdin) // TODO: Must use pipe channel
+	scanner := bufio.NewScanner(aStdin)
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
-		m.writeToStdoutChan <- bytes
+		m.stdout.Channel() <- bytes
+		// m.writeToStdoutChan <- bytes
 	}
 }
 
-func (m *Merge) startWriting() {
-	for bytes := range m.writeToStdoutChan {
-		m.stdout.Write(bytes) // TODO: Must use pipe channel
-	}
-}
+// func (m *Merge) startWriting() {
+// 	for bytes := range m.writeToStdoutChan {
+// 		m.stdout.Write(bytes) // TODO: Must use pipe channel
+// 	}
+// }

@@ -17,3 +17,8 @@ func (w *Writer) Write(b []byte) (n int, err error) {
 	w.inputChannel <- b
 	return len(b), nil
 }
+
+// Channel ...
+func (w *Writer) Channel() chan<- []byte {
+	return w.inputChannel
+}

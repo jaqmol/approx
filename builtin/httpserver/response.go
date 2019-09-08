@@ -15,7 +15,7 @@ func (h *HTTPServer) startResponding() {
 		msgBytes := scanner.Bytes()
 		resp := message.ParseMessage(msgBytes)
 		if resp == nil {
-			fmt.Fprintf(h.stderr, "No message in: %v", string(msgBytes))
+			h.stderr.Channel() <- []byte(fmt.Sprintf("No message in: %v", string(msgBytes)))
 			continue
 		}
 		rc, ok := h.uncacheResponseChannel(resp.ID)

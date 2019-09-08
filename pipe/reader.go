@@ -29,3 +29,8 @@ func (r *Reader) Read(dst []byte) (n int, err error) {
 	}
 	return copiedCount, nil
 }
+
+// Channel ...
+func (r *Reader) Channel() <-chan []byte {
+	return r.outputChannel
+}

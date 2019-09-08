@@ -81,7 +81,7 @@ func MakeFork(def *definition.Definition) *Fork {
 }
 
 func (f *Fork) start() {
-	scanner := bufio.NewScanner(f.stdin) // TODO: Must use pipe channel
+	scanner := bufio.NewScanner(f.stdin)
 	for scanner.Scan() {
 		inputeBytes := scanner.Bytes()
 		f.writeDistribute(inputeBytes)
@@ -92,11 +92,13 @@ func (f *Fork) writeDistribute(msgBytes []byte) {
 	switch f.distribute {
 	case distributeCopy:
 		for _, stdout := range f.stdouts {
-			stdout.Write(msgBytes) // TODO: Must use pipe channel
+			stdout.Channel() <- msgBytes
+			// stdout.Write(msgBytes) // TODO: Must use pipe channel
 		}
 	case distributeCycle:
 		stdout := f.stdouts[f.cycleIndex]
-		stdout.Write(msgBytes) // TODO: Must use pipe channel
+		stdout.Channel() <- msgBytes
+		// stdout.Write(msgBytes) // TODO: Must use pipe channel
 		f.cycleIndex++
 		if f.cycleIndex >= len(f.stdouts) {
 			f.cycleIndex = 0

@@ -17,7 +17,7 @@ import (
 
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		channel := make(chan *message.Message)
+		respChan := make(chan *message.Message)
 		dd := dispatchData{
 			request: message.Message{
 				ID:        createID(),
@@ -26,11 +26,11 @@ func (h *HTTPServer) startReceiving(port int) {
 				MediaType: "application/json",
 				Body:      makeRequestPayload(r),
 			},
-			channel: channel,
+			respChan: respChan,
 		}
 		h.dispatchChannel <- &dd // TODO: Must use pipe channel
 		select {
-		case response := <-channel:
+		case response := <-respChan:
 			h.respond(w, response)
 		case <-time.After(h.timeout):
 			h.respondWithPipelineResponseTimeout(w, dd.request.ID)
@@ -42,23 +42,24 @@ func (h *HTTPServer) startReceiving(port int) {
 
 func (h *HTTPServer) startDispatching() {
 	for dd := range h.dispatchChannel {
-		h.cacheResponseChannel(dd.request.ID, dd.channel)
+		h.cacheResponseChannel(dd.request.ID, dd.respChan)
 		byteSlice := dd.request.ToBytes()
-		_, err := h.stdout.Write(byteSlice) // TODO: Must use pipe channel
-		catch(err)
+		h.stdout.Channel() <- byteSlice
+		// _, err := h.stdout.Write(byteSlice) // TODO: Must use pipe channel
+		// catch(err)
 	}
 }
 
 type dispatchData struct {
-	request message.Message
-	channel chan<- *message.Message
+	request  message.Message
+	respChan chan<- *message.Message
 }
 
-func (h *HTTPServer) dispatchLine(bytes []byte) {
-	bytes = append(bytes, []byte("\n")...)
-	_, err := h.stdout.Write(bytes) // TODO: Must use pipe channel
-	catch(err)
-}
+// func (h *HTTPServer) dispatchLine(bytes []byte) {
+// 	bytes = append(bytes, []byte("\n")...)
+// 	_, err := h.stdout.Write(bytes) // TODO: Must use pipe channel
+// 	catch(err)
+// }
 
 func (h *HTTPServer) cacheResponseChannel(id string, rc chan<- *message.Message) {
 	h.cache.Set(id, rc)
