@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/jaqmol/approx/message"
 )
@@ -19,10 +21,12 @@ func (h *HTTPServer) startResponding() {
 	scanner := bufio.NewScanner(h.stdin)
 	for scanner.Scan() {
 		msgBytes := scanner.Bytes()
+		fmt.Fprintf(h.stderr, "Bytes: %v\n", string(msgBytes))
 		var msg message.Message
 		err := json.Unmarshal(msgBytes, &msg)
 		if err != nil {
 			message.WriteLogEntry(h.stderr, message.Fail, "", err.Error())
+			os.Exit(-1)
 		} else {
 			rc, ok := h.uncacheResponseChannel(msg.ID)
 			if ok {

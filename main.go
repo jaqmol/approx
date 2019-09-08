@@ -16,6 +16,7 @@ import (
 	"github.com/jaqmol/approx/env"
 	"github.com/jaqmol/approx/flow"
 	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
 )
@@ -92,7 +93,7 @@ func formationFilePath() string {
 	return formationPath
 }
 
-func listenForLogEntries(stdErrs map[string]run.Pipe) {
+func listenForLogEntries(stdErrs map[string]pipe.Pipe) {
 	logChan := make(chan message.SourcedLogEntry)
 	for procName, errPipe := range stdErrs {
 		go listenForLogEntry(logChan, procName, errPipe.Reader)
@@ -113,8 +114,6 @@ func listenForLogEntry(logChan chan<- message.SourcedLogEntry, procName string, 
 		var msg message.Message
 		err := json.Unmarshal(errBytes, &msg)
 		if err != nil {
-			// errMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, err.Error())
-			// logChan <- *errMsg
 			strErrMsg := message.MakeSourcedLogEntry(procName, "", message.Fail, string(errBytes))
 			logChan <- *strErrMsg
 		} else {

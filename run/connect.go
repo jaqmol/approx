@@ -1,16 +1,18 @@
 package run
 
 import (
+	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/processor"
 )
 
 // Connect ...
-func Connect(processors []processor.Processor, flows map[string][]string, pipes map[string]Pipe, stdErrs map[string]Pipe) {
+func Connect(processors []processor.Processor, flows map[string][]string, pipes map[string]pipe.Pipe, stdErrs map[string]pipe.Pipe) {
 	processorForName := makeProcessorForNameMap(processors)
 
 	for _, fromProc := range processors {
 		fromName := fromProc.Definition().Name
-		fromProc.SetStderr(stdErrs[fromName].Writer)
+		errPipe := stdErrs[fromName]
+		fromProc.SetStderr(errPipe.Writer)
 		fromProc := processorForName[fromName]
 		toNames := flows[fromName]
 

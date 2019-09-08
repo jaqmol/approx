@@ -14,8 +14,9 @@ import (
 
 // Process ...
 type Process struct {
-	cmd exec.Cmd
-	def definition.Definition
+	cmd     exec.Cmd
+	def     definition.Definition
+	running bool
 }
 
 // SetStdin ...
@@ -40,11 +41,18 @@ func (p *Process) Definition() *definition.Definition {
 
 // Start ...
 func (p *Process) Start() {
-	go p.start()
+	if !p.running {
+		go p.start()
+		p.running = true
+	}
 }
 
 func (p *Process) start() {
-	err := p.cmd.Run()
+	err := p.cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	err = p.cmd.Wait()
 	if err != nil {
 		panic(err)
 	}

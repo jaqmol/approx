@@ -1,5 +1,5 @@
 const readline = require('readline');
-const { inform } = require('./log');
+const { inform, exit } = require('./log');
 const eventsBuffer = {};
 
 const reader = readline.createInterface({
@@ -7,7 +7,13 @@ const reader = readline.createInterface({
 });
 
 reader.on('line', (input) => {
-  const event = JSON.parse(input);
+  let event; 
+  try {
+    event = JSON.parse(input);
+  } catch(err) {
+    exit('', 'ERROR PARSING INPUT: "' + input + '": ' + err.toString());
+    return;
+  } 
   const acc = eventsBuffer[event.id] || {
     mediaType: null,
     hasMediaType: false,

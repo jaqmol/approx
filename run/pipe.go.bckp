@@ -37,13 +37,45 @@ func MakeStderrs(definitions []definition.Definition) map[string]Pipe {
 	return acc
 }
 
+/*
+TODO
+Implement asynchronous pipe, that must be started as go routine
+*/
+
 // Pipe ...
 type Pipe struct {
-	Reader io.Reader
-	Writer io.Writer
+	Reader  io.Reader
+	Writer  io.Writer
+	running bool
+}
+
+// Start ...
+func (p *Pipe) Start() {
+	if !p.running {
+		go p.start()
+		p.running = true
+	}
+}
+
+func (p *Pipe) start() {
+
 }
 
 // PipeKey ...
 func PipeKey(fromName string, toName string) string {
 	return fmt.Sprintf("%v->%v", fromName, toName)
+}
+
+type reader struct {
+}
+
+func (r *reader) Read(p []byte) (n int, err error) {
+	return 0, nil
+}
+
+type writer struct {
+}
+
+func (w *writer) Write(p []byte) (n int, err error) {
+	return 0, nil
 }
