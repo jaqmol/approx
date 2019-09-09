@@ -6,6 +6,9 @@ gateway Server:
 proc getMediaType:
   COMMAND: node get-media-type.js
 
+proc combine:
+  COMMAND: node combine.js
+
 flow:
-  - Server -> getMediaType -> Server
+  - Server -> getMediaType -> combine -> Server
   

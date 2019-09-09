@@ -1,46 +1,40 @@
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const writer = require('./writer');
+const {Header, Writer} = require('./utils');
 
 const reader = readline.createInterface({
   input: process.stdin
 });
-const log = writer(reader, process.stderr);
-const dispatch = writer(reader, process.stdout);
+const log = Writer({reader, stream: process.stderr});
+const dispatch = Writer({reader, stream: process.stdout});
 
-reader.on('line', (msgStr) => {
-  const [header, body] = parseHeader(msgStr);
-  if (!header || !body) return;
-  log(msgStr);
-  respond(header.id, body);
+readMediaTypes((err, mediaTypeForExt) => {
+  if (err) {
+    log(`${err.toString()}\n`);
+    process.exit(-1);
+  } else {
+    listen(mediaTypeForExt);
+  }
 });
 
-
-function respond(id, msgStr) {
-  const head = stringifyHeader(id, 'response', 0, true, 200, 'application/json', '');
-  dispatch(`${head}${msgStr}\n`);
+function listen(mediaTypeForExt) {
+  reader.on('line', (msgStr) => {
+    const [header, body] = Header.parse(msgStr);
+    if (!header || !body) return;
+    
+    const req = JSON.parse(body);
+    const rawExt = path.extname(req.url.path);
+    const extension = rawExt === '' ? '.html' : rawExt;
+    const mediaType = mediaTypeForExt[extension];
+    respond(header.id, mediaType);
+  });
 }
 
-function parseHeader(msgStr) {
-  if (!msgStr) return [];
-  const semicolonIdx = msgStr.indexOf(';');
-  const headerStr = msgStr.slice(0, semicolonIdx);
-  const comps = headerStr.split(',');
-  return [
-    {
-      id: comps[0],
-      role: comps[1],
-      isEnd: JSON.parse(comps[2]),
-      mediaType: comps[3],
-      encoding: comps[4],
-    },
-    msgStr.slice(semicolonIdx + 1),
-  ];
+function respond(id, body) {
+  const head = Header.stringify({id, role: 'media-type', mediaType: 'text/plain'});
+  dispatch(`${head}${body}\n`);
 }
-
-const stringifyHeader = (id, role, seq, isEnd, status, mediaType, encoding) => 
-  `${id},${role},${seq},${isEnd},${status},${mediaType},${encoding};`;
 
 function readMediaTypes(callback) {
   const csvFilePath = path.join(__dirname, 'media-types.csv');
