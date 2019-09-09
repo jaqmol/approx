@@ -18,9 +18,6 @@ func NewPipe() *Pipe {
 
 func (p *Pipe) start() {
 	for b := range p.Writer.inputChannel {
-		select {
-		case p.Reader.outputChannel <- b:
-		default:
-		}
+		p.Reader.outputChannel <- b
 	}
 }

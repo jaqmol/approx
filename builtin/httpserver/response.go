@@ -15,14 +15,16 @@ func (h *HTTPServer) startResponding() {
 		msgBytes := scanner.Bytes()
 		resp := message.ParseMessage(msgBytes)
 		if resp == nil {
-			h.stderr.Channel() <- []byte(fmt.Sprintf("No message in: %v", string(msgBytes)))
+			errBytes := []byte(fmt.Sprintf("No message in: %v", string(msgBytes)))
+			h.stderr.Channel() <- errBytes
 			continue
 		}
 		rc, ok := h.uncacheResponseChannel(resp.ID)
 		if ok {
 			rc <- resp
 		} else {
-			fmt.Fprintf(h.stderr, "No response channel found for message ID %v, timeout likely\n", resp.ID)
+			errBytes := []byte(fmt.Sprintf("No response channel found for message ID %v, timeout likely\n", resp.ID))
+			h.stderr.Channel() <- errBytes
 		}
 	}
 }

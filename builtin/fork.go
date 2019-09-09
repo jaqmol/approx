@@ -93,12 +93,10 @@ func (f *Fork) writeDistribute(msgBytes []byte) {
 	case distributeCopy:
 		for _, stdout := range f.stdouts {
 			stdout.Channel() <- msgBytes
-			// stdout.Write(msgBytes) // TODO: Must use pipe channel
 		}
 	case distributeCycle:
 		stdout := f.stdouts[f.cycleIndex]
 		stdout.Channel() <- msgBytes
-		// stdout.Write(msgBytes) // TODO: Must use pipe channel
 		f.cycleIndex++
 		if f.cycleIndex >= len(f.stdouts) {
 			f.cycleIndex = 0

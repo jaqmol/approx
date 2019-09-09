@@ -1,29 +1,25 @@
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
+const writer = require('./writer');
 
 const reader = readline.createInterface({
   input: process.stdin
 });
+const log = writer(reader, process.stderr);
+const dispatch = writer(reader, process.stdout);
 
 reader.on('line', (msgStr) => {
   const [header, body] = parseHeader(msgStr);
   if (!header || !body) return;
-  inform(msgStr);
+  log(msgStr);
   respond(header.id, body);
 });
 
-function inform(msg) {
-  process.stderr.write(`${msg}\n`, 'utf8');
-}
 
 function respond(id, msgStr) {
-  process.stdout.write(
-    stringifyHeader(id, 'response', 0, true, 200, 'application/json', ''), 
-    'utf8',
-  );
-  process.stdout.write(msgStr, 'utf8');
-  process.stdout.write('\n', 'utf8');
+  const head = stringifyHeader(id, 'response', 0, true, 200, 'application/json', '');
+  dispatch(`${head}${msgStr}\n`);
 }
 
 function parseHeader(msgStr) {

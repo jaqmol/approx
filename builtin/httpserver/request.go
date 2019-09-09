@@ -28,7 +28,7 @@ func (h *HTTPServer) startReceiving(port int) {
 			},
 			respChan: respChan,
 		}
-		h.dispatchChannel <- &dd // TODO: Must use pipe channel
+		h.dispatchChannel <- &dd
 		select {
 		case response := <-respChan:
 			h.respond(w, response)
@@ -45,8 +45,6 @@ func (h *HTTPServer) startDispatching() {
 		h.cacheResponseChannel(dd.request.ID, dd.respChan)
 		byteSlice := dd.request.ToBytes()
 		h.stdout.Channel() <- byteSlice
-		// _, err := h.stdout.Write(byteSlice) // TODO: Must use pipe channel
-		// catch(err)
 	}
 }
 
@@ -54,12 +52,6 @@ type dispatchData struct {
 	request  message.Message
 	respChan chan<- *message.Message
 }
-
-// func (h *HTTPServer) dispatchLine(bytes []byte) {
-// 	bytes = append(bytes, []byte("\n")...)
-// 	_, err := h.stdout.Write(bytes) // TODO: Must use pipe channel
-// 	catch(err)
-// }
 
 func (h *HTTPServer) cacheResponseChannel(id string, rc chan<- *message.Message) {
 	h.cache.Set(id, rc)
