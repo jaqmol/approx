@@ -1,6 +1,8 @@
 package run
 
 import (
+	"fmt"
+
 	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/processor"
 )
@@ -18,10 +20,12 @@ func Connect(processors []processor.Processor, flows map[string][]string, pipes 
 
 		for _, toName := range toNames {
 			toProc := processorForName[toName]
-			pipe := pipes[PipeKey(fromName, toName)]
+			key := PipeKey(fromName, toName)
+			aPipe := pipes[key]
+			fmt.Printf("Connecting: %v: %v\n", key, aPipe)
 
-			fromProc.SetStdout(pipe.Writer)
-			toProc.SetStdin(pipe.Reader)
+			fromProc.SetStdout(aPipe.Writer)
+			toProc.SetStdin(aPipe.Reader)
 		}
 	}
 }

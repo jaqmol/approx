@@ -27,12 +27,13 @@ function listen(mediaTypeForExt) {
     const rawExt = path.extname(req.url.path);
     const extension = rawExt === '' ? '.html' : rawExt;
     const mediaType = mediaTypeForExt[extension];
-    respond(header.id, mediaType);
+    send(header.id, mediaType);
   });
 }
 
-function respond(id, body) {
+function send(id, body) {
   const head = Header.stringify({id, role: 'media-type', mediaType: 'text/plain'});
+  log(`Outbound message: ${head}${body}\n`);
   dispatch(`${head}${body}\n`);
 }
 

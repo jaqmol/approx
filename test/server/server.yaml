@@ -1,5 +1,6 @@
 gateway Server:
   ENV:
+    STATIC_PATH: null
     TIMEOUT: 10s
     PORT: 8080
 
@@ -9,6 +10,21 @@ proc getMediaType:
 proc combine:
   COMMAND: node combine.js
 
+proc readFile:
+  ENV.BASE_PATH: $staticBasePath
+  COMMAND: node read-file.js
+
+fork forkReq:
+  ENV.DISTRIBUTE: copy
+
+merge mergeResp: {}
+
+assign:
+  $staticBasePath: Server.ENV.STATIC_PATH
+
 flow:
-  - Server -> getMediaType -> combine -> Server
+  - Server -> forkReq
+  - forkReq -> getMediaType -> mergeResp
+  - forkReq -> readFile -> mergeResp
+  - mergeResp -> combine -> Server
   

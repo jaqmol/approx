@@ -19,24 +19,40 @@ const Header = {
       {
         id: comps[0],
         role: comps[1],
-        isEnd: JSON.parse(comps[2]),
-        mediaType: comps[3],
-        encoding: comps[4],
+        seq: Number(comps[2]),
+        isEnd: parseIsEnd(comps[3]),
+        status: Number(comps[4]),
+        mediaType: comps[5],
+        encoding: comps[6],
       },
       msgStr.slice(semicolonIdx + 1),
     ];
   },
   stringify: ({id, role, seq, isEnd, status, mediaType, encoding}) => {
-    id = id || '';
-    role = role || '';
-    seq = typeof seq === 'number' ? seq : 0;
-    isEnd = typeof isEnd === 'boolean' ? isEnd : true;
-    status = typeof status === 'number' ? status : 0;
-    mediaType = mediaType || '';
-    encoding = encoding || '';
-    return `${id},${role},${seq},${isEnd},${status},${mediaType},${encoding};`;
+    const comps = [
+      id || '',
+      role || '',
+      typeof seq === 'number' ? seq : 0,
+      typeof isEnd === 'boolean' ? isEnd : true,
+      typeof status === 'number' ? status : 0,
+      mediaType || '',
+      encoding || '',
+      ';',
+    ];
+    return comps.join(',');
   },
 };
+
+function parseIsEnd(comp) {
+  switch (comp.toUpperCase().slice(0, 1)) {
+    case 'F':
+    case '0':
+    case 'N':
+      return false;
+    default:
+      return true;
+  }
+}
 
 module.exports = {
   Writer,

@@ -1,1 +1,1 @@
-go run ../../main.go ./server.yaml
+STATIC_PATH=./static go run ../../main.go ./server.yaml

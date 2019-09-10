@@ -22,6 +22,8 @@ func MakePipes(definitions []definition.Definition, flows map[string][]string) m
 		}
 	}
 
+	fmt.Printf("Did make pipes: %v\n", acc)
+
 	return acc
 }
 

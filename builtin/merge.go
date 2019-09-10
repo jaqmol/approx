@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"bufio"
+	"fmt"
 
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/pipe"
@@ -19,6 +20,7 @@ type Merge struct {
 // SetStdin ...
 func (m *Merge) SetStdin(r *pipe.Reader) {
 	m.stdins = append(m.stdins, *r)
+	fmt.Printf("Merge stdins: %v\n", m.stdins)
 }
 
 // SetStdout ...
@@ -39,8 +41,8 @@ func (m *Merge) Definition() *definition.Definition {
 // Start ...
 func (m *Merge) Start() {
 	if !m.running {
-		for _, stdin := range m.stdins {
-			go m.startReading(&stdin)
+		for stdinIndex := range m.stdins {
+			go m.startReading(stdinIndex)
 		}
 		m.running = true
 	}
@@ -54,10 +56,13 @@ func MakeMerge(def *definition.Definition) *Merge {
 	}
 }
 
-func (m *Merge) startReading(aStdin *pipe.Reader) {
-	scanner := bufio.NewScanner(aStdin)
+func (m *Merge) startReading(stdinIndex int) {
+	stdin := m.stdins[stdinIndex]
+	scanner := bufio.NewScanner(&stdin)
 	for scanner.Scan() {
-		bytes := scanner.Bytes()
-		m.stdout.Channel() <- bytes
+		msgBytes := scanner.Bytes()
+		msgBytes = append(msgBytes, []byte("\n")...)
+		// fmt.Printf("Merge did read: %v", string(msgBytes))
+		m.stdout.Channel() <- msgBytes
 	}
 }

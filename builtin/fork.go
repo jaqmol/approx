@@ -83,8 +83,9 @@ func MakeFork(def *definition.Definition) *Fork {
 func (f *Fork) start() {
 	scanner := bufio.NewScanner(f.stdin)
 	for scanner.Scan() {
-		inputeBytes := scanner.Bytes()
-		f.writeDistribute(inputeBytes)
+		msgBytes := scanner.Bytes()
+		msgBytes = append(msgBytes, []byte("\n")...)
+		f.writeDistribute(msgBytes)
 	}
 }
 
