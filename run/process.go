@@ -7,8 +7,8 @@ import (
 
 	"github.com/jaqmol/approx/builtin"
 	"github.com/jaqmol/approx/builtin/httpserver"
+	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/processor"
 )
 
@@ -20,18 +20,21 @@ type Process struct {
 }
 
 // SetStdin ...
-func (p *Process) SetStdin(r *pipe.Reader) {
-	p.cmd.Stdin = r
+func (p *Process) SetStdin(r channel.Reader) {
+	wrap := channel.NewReaderWrap(r)
+	p.cmd.Stdin = wrap
 }
 
 // SetStdout ...
-func (p *Process) SetStdout(w *pipe.Writer) {
-	p.cmd.Stdout = w
+func (p *Process) SetStdout(w channel.Writer) {
+	wrap := channel.NewWriterWrap(w)
+	p.cmd.Stdout = wrap
 }
 
 // SetStderr ...
-func (p *Process) SetStderr(w *pipe.Writer) {
-	p.cmd.Stderr = w
+func (p *Process) SetStderr(w channel.Writer) {
+	wrap := channel.NewWriterWrap(w)
+	p.cmd.Stderr = wrap
 }
 
 // Definition ...
@@ -70,7 +73,7 @@ func MakeProcess(def *definition.Definition) *Process {
 }
 
 // MakeProcessors ...
-func MakeProcessors(definitions []definition.Definition, flows map[string][]string) []processor.Processor {
+func MakeProcessors(definitions []definition.Definition) []processor.Processor {
 	processors := make([]processor.Processor, len(definitions))
 
 	idx := 0

@@ -27,7 +27,7 @@ func ParseMessage(byteSlice []byte) *Message {
 	msgBytes := byteSlice[:semicolonIndex]
 	msgString := string(msgBytes)
 	comps := strings.Split(msgString, ",")
-	if len(comps) != 7 {
+	if len(comps) != 8 {
 		return nil
 	}
 	return &Message{

@@ -18,13 +18,15 @@ import (
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		respChan := make(chan *message.Message)
+		body := makeRequestPayload(r)
 		dd := dispatchData{
 			request: message.Message{
-				ID:        createID(),
+				// ID:        createID(),
+				ID:        r.URL.Path,
 				Role:      "request",
 				IsEnd:     true,
 				MediaType: "application/json",
-				Body:      makeRequestPayload(r),
+				Body:      body,
 			},
 			respChan: respChan,
 		}
@@ -44,7 +46,7 @@ func (h *HTTPServer) startDispatching() {
 	for dd := range h.dispatchChannel {
 		h.cacheResponseChannel(dd.request.ID, dd.respChan)
 		byteSlice := dd.request.ToBytes()
-		h.stdout.Channel() <- byteSlice
+		h.stdout.Write() <- byteSlice
 	}
 }
 

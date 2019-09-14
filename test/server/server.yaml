@@ -1,7 +1,7 @@
 gateway Server:
   ENV:
     STATIC_PATH: null
-    TIMEOUT: 10s
+    TIMEOUT: 1m
     PORT: 8080
 
 proc getMediaType:
@@ -25,6 +25,6 @@ assign:
 flow:
   - Server -> forkReq
   - forkReq -> getMediaType -> mergeResp
-  - forkReq -> readFile -> mergeResp
+  - forkReq -> readFile -readFileTap-> mergeResp
   - mergeResp -> combine -> Server
   

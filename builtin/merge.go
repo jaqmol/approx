@@ -4,32 +4,33 @@ import (
 	"bufio"
 	"fmt"
 
+	"github.com/jaqmol/approx/channel"
+	"github.com/jaqmol/approx/utils"
+
 	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/pipe"
 )
 
 // Merge ...
 type Merge struct {
 	def     definition.Definition
-	stdins  []pipe.Reader
-	stdout  *pipe.Writer
-	stderr  *pipe.Writer
+	stdins  []channel.Reader
+	stdout  channel.Writer
+	stderr  channel.Writer
 	running bool
 }
 
 // SetStdin ...
-func (m *Merge) SetStdin(r *pipe.Reader) {
-	m.stdins = append(m.stdins, *r)
-	fmt.Printf("Merge stdins: %v\n", m.stdins)
+func (m *Merge) SetStdin(r channel.Reader) {
+	m.stdins = append(m.stdins, r)
 }
 
 // SetStdout ...
-func (m *Merge) SetStdout(w *pipe.Writer) {
+func (m *Merge) SetStdout(w channel.Writer) {
 	m.stdout = w
 }
 
 // SetStderr ...
-func (m *Merge) SetStderr(w *pipe.Writer) {
+func (m *Merge) SetStderr(w channel.Writer) {
 	m.stderr = w
 }
 
@@ -52,17 +53,18 @@ func (m *Merge) Start() {
 func MakeMerge(def *definition.Definition) *Merge {
 	return &Merge{
 		def:    *def,
-		stdins: make([]pipe.Reader, 0),
+		stdins: make([]channel.Reader, 0),
 	}
 }
 
 func (m *Merge) startReading(stdinIndex int) {
 	stdin := m.stdins[stdinIndex]
-	scanner := bufio.NewScanner(&stdin)
+	wrap := channel.NewReaderWrap(stdin)
+	scanner := bufio.NewScanner(wrap)
 	for scanner.Scan() {
 		msgBytes := scanner.Bytes()
+		fmt.Printf("Merge will pass on: %v\n", string(utils.Truncated(msgBytes, 100)))
 		msgBytes = append(msgBytes, []byte("\n")...)
-		// fmt.Printf("Merge did read: %v", string(msgBytes))
-		m.stdout.Channel() <- msgBytes
+		m.stdout.Write() <- msgBytes
 	}
 }

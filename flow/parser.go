@@ -1,48 +1,78 @@
 package flow
 
 import (
+	"regexp"
 	"strings"
+
+	"github.com/jaqmol/approx/utils"
 )
 
 // Parse ...
-func Parse(rawFormation map[interface{}]interface{}) map[string][]string {
-	acc := make(map[string][]string)
-	rawFlow := findRawFlow(rawFormation)
-	for _, line := range rawFlow {
-		var from string
-		for i, name := range line {
-			if i == 0 {
-				from = name
-			} else {
-				tos, ok := acc[from]
-				if !ok {
-					tos = make([]string, 0)
-				}
-				tos = append(tos, name)
-				acc[from] = tos
-				from = name
+func Parse(formation map[interface{}]interface{}) (procFlow map[string][]string, tappedPipes map[string]string) {
+	procFlow = make(map[string][]string)
+	tappedPipes = make(map[string]string)
+	flowDef := findFlowDefinition(formation)
+	splitter := regexp.MustCompile("-(\\w+)->|->")
+	for _, lineDefinition := range flowDef {
+		procNames := splitter.Split(lineDefinition, -1)
+		collectProcFlow(procFlow, procNames)
+		pipeNameSubs := splitter.FindAllStringSubmatch(lineDefinition, -1)
+		pipeNames := findPipeNames(pipeNameSubs)
+		collectTappedPipes(tappedPipes, procNames, pipeNames)
+	}
+	return
+}
+
+func findFlowDefinition(formation map[interface{}]interface{}) []string {
+	for key, value := range formation {
+		KEY := strings.ToUpper(key.(string))
+		if KEY == "FLOW" {
+			interfaceSlice := value.([]interface{})
+			definition := make([]string, len(interfaceSlice))
+			for i, interfaceLine := range interfaceSlice {
+				definition[i] = interfaceLine.(string)
 			}
+			return definition
 		}
+	}
+	return nil
+}
+
+func collectProcFlow(acc map[string][]string, procNames []string) {
+	var fromName string
+	for i, toName := range procNames {
+		toName := strings.TrimSpace(toName)
+		if i > 0 {
+			tos, ok := acc[fromName]
+			if !ok {
+				tos = make([]string, 0)
+			}
+			tos = append(tos, toName)
+			acc[fromName] = tos
+		}
+		fromName = toName
+	}
+}
+
+func findPipeNames(pipeNameSubs [][]string) []string {
+	acc := make([]string, 0)
+	for _, nameSub := range pipeNameSubs {
+		pipeName := nameSub[len(nameSub)-1]
+		acc = append(acc, pipeName)
 	}
 	return acc
 }
 
-func findRawFlow(rawFormation map[interface{}]interface{}) [][]string {
-	for key, value := range rawFormation {
-		KEY := strings.ToUpper(key.(string))
-		if KEY == "FLOW" {
-			interfaceSlice := value.([]interface{})
-			rawFlow := make([][]string, 0) // ?
-			for _, interfaceLine := range interfaceSlice {
-				line := interfaceLine.(string)
-				names := strings.Split(line, "->")
-				for i, name := range names {
-					names[i] = strings.TrimSpace(name) // ?
-				}
-				rawFlow = append(rawFlow, names)
+func collectTappedPipes(acc map[string]string, procNames []string, pipeNames []string) {
+	var fromName string
+	for i, toName := range procNames {
+		if i > 0 {
+			pipeName := pipeNames[i-1]
+			if pipeName != "" {
+				key := utils.PipeKey(fromName, toName)
+				acc[key] = pipeName
 			}
-			return rawFlow
 		}
+		fromName = toName
 	}
-	return nil
 }

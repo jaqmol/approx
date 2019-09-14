@@ -3,16 +3,16 @@ package builtin
 import (
 	"bufio"
 
+	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/pipe"
 )
 
 // Fork ...
 type Fork struct {
 	def        definition.Definition
-	stdin      *pipe.Reader
-	stdouts    []pipe.Writer
-	stderr     *pipe.Writer
+	stdin      channel.Reader
+	stdouts    []channel.Writer
+	stderr     channel.Writer
 	running    bool
 	cycleIndex int
 	distribute int
@@ -30,17 +30,17 @@ const (
 )
 
 // SetStdin ...
-func (f *Fork) SetStdin(r *pipe.Reader) {
+func (f *Fork) SetStdin(r channel.Reader) {
 	f.stdin = r
 }
 
 // SetStdout ...
-func (f *Fork) SetStdout(w *pipe.Writer) {
-	f.stdouts = append(f.stdouts, *w)
+func (f *Fork) SetStdout(w channel.Writer) {
+	f.stdouts = append(f.stdouts, w)
 }
 
 // SetStderr ...
-func (f *Fork) SetStderr(w *pipe.Writer) {
+func (f *Fork) SetStderr(w channel.Writer) {
 	f.stderr = w
 }
 
@@ -75,13 +75,14 @@ func MakeFork(def *definition.Definition) *Fork {
 	}
 	return &Fork{
 		def:        *def,
-		stdouts:    make([]pipe.Writer, 0),
+		stdouts:    make([]channel.Writer, 0),
 		distribute: distribute,
 	}
 }
 
 func (f *Fork) start() {
-	scanner := bufio.NewScanner(f.stdin)
+	wrap := channel.NewReaderWrap(f.stdin)
+	scanner := bufio.NewScanner(wrap)
 	for scanner.Scan() {
 		msgBytes := scanner.Bytes()
 		msgBytes = append(msgBytes, []byte("\n")...)
@@ -93,11 +94,11 @@ func (f *Fork) writeDistribute(msgBytes []byte) {
 	switch f.distribute {
 	case distributeCopy:
 		for _, stdout := range f.stdouts {
-			stdout.Channel() <- msgBytes
+			stdout.Write() <- msgBytes
 		}
 	case distributeCycle:
 		stdout := f.stdouts[f.cycleIndex]
-		stdout.Channel() <- msgBytes
+		stdout.Write() <- msgBytes
 		f.cycleIndex++
 		if f.cycleIndex >= len(f.stdouts) {
 			f.cycleIndex = 0

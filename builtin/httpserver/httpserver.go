@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/ReneKroon/ttlcache"
+	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/pipe"
 )
 
 // uuid.NewRandom()
@@ -15,9 +15,9 @@ import (
 // HTTPServer ...
 type HTTPServer struct {
 	def             definition.Definition
-	stdin           *pipe.Reader
-	stdout          *pipe.Writer
-	stderr          *pipe.Writer
+	stdin           channel.Reader
+	stdout          channel.Writer
+	stderr          channel.Writer
 	running         bool
 	timeout         time.Duration
 	cache           *ttlcache.Cache
@@ -25,17 +25,17 @@ type HTTPServer struct {
 }
 
 // SetStdin ...
-func (h *HTTPServer) SetStdin(r *pipe.Reader) {
+func (h *HTTPServer) SetStdin(r channel.Reader) {
 	h.stdin = r
 }
 
 // SetStdout ...
-func (h *HTTPServer) SetStdout(w *pipe.Writer) {
+func (h *HTTPServer) SetStdout(w channel.Writer) {
 	h.stdout = w
 }
 
 // SetStderr ...
-func (h *HTTPServer) SetStderr(w *pipe.Writer) {
+func (h *HTTPServer) SetStderr(w channel.Writer) {
 	h.stderr = w
 }
 

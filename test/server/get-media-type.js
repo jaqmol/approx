@@ -33,7 +33,7 @@ function listen(mediaTypeForExt) {
 
 function send(id, body) {
   const head = Header.stringify({id, role: 'media-type', mediaType: 'text/plain'});
-  log(`Outbound message: ${head}${body}\n`);
+  // log(`Outbound message: ${head}${body}\n`);
   dispatch(`${head}${body}\n`);
 }
 

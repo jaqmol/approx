@@ -6,25 +6,30 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/jaqmol/approx/channel"
+
 	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/utils"
 )
 
 func (h *HTTPServer) startResponding() {
-	scanner := bufio.NewScanner(h.stdin)
+	wrap := channel.NewReaderWrap(h.stdin)
+	scanner := bufio.NewScanner(wrap)
 	for scanner.Scan() {
 		msgBytes := scanner.Bytes()
 		resp := message.ParseMessage(msgBytes)
 		if resp == nil {
-			errBytes := []byte(fmt.Sprintf("No message in: %v", string(msgBytes)))
-			h.stderr.Channel() <- errBytes
-			continue
+			err := fmt.Errorf("No message in: %v", string(msgBytes))
+			// errBytes := []byte(err.Error() + "\n")
+			// h.stderr.Channel() <- errBytes
+			panic(err)
 		}
 		rc, ok := h.uncacheResponseChannel(resp.ID)
 		if ok {
 			rc <- resp
 		} else {
-			errBytes := []byte(fmt.Sprintf("No response channel found for message ID %v, timeout likely\n", resp.ID))
-			h.stderr.Channel() <- errBytes
+			err := fmt.Errorf("No response channel found for message ID %v", resp.ID)
+			panic(err)
 		}
 	}
 }
@@ -33,7 +38,18 @@ func (h *HTTPServer) respond(rw http.ResponseWriter, resp *message.Message) bool
 	rw.Header().Set("Content-Type", resp.MediaType)
 	rw.WriteHeader(resp.Status)
 
-	_, err := rw.Write(resp.Body)
+	var body []byte
+	if resp.Encoding == "base64" {
+		body = make([]byte, base64.StdEncoding.DecodedLen(len(resp.Body)))
+		_, err := base64.StdEncoding.Decode(body, resp.Body)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		body = resp.Body
+	}
+	fmt.Printf("### About to respond: %v\n", string(utils.Truncated(body, 100)))
+	_, err := rw.Write(body)
 	if err != nil {
 		return respond500Error(rw, resp.ID, err)
 	}

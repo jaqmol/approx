@@ -44,6 +44,7 @@ const Header = {
 };
 
 function parseIsEnd(comp) {
+  if (!comp) return true;
   switch (comp.toUpperCase().slice(0, 1)) {
     case 'F':
     case '0':

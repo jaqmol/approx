@@ -3,19 +3,18 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/jaqmol/approx/assign"
+	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/check"
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/env"
 	"github.com/jaqmol/approx/flow"
 	"github.com/jaqmol/approx/message"
-	"github.com/jaqmol/approx/pipe"
 	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
 )
@@ -60,14 +59,14 @@ func main() {
 	env.AugmentMissing(definitions)                    // 1. order is important
 	assign.ResolveVariables(rawFormation, definitions) // 2. order is important
 
-	flows := flow.Parse(rawFormation)
-	check.Check(definitions, flows)
+	procFlow, tappedPipeNames := flow.Parse(rawFormation)
+	check.Check(definitions, procFlow)
 
-	processors := run.MakeProcessors(definitions, flows)
-	pipes := run.MakePipes(definitions, flows)
-	stdErrs := run.MakeStderrs(definitions)
+	processors := run.MakeProcessors(definitions)
+	pipes := run.MakePipes(definitions, procFlow, tappedPipeNames)
+	stdErrs := run.MakeStderrs(definitions, tappedPipeNames)
 
-	run.Connect(processors, flows, pipes, stdErrs)
+	run.Connect(processors, procFlow, tappedPipeNames, pipes, stdErrs)
 	run.Start(processors)
 	listenForLogEntries(stdErrs)
 }
@@ -92,18 +91,19 @@ func formationFilePath() string {
 	return formationPath
 }
 
-func listenForLogEntries(stdErrs map[string]pipe.Pipe) {
+func listenForLogEntries(stdErrs map[string]channel.Pipe) {
 	logChan := make(chan message.LogEntry)
 	for procName, errPipe := range stdErrs {
-		go listenForLogEntry(logChan, procName, errPipe.Reader)
+		go listenForLogEntry(logChan, procName, errPipe)
 	}
 	for logMsg := range logChan {
 		logMsg.WriteTo(os.Stderr)
 	}
 }
 
-func listenForLogEntry(logChan chan<- message.LogEntry, procName string, errReader io.Reader) {
-	scanner := bufio.NewScanner(errReader)
+func listenForLogEntry(logChan chan<- message.LogEntry, procName string, errReader channel.Reader) {
+	wrap := channel.NewReaderWrap(errReader)
+	scanner := bufio.NewScanner(wrap)
 	for scanner.Scan() {
 		entryBytes := scanner.Bytes()
 		entry := message.LogEntry{Source: procName, Message: string(entryBytes)}
