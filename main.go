@@ -60,6 +60,8 @@ func main() {
 	assign.ResolveVariables(rawFormation, definitions) // 2. order is important
 
 	procFlow, tappedPipeNames := flow.Parse(rawFormation)
+	fmt.Printf("procFlow: %v\n", procFlow)
+	fmt.Printf("tappedPipeNames: %v\n", tappedPipeNames)
 	check.Check(definitions, procFlow)
 
 	processors := run.MakeProcessors(definitions)

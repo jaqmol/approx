@@ -16,47 +16,45 @@ reader.on('line', (msgStr) => {
   const [header, body] = Header.parse(msgStr);
   if (!header || !body) return;
 
-  // log(`header.id: ${header.id}\n`);
-
   let acc;
   if (buff.has(header.id)) {
     acc = buff.get(header.id);
   } else {
     acc = {
       mediaType: null,
-      hasMediaType: false,
-      body: null,
-      status: 0,
-      hasBodyAndStatus: false,
+      chunks: [],
     };
   }
 
   if (header.role === 'media-type') {
     mediaTypeCount++;
     acc.mediaType = body;
-    acc.hasMediaType = true;
   } else if (header.role === 'file-content') {
     bodyAndStatusCount++;
-    acc.body = body;
-    acc.status = header.status;
-    acc.hasBodyAndStatus = true;
+    const {seq, status, isEnd} = header;
+    acc.chunks.push({seq, status, isEnd, body});
   }
 
   log(`mediaTypeCount: ${mediaTypeCount}, bodyAndStatusCount: ${bodyAndStatusCount}\n`);
-  
-  if (acc.hasMediaType && acc.hasBodyAndStatus) {
-    send(header.id, acc.status, acc.mediaType, acc.body);
-    buff.delete(header.id);
-  } else {
-    buff.set(header.id, acc);
+
+  if (acc.mediaType && acc.chunks.length) {
+    log(`combine responds with ${acc.chunks.length} chunks\n`);
+    acc.chunks = acc.chunks.filter(({seq, status, body, isEnd}) => {
+      send(header.id, seq, status, acc.mediaType, body, isEnd);
+      return false;
+    });
   }
 
-  // for (var [key, value] of buff.entries()) {
-  //   log(`${key}: hasMediaType: ${value.hasMediaType}, hasBodyAndStatus: ${value.hasBodyAndStatus}\n`);
-  // }
+  if (header.isEnd && (header.role === 'file-content')) {
+    log(`combine deletes accumulator for id ${header.id}\n`);
+    buff.delete(header.id);
+  } else {
+    log(`combine updates accumulator for id ${header.id}\n`);
+    buff.set(header.id, acc);
+  }
 });
 
-function send(id, status, mediaType, body) {
-  const head = Header.stringify({id, role: 'response', status, mediaType, encoding: 'base64'});
+function send(id, seq, status, mediaType, body, isEnd) {
+  const head = Header.stringify({id, seq, role: 'response-chunk', status, mediaType, encoding: 'base64', isEnd});
   dispatch(`${head}${body}\n`);
 }

@@ -36,4 +36,5 @@ func (p *pipeImpl) IsTapped() bool {
 }
 
 func (p *pipeImpl) SetStderr(Writer) {
+	panic("A standard pipe cannot be tapped")
 }

@@ -35,8 +35,10 @@ func (h *HTTPServer) startResponding() {
 }
 
 func (h *HTTPServer) respond(rw http.ResponseWriter, resp *message.Message) bool {
-	rw.Header().Set("Content-Type", resp.MediaType)
-	rw.WriteHeader(resp.Status)
+	if resp.Seq == 0 {
+		rw.Header().Set("Content-Type", resp.MediaType)
+		rw.WriteHeader(resp.Status)
+	}
 
 	var body []byte
 	if resp.Encoding == "base64" {
@@ -48,11 +50,17 @@ func (h *HTTPServer) respond(rw http.ResponseWriter, resp *message.Message) bool
 	} else {
 		body = resp.Body
 	}
+
 	fmt.Printf("### About to respond: %v\n", string(utils.Truncated(body, 100)))
-	_, err := rw.Write(body)
-	if err != nil {
-		return respond500Error(rw, resp.ID, err)
+	writtenBytesCount := 0
+	for writtenBytesCount < len(body) {
+		wbc, err := rw.Write(body)
+		if err != nil {
+			return respond500Error(rw, resp.ID, err)
+		}
+		writtenBytesCount += wbc
 	}
+
 	return true
 }
 

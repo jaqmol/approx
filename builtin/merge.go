@@ -1,7 +1,6 @@
 package builtin
 
 import (
-	"bufio"
 	"fmt"
 
 	"github.com/jaqmol/approx/channel"
@@ -59,12 +58,14 @@ func MakeMerge(def *definition.Definition) *Merge {
 
 func (m *Merge) startReading(stdinIndex int) {
 	stdin := m.stdins[stdinIndex]
-	wrap := channel.NewReaderWrap(stdin)
-	scanner := bufio.NewScanner(wrap)
+	// wrap := channel.NewReaderWrap(stdin)
+	// scanner := bufio.NewScanner(wrap)
+	scanner := channel.NewLineScanner(stdin)
 	for scanner.Scan() {
-		msgBytes := scanner.Bytes()
-		fmt.Printf("Merge will pass on: %v\n", string(utils.Truncated(msgBytes, 100)))
-		msgBytes = append(msgBytes, []byte("\n")...)
-		m.stdout.Write() <- msgBytes
+		for _, msgBytes := range scanner.Lines() {
+			fmt.Printf("Merge will pass on: %v\n", string(utils.Truncated(msgBytes, 100)))
+			msgBytes = append(msgBytes, []byte("\n")...)
+			m.stdout.Write() <- msgBytes
+		}
 	}
 }

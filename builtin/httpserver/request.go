@@ -31,11 +31,16 @@ func (h *HTTPServer) startReceiving(port int) {
 			respChan: respChan,
 		}
 		h.dispatchChannel <- &dd
-		select {
-		case response := <-respChan:
-			h.respond(w, response)
-		case <-time.After(h.timeout):
-			h.respondWithPipelineResponseTimeout(w, dd.request.ID)
+		expectingResponses := true
+		for expectingResponses {
+			select {
+			case response := <-respChan:
+				h.respond(w, response)
+				expectingResponses = !response.IsEnd
+			case <-time.After(h.timeout):
+				h.respondWithPipelineResponseTimeout(w, dd.request.ID)
+				expectingResponses = false
+			}
 		}
 	})
 	addr := fmt.Sprintf(":%v", port)

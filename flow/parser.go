@@ -14,10 +14,10 @@ func Parse(formation map[interface{}]interface{}) (procFlow map[string][]string,
 	flowDef := findFlowDefinition(formation)
 	splitter := regexp.MustCompile("-(\\w+)->|->")
 	for _, lineDefinition := range flowDef {
-		procNames := splitter.Split(lineDefinition, -1)
+		procNames := trimmed(splitter.Split(lineDefinition, -1))
 		collectProcFlow(procFlow, procNames)
 		pipeNameSubs := splitter.FindAllStringSubmatch(lineDefinition, -1)
-		pipeNames := findPipeNames(pipeNameSubs)
+		pipeNames := trimmed(findPipeNames(pipeNameSubs))
 		collectTappedPipes(tappedPipes, procNames, pipeNames)
 	}
 	return
@@ -41,7 +41,6 @@ func findFlowDefinition(formation map[interface{}]interface{}) []string {
 func collectProcFlow(acc map[string][]string, procNames []string) {
 	var fromName string
 	for i, toName := range procNames {
-		toName := strings.TrimSpace(toName)
 		if i > 0 {
 			tos, ok := acc[fromName]
 			if !ok {
@@ -61,6 +60,13 @@ func findPipeNames(pipeNameSubs [][]string) []string {
 		acc = append(acc, pipeName)
 	}
 	return acc
+}
+
+func trimmed(procNames []string) []string {
+	for i, pn := range procNames {
+		procNames[i] = strings.TrimSpace(pn)
+	}
+	return procNames
 }
 
 func collectTappedPipes(acc map[string]string, procNames []string, pipeNames []string) {

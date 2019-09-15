@@ -1,6 +1,8 @@
 package run
 
 import (
+	"fmt"
+
 	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/processor"
 	"github.com/jaqmol/approx/utils"
@@ -28,14 +30,15 @@ func Connect(
 			key := utils.PipeKey(fromName, toName)
 			aPipe := pipes[key]
 
-			if aPipe.IsTapped() {
-				tappedName := tappedPipeNames[key]
-				tappedErrPipe := stdErrs[tappedName]
-				aPipe.SetStderr(tappedErrPipe)
-			}
-
 			fromProc.SetStdout(aPipe)
 			toProc.SetStdin(aPipe)
+
+			if aPipe.IsTapped() {
+				tapName := tappedPipeNames[key]
+				fmt.Printf("Configuring tapped pipe %v\n", tapName)
+				tapErrPipe := stdErrs[tapName]
+				aPipe.SetStderr(tapErrPipe)
+			}
 		}
 	}
 }
