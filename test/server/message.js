@@ -24,14 +24,39 @@ export class Message {
     const msgBuff = buffer.slice(0, semicolonIndex);
     const dataBuff = buffer.slice(semicolonIndex + 1);
     const comps = msgBuff.toString('utf8').split(',');
-    const [id, role, seq, isEnd, status, mediaType, encoding] = comps;
-    let data;
-    if (encoding === 'base64') {
-      data = Buffer.from(dataBuff.toString('utf8'), 'base64');
-    } else {
-      data = dataBuff;
-    }
+    const [id, role, seqStr, isEndStr, statusStr, mediaType, encoding] = comps;
+    const data = encoding === 'base64'
+      ? Buffer.from(dataBuff.toString('utf8'), 'base64')
+      : dataBuff;
+    const seq = Number.parseInt(seqStr);
+    const isEnd = Message._parseBool(isEndStr);
+    const status = Number.parseInt(statusStr);
     return new Message({id, role, seq, isEnd, status, mediaType, encoding, data}); 
+  }
+  static _parseBool(strBool, fallback) {
+    if (typeof strBool === 'boolean') return strBool;
+    strBool = strBool.toUpperCase();
+    let value;
+    switch (strBool) {
+      case 'TRUE':
+      case 'T':
+      case 'YES':
+      case 'Y':
+      case '1':
+        value = true;
+        break;
+      case 'FALSE':
+      case 'F':
+      case 'NO':
+      case 'N':
+      case '0':
+        value = false;
+        break;
+      default:
+        value = fallback;
+        break;
+    }
+    return value;
   }
   _headerBuffer() {
     const comps = [
@@ -66,19 +91,8 @@ export class MessageReader {
   }
   _processChunk(chunk) {
     this.cache.push(chunk);
-    this._processNextMessageLength();
-    this._processMessage();
-  }
-  _processNextMessageLength() {
-    if (this.nextMessageLength) return;
-    this.nextMessageLength = this.cache.messageLength(chunk);
-  }
-  _processMessage() {
-    if (this.nextMessageLength > this.cache.length) return;
-    const msgBuff = this.cache.sliceBuffer(0, this.nextMessageLength);
-    this.cache.sliceInPlace(this.nextMessageLength);
-    this.nextMessageLength = -1;
-    this.callback(Message.parse({buffer: msgBuff}));
+    const buffer = this.cache.nextMessageBuffer();
+    this.callback(Message.parse({buffer}));
   }
   read(callback) {
     this.callback = callback;
@@ -97,33 +111,61 @@ export class ChunkCache {
     this.chunks.push(chunk);
     this.buffer = null;
   }
-  messageLength() {
+  nextMessageBuffer() {
+    const extractedLength = this._extractMessageLength();
+    const buffer = this._sliceBuffer(0, extractedLength);
+    this._sliceAndKeep(extractedLength);
+    return buffer;
+  }
+  _extractMessageLength() {
     if (this.chunks.length === 0) {
       throw new Error("Can't get message length from empty buffer cache");
     }
-    const buff = this.cache[0];
-    const colonIndex = buff.indexOf(':');
-    if (colonIndex === -1) return -1;
-    const lengthString = buff.slice(0, colonIndex).toString('utf8');
+    const msgLenBuffs = this._extractMessageLengthChunks();
+    if (msgLenBuffs.length === 0) {
+      throw new Error("No message length found in buffer cache");
+    }
+    const msgLenBuffer = Buffer.concat(msgLenBuffs);
+    const lengthString = msgLenBuffer.toString('utf8');
     const length = Number.parseInt(lengthString);
     if (length <= 0) {
-      throw new Error(`Expect message length to be positive, but found: ${length}`);
+      throw new Error(`Expecting message length > 0, but found: ${length}`);
     }
-    this.cache[0] = buff.slice(colonIndex + 1);
     return length;
   }
-  sliceBuffer(fromIdx, toIdx) {
+  _extractMessageLengthChunks() {
+    let colonChunkIdx;
+    let colonIdx = -1;
+    for (let i = 0; i < this.chunks.length; i++) {
+      const chunk = this.chunks[i];
+      colonIdx = chunk.indexOf(':');
+      if (colonIdx > -1) {
+        colonChunkIdx = i;
+        break;
+      }
+    }
+    if (colonIdx === -1) return [];
+    const newChunks = this.chunks.slice(colonChunkIdx);
+    const msgLenChunks = this.chunks.slice(0, colonChunkIdx + 1);
+    const subject = newChunks[0];
+    const msgLenBuff = subject.slice(0, colonIdx);
+    const restBuff = subject.slice(colonIdx + 1);
+    newChunks[0] = restBuff;
+    this.chunks = newChunks;
+    msgLenChunks[msgLenChunks.length - 1] = msgLenBuff;
+    return msgLenChunks;
+  }
+  _sliceBuffer(fromIdx, toIdx) {
     if (!this.buffer) {
       this.buffer = Buffer.concat(this.chunks);
       this.chunks = [this.buffer];
     }
     return this.buffer.slice(fromIdx, toIdx);
   }
-  sliceInPlace(fromIdx, toIdx) {
-    let chunk = this.sliceBuffer(fromIdx, toIdx);
-    chunk = Uint8Array.prototype.slice.call(chunk);
+  _sliceAndKeep(fromIdx, toIdx) {
+    let chunk = this._sliceBuffer(fromIdx, toIdx);
     this.chunks = [chunk];
-    this.buffer = chunk;
+    this.buffer = null; // Important! Otherwise _extractMessageLengthChunks is not working correctly.
   }
 }
 
