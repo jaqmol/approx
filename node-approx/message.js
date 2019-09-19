@@ -40,15 +40,11 @@ export default class Message {
     switch (strBool) {
       case 'TRUE':
       case 'T':
-      case 'YES':
-      case 'Y':
       case '1':
         value = true;
         break;
       case 'FALSE':
       case 'F':
-      case 'NO':
-      case 'N':
       case '0':
         value = false;
         break;
@@ -67,10 +63,9 @@ export default class Message {
       this.header.status,
       this.header.mediaType,
       this.header.encoding,
-      ';',
     ];
     const str = comps.join(',');
-    return Buffer.from(str, 'utf8');
+    return Buffer.from(`${str};`, 'utf8');
   }
   toBuffer() {
     const headerBuff = this._headerBuffer();
