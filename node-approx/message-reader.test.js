@@ -6,7 +6,7 @@ import {
 
 test('MessageReader test', (done) => {
   const messages = messageReaderTestMessages();
-  const envelopes = messages.map((m) => m.toBuffer());
+  const envelopes = messages.map((m) => m.envelope());
   const input = new MockReader(Buffer.concat(envelopes));
   const reader = new MessageReader({stream: input});
   const readMessages = [];
@@ -15,8 +15,8 @@ test('MessageReader test', (done) => {
     for (let i = 0; i < readMessages.length; i++) {
       const readMsg = readMessages[i];
       const origMsg = messages[i];
-      const readBuff = readMsg.toBuffer();
-      const origBuff = origMsg.toBuffer();
+      const readBuff = readMsg.envelope();
+      const origBuff = origMsg.envelope();
       expect(readBuff.equals(origBuff)).toBeTruthy();
     }
     done();

@@ -19,8 +19,8 @@ type Message struct {
 	Data      []byte
 }
 
-// ParseNessage expects arg byteSlice to be of format: <header>;<data>
-func ParseNessage(byteSlice []byte) (*Message, error) {
+// ParseMessage expects arg byteSlice to be of format: <header>;<data>
+func ParseMessage(byteSlice []byte) (*Message, error) {
 	semicolonIndex := bytes.IndexRune(byteSlice, ';')
 	if semicolonIndex == -1 {
 		err := fmt.Errorf("Cannot parse message: %v", string(byteSlice))
@@ -56,15 +56,9 @@ func (m *Message) headerBytes() []byte {
 	return bts
 }
 
-// ToBytes will return bytes of format: <byte-length-of-header-&-data>:<header>;<data>
-func (m *Message) ToBytes() []byte {
-	headerBytes := m.headerBytes()
-	length := len(headerBytes) + len(m.Data)
-	lengthStr := fmt.Sprintf("%v:", length)
-	acc := make([]byte, 0)
-	acc = append(acc, []byte(lengthStr)...)
-	acc = append(acc, m.Data...)
-	return acc
+// Envelope returns length-prefixed envelope of format: <byte-length-header-data>:<header>;<data>
+func (m *Message) Envelope() *Envelope {
+	return NewEnvelope(m.headerBytes(), m.Data)
 }
 
 func parseInt(comp string) int {

@@ -1,10 +1,8 @@
 package builtin
 
 import (
-	"fmt"
-
 	"github.com/jaqmol/approx/channel"
-	"github.com/jaqmol/approx/utils"
+	"github.com/jaqmol/approx/message"
 
 	"github.com/jaqmol/approx/definition"
 )
@@ -58,14 +56,8 @@ func MakeMerge(def *definition.Definition) *Merge {
 
 func (m *Merge) startReading(stdinIndex int) {
 	stdin := m.stdins[stdinIndex]
-	// wrap := channel.NewReaderWrap(stdin)
-	// scanner := bufio.NewScanner(wrap)
-	scanner := channel.NewLineScanner(stdin)
-	for scanner.Scan() {
-		for _, msgBytes := range scanner.Lines() {
-			fmt.Printf("Merge will pass on: %v\n", string(utils.Truncated(msgBytes, 100)))
-			msgBytes = append(msgBytes, []byte("\n")...)
-			m.stdout.Write() <- msgBytes
-		}
+	envBuff := message.NewEnvelopeBuffer(stdin.Read())
+	for env := range envBuff.Envelopes() {
+		m.stdout.Write() <- env.Bytes
 	}
 }

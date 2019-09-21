@@ -1,4 +1,4 @@
-export default class MessageWriter {
+class MessageWriter {
   constructor({reader, stream}) {
     if (reader) {
       this._writeMessageData = (data) => {
@@ -16,7 +16,9 @@ export default class MessageWriter {
     }
   }
   write({message}) {
-    const data = message.toBuffer();
+    const data = message.envelope();
     this._writeMessageData(data);
   }
 }
+
+module.exports = MessageWriter;

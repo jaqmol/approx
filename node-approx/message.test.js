@@ -1,7 +1,7 @@
 import Message from './message';
 
 test('Message from', () => {
-  const id = 'a1';
+  const id = '/';
   const role = 'test-message';
   const status = 200;
   const mediaType = 'text/plain';
@@ -9,8 +9,8 @@ test('Message from', () => {
   const data = Buffer.from('TEST-DATA');
 
   const msg = Message.from({id, role, status, mediaType, encoding, data});
-  const envelopeStr = msg.toBuffer().toString('utf8');
-  expect(envelopeStr).toBe('53:a1,test-message,0,true,200,text/plain,utf8,;TEST-DATA');
+  const envelopeStr = msg.envelope().toString('utf8');
+  expect(envelopeStr).toBe('51:/,test-message,0,true,200,text/plain,utf8;TEST-DATA');
   const envelope = Buffer.from(envelopeStr);
   const colonIdx = envelope.indexOf(':');
   const length = Number.parseInt(envelope.slice(0, colonIdx));
@@ -41,14 +41,14 @@ test('Message parse', () => {
   const data = Buffer.from('TEST-DATA');
 
   const origMsg = Message.from({id, role, status, mediaType, encoding, data});
-  const envelope = origMsg.toBuffer();
+  const envelope = origMsg.envelope();
   const msgBuff = envelope.slice(envelope.indexOf(':') + 1);
   
   const msg = Message.parse({buffer: msgBuff});
-  expect(msg.header.id).toBe(id);
-  expect(msg.header.role).toBe(role);
-  expect(msg.header.status).toBe(status);
-  expect(msg.header.mediaType).toBe(mediaType);
-  expect(msg.header.encoding).toBe(encoding);
+  expect(msg.id).toBe(id);
+  expect(msg.role).toBe(role);
+  expect(msg.status).toBe(status);
+  expect(msg.mediaType).toBe(mediaType);
+  expect(msg.encoding).toBe(encoding);
   expect(msg.data.equals(data)).toBeTruthy();
 });

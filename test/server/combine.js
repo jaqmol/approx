@@ -1,24 +1,14 @@
-const readline = require('readline');
-const {Header, Writer} = require('./utils');
+const IO = require('../../node-approx/io');
+const io = new IO();
 const buff = new Map();
 
-const reader = readline.createInterface({
-  input: process.stdin
-});
-
-const log = Writer({reader, stream: process.stderr});
-const dispatch = Writer({reader, stream: process.stdout});
-
 let mediaTypeCount = 0;
-let bodyAndStatusCount = 0;
+let dataAndStatusCount = 0;
 
-reader.on('line', (msgStr) => {
-  const [header, body] = Header.parse(msgStr);
-  if (!header || !body) return;
-
+io.read((message) => {
   let acc;
-  if (buff.has(header.id)) {
-    acc = buff.get(header.id);
+  if (buff.has(message.id)) {
+    acc = buff.get(message.id);
   } else {
     acc = {
       mediaType: null,
@@ -26,35 +16,30 @@ reader.on('line', (msgStr) => {
     };
   }
 
-  if (header.role === 'media-type') {
+  if (message.role === 'media-type') {
     mediaTypeCount++;
-    acc.mediaType = body;
-  } else if (header.role === 'file-content') {
-    bodyAndStatusCount++;
-    const {seq, status, isEnd} = header;
-    acc.chunks.push({seq, status, isEnd, body});
+    acc.mediaType = message.data.toString();
+  } else if (message.role === 'file-content') {
+    dataAndStatusCount++;
+    const {seq, status, isEnd, data} = message;
+    acc.chunks.push({seq, status, isEnd, data});
   }
 
-  log(`mediaTypeCount: ${mediaTypeCount}, bodyAndStatusCount: ${bodyAndStatusCount}\n`);
+  io.logger.info(`mediaTypeCount: ${mediaTypeCount}, dataAndStatusCount: ${dataAndStatusCount}\n`);
 
   if (acc.mediaType && acc.chunks.length) {
-    log(`combine responds with ${acc.chunks.length} chunks\n`);
-    acc.chunks = acc.chunks.filter(({seq, status, body, isEnd}) => {
-      send(header.id, seq, status, acc.mediaType, body, isEnd);
+    io.logger.info(`combine responds with ${acc.chunks.length} chunks\n`);
+    acc.chunks = acc.chunks.filter(({seq, status, data, isEnd}) => {
+      io.send({id, seq, role: 'response-chunk', status, mediaType, encoding: 'base64', isEnd, data});
       return false;
     });
   }
 
-  if (header.isEnd && (header.role === 'file-content')) {
-    log(`combine deletes accumulator for id ${header.id}\n`);
-    buff.delete(header.id);
+  if (message.isEnd && (message.role === 'file-content')) {
+    io.logger.info(`combine deletes accumulator for id ${message.id}\n`);
+    buff.delete(message.id);
   } else {
-    log(`combine updates accumulator for id ${header.id}\n`);
-    buff.set(header.id, acc);
+    io.logger.info(`combine updates accumulator for id ${message.id}\n`);
+    buff.set(message.id, acc);
   }
 });
-
-function send(id, seq, status, mediaType, body, isEnd) {
-  const head = Header.stringify({id, seq, role: 'response-chunk', status, mediaType, encoding: 'base64', isEnd});
-  dispatch(`${head}${body}\n`);
-}

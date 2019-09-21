@@ -1,17 +1,11 @@
-const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-const {Header, Writer} = require('./utils');
-
-const reader = readline.createInterface({
-  input: process.stdin
-});
-const log = Writer({reader, stream: process.stderr});
-const dispatch = Writer({reader, stream: process.stdout});
+const IO = require('../../node-approx/io');
+const io = new IO();
 
 readMediaTypes((err, mediaTypeForExt) => {
   if (err) {
-    log(`${err.toString()}\n`);
+    io.logger.fatal(err.toString());
     process.exit(-1);
   } else {
     listen(mediaTypeForExt);
@@ -19,22 +13,18 @@ readMediaTypes((err, mediaTypeForExt) => {
 });
 
 function listen(mediaTypeForExt) {
-  reader.on('line', (msgStr) => {
-    const [header, body] = Header.parse(msgStr);
-    if (!header || !body) return;
-    
-    const req = JSON.parse(body);
+  io.read((message) => {
+    io.logger.info(message.data.toString().slice(0, 50));
+    const req = JSON.parse(message.data);
     const rawExt = path.extname(req.url.path);
     const extension = rawExt === '' ? '.html' : rawExt;
-    const mediaType = mediaTypeForExt[extension];
-    send(header.id, mediaType);
+    io.send({
+      id: message.id, 
+      role: 'media-type', 
+      mediaType: 'text/plain', 
+      data: mediaTypeForExt[extension],
+    });
   });
-}
-
-function send(id, body) {
-  const head = Header.stringify({id, role: 'media-type', mediaType: 'text/plain'});
-  // log(`Outbound message: ${head}${body}\n`);
-  dispatch(`${head}${body}\n`);
 }
 
 function readMediaTypes(callback) {

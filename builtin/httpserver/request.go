@@ -18,7 +18,6 @@ import (
 func (h *HTTPServer) startReceiving(port int) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		respChan := make(chan *message.Message)
-		body := makeRequestPayload(r)
 		dd := dispatchData{
 			request: message.Message{
 				// ID:        createID(),
@@ -26,32 +25,48 @@ func (h *HTTPServer) startReceiving(port int) {
 				Role:      "request",
 				IsEnd:     true,
 				MediaType: "application/json",
-				Body:      body,
+				Encoding:  "utf8",
+				Data:      makeRequestMessageData(r),
 			},
 			respChan: respChan,
 		}
 		h.dispatchChannel <- &dd
-		expectingResponses := true
-		for expectingResponses {
-			select {
-			case response := <-respChan:
-				h.respond(w, response)
-				expectingResponses = !response.IsEnd
-			case <-time.After(h.timeout):
-				h.respondWithPipelineResponseTimeout(w, dd.request.ID)
-				expectingResponses = false
-			}
-		}
+		h.waitForResponse(respChan, w, dd.request.ID)
+		// expectingResponses := true
+		// for expectingResponses {
+		// 	select {
+		// 	case response := <-respChan:
+		// 		h.respond(w, response)
+		// 		expectingResponses = !response.IsEnd
+		// 	case <-time.After(h.timeout):
+		// 		h.respondWithPipelineResponseTimeout(w, dd.request.ID)
+		// 		expectingResponses = false
+		// 	}
+		// }
 	})
 	addr := fmt.Sprintf(":%v", port)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
+func (h *HTTPServer) waitForResponse(respChan <-chan *message.Message, w http.ResponseWriter, id string) {
+	waiting := true
+	for waiting {
+		select {
+		case response := <-respChan:
+			h.respond(w, response)
+			waiting = !response.IsEnd
+		case <-time.After(h.timeout):
+			h.respondWithPipelineResponseTimeout(w, id)
+			waiting = false
+		}
+	}
+}
+
 func (h *HTTPServer) startDispatching() {
 	for dd := range h.dispatchChannel {
 		h.cacheResponseChannel(dd.request.ID, dd.respChan)
-		byteSlice := dd.request.ToBytes()
-		h.stdout.Write() <- byteSlice
+		env := dd.request.Envelope()
+		h.stdout.Write() <- env.Bytes
 	}
 }
 
@@ -70,21 +85,23 @@ func createID() string {
 	return u.String()
 }
 
-type requestPayload struct {
-	Method  string              `json:"method"`
-	URL     requestURL          `json:"url"`
-	Headers map[string][]string `json:"headers"`
-	Body    string              `json:"body"`
+type requestMessageData struct {
+	Method   string              `json:"method"`
+	URL      requestURL          `json:"url"`
+	Headers  map[string][]string `json:"headers"`
+	Encoding string              `json:"encoding"`
+	Body     string              `json:"body"`
 }
 
-func makeRequestPayload(r *http.Request) (bytes []byte) {
-	body := readBody(r)
+func makeRequestMessageData(r *http.Request) (bytes []byte) {
+	bodyB64 := readBodyBase64(r)
 	url := makeRequestURL(r)
-	rp := requestPayload{
-		Method:  r.Method,
-		URL:     *url,
-		Headers: headerToMap(r.Header),
-		Body:    *body,
+	rp := requestMessageData{
+		Method:   r.Method,
+		URL:      *url,
+		Headers:  headerToMap(r.Header),
+		Encoding: "base64",
+		Body:     *bodyB64,
 	}
 	bytes, err := json.Marshal(rp)
 	catch(err)
@@ -130,7 +147,7 @@ func headerToMap(header http.Header) map[string][]string {
 	return acc
 }
 
-func readBody(r *http.Request) *string {
+func readBodyBase64(r *http.Request) *string {
 	bytes, err := ioutil.ReadAll(r.Body)
 	catch(err)
 	str := base64.StdEncoding.EncodeToString(bytes)

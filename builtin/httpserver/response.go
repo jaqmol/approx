@@ -1,29 +1,16 @@
 package httpserver
 
 import (
-	"bufio"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 
-	"github.com/jaqmol/approx/channel"
-
 	"github.com/jaqmol/approx/message"
-	"github.com/jaqmol/approx/utils"
 )
 
 func (h *HTTPServer) startResponding() {
-	wrap := channel.NewReaderWrap(h.stdin)
-	scanner := bufio.NewScanner(wrap)
-	for scanner.Scan() {
-		msgBytes := scanner.Bytes()
-		resp := message.ParseMessage(msgBytes)
-		if resp == nil {
-			err := fmt.Errorf("No message in: %v", string(msgBytes))
-			// errBytes := []byte(err.Error() + "\n")
-			// h.stderr.Channel() <- errBytes
-			panic(err)
-		}
+	messageReader := message.NewReader(h.stdin.Read())
+	for resp := range messageReader.Messages() {
 		rc, ok := h.uncacheResponseChannel(resp.ID)
 		if ok {
 			rc <- resp
@@ -42,16 +29,15 @@ func (h *HTTPServer) respond(rw http.ResponseWriter, resp *message.Message) bool
 
 	var body []byte
 	if resp.Encoding == "base64" {
-		body = make([]byte, base64.StdEncoding.DecodedLen(len(resp.Body)))
-		_, err := base64.StdEncoding.Decode(body, resp.Body)
+		body = make([]byte, base64.StdEncoding.DecodedLen(len(resp.Data)))
+		_, err := base64.StdEncoding.Decode(body, resp.Data)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		body = resp.Body
+		body = resp.Data
 	}
 
-	fmt.Printf("### About to respond: %v\n", string(utils.Truncated(body, 100)))
 	writtenBytesCount := 0
 	for writtenBytesCount < len(body) {
 		wbc, err := rw.Write(body)

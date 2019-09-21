@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,12 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/jaqmol/approx/assign"
-	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/check"
 	"github.com/jaqmol/approx/definition"
 	"github.com/jaqmol/approx/env"
 	"github.com/jaqmol/approx/flow"
-	"github.com/jaqmol/approx/message"
 	"github.com/jaqmol/approx/run"
 	"gopkg.in/yaml.v2"
 )
@@ -70,7 +67,7 @@ func main() {
 
 	run.Connect(processors, procFlow, tappedPipeNames, pipes, stdErrs)
 	run.Start(processors)
-	listenForLogEntries(stdErrs)
+	run.Logging(stdErrs)
 }
 
 func showHelpAndExitIfNeeded() {
@@ -91,24 +88,4 @@ func formationFilePath() string {
 		log.Fatal(err)
 	}
 	return formationPath
-}
-
-func listenForLogEntries(stdErrs map[string]channel.Pipe) {
-	logChan := make(chan message.LogEntry)
-	for procName, errPipe := range stdErrs {
-		go listenForLogEntry(logChan, procName, errPipe)
-	}
-	for logMsg := range logChan {
-		logMsg.WriteTo(os.Stderr)
-	}
-}
-
-func listenForLogEntry(logChan chan<- message.LogEntry, procName string, errReader channel.Reader) {
-	wrap := channel.NewReaderWrap(errReader)
-	scanner := bufio.NewScanner(wrap)
-	for scanner.Scan() {
-		entryBytes := scanner.Bytes()
-		entry := message.LogEntry{Source: procName, Message: string(entryBytes)}
-		logChan <- entry
-	}
 }

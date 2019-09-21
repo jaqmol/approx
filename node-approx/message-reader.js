@@ -1,7 +1,7 @@
-import ChunkCache from './chunk-cache';
-import Message from './message';
+const ChunkCache = require('./chunk-cache');
+const Message = require('./message');
 
-export default class MessageReader {
+class MessageReader {
   constructor({stream}) {
     this.cache = new ChunkCache();
     this.nextMessageLength = -1;
@@ -21,3 +21,5 @@ export default class MessageReader {
     this.stream.on('data', c => this._processChunk(c));
   }
 }
+
+module.exports = MessageReader;

@@ -1,14 +1,12 @@
-export default class Message {
+class Message {
   constructor({id, role, seq, isEnd, status, mediaType, encoding, data}) {
-    this.header = {
-      id: id || '',
-      role: role || '',
-      seq: typeof seq === 'number' ? seq : 0,
-      isEnd: typeof isEnd === 'boolean' ? isEnd : true,
-      status: typeof status === 'number' ? status : 0,
-      mediaType: mediaType || '',
-      encoding: encoding || '',
-    };
+    this.id = id || '';
+    this.role = role || '';
+    this.seq = typeof seq === 'number' ? seq : 0;
+    this.isEnd = typeof isEnd === 'boolean' ? isEnd : true;
+    this.status = typeof status === 'number' ? status : 0;
+    this.mediaType = mediaType || '';
+    this.encoding = encoding || '';
     if (data) {
       this.data = data instanceof Buffer ? data : Buffer.from(data);
     } else {
@@ -21,9 +19,9 @@ export default class Message {
   static parse({buffer}) {
     const semicolonIndex = buffer.indexOf(';');
     if (semicolonIndex === -1) throw new Error(`Cannot parse message: ${buffer.toString('utf8')}`);
-    const msgBuff = buffer.slice(0, semicolonIndex);
+    const headerBuff = buffer.slice(0, semicolonIndex);
     const dataBuff = buffer.slice(semicolonIndex + 1);
-    const comps = msgBuff.toString('utf8').split(',');
+    const comps = headerBuff.toString('utf8').split(',');
     const [id, role, seqStr, isEndStr, statusStr, mediaType, encoding] = comps;
     const data = encoding === 'base64'
       ? Buffer.from(dataBuff.toString('utf8'), 'base64')
@@ -56,18 +54,18 @@ export default class Message {
   }
   _headerBuffer() {
     const comps = [
-      this.header.id,
-      this.header.role,
-      this.header.seq,
-      this.header.isEnd,
-      this.header.status,
-      this.header.mediaType,
-      this.header.encoding,
+      this.id,
+      this.role,
+      this.seq,
+      this.isEnd,
+      this.status,
+      this.mediaType,
+      this.encoding,
     ];
     const str = comps.join(',');
     return Buffer.from(`${str};`, 'utf8');
   }
-  toBuffer() {
+  envelope() {
     const headerBuff = this._headerBuffer();
     const length = headerBuff.length + this.data.length;
     const lengthBuff = Buffer.from(`${length}:`);
@@ -77,3 +75,5 @@ export default class Message {
     );
   }
 }
+
+module.exports = Message;

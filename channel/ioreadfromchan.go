@@ -1,26 +1,26 @@
 package channel
 
-// ReaderWrap ...
-type ReaderWrap struct {
-	reader Reader
-	buffer []byte
+// IoReadFromChan ...
+type IoReadFromChan struct {
+	readChan <-chan []byte
+	buffer   []byte
 }
 
-// NewReaderWrap ...
-func NewReaderWrap(r Reader) *ReaderWrap {
-	rw := ReaderWrap{reader: r}
+// NewIoReadFromChan ...
+func NewIoReadFromChan(r Reader) *IoReadFromChan {
+	rw := IoReadFromChan{readChan: r.Read()}
 	return &rw
 }
 
 // Read ...
-func (r *ReaderWrap) Read(dst []byte) (n int, err error) {
+func (r *IoReadFromChan) Read(dst []byte) (n int, err error) {
 	if len(r.buffer) > 0 {
 		return r.readFromBuffer(dst)
 	}
 	return r.readFromChannel(dst)
 }
 
-func (r *ReaderWrap) readFromBuffer(dst []byte) (n int, err error) {
+func (r *IoReadFromChan) readFromBuffer(dst []byte) (n int, err error) {
 	copiedCount := copy(dst, r.buffer)
 	if copiedCount < len(r.buffer) {
 		r.buffer = r.buffer[copiedCount:]
@@ -30,8 +30,8 @@ func (r *ReaderWrap) readFromBuffer(dst []byte) (n int, err error) {
 	return copiedCount, nil
 }
 
-func (r *ReaderWrap) readFromChannel(dst []byte) (n int, err error) {
-	src := <-r.reader.Read()
+func (r *IoReadFromChan) readFromChannel(dst []byte) (n int, err error) {
+	src := <-r.readChan
 	copiedCount := copy(dst, src)
 	if copiedCount < len(src) {
 		r.buffer = nil

@@ -3,14 +3,14 @@ package message
 // Reader ...
 type Reader struct {
 	messagesChan chan *Message
-	cache        *chunkCache
+	envBuff      *EnvelopeBuffer
 }
 
 // NewReader ...
-func NewReader(bytes <-chan []byte) *Reader {
+func NewReader(chunks <-chan []byte) *Reader {
 	r := Reader{
 		messagesChan: make(chan *Message),
-		cache:        newChunkCache(bytes),
+		envBuff:      NewEnvelopeBuffer(chunks),
 	}
 	go r.start()
 	return &r
@@ -22,8 +22,8 @@ func (r *Reader) Messages() <-chan *Message {
 }
 
 func (r *Reader) start() {
-	for msgBytes := range r.cache.messageBytes() {
-		msg, err := ParseNessage(msgBytes)
+	for env := range r.envBuff.Envelopes() {
+		msg, err := ParseMessage(env.MessageBytes())
 		catch(err)
 		r.messagesChan <- msg
 	}

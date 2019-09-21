@@ -1,7 +1,7 @@
 package builtin
 
 import (
-	"bufio"
+	"github.com/jaqmol/approx/message"
 
 	"github.com/jaqmol/approx/channel"
 	"github.com/jaqmol/approx/definition"
@@ -81,12 +81,9 @@ func MakeFork(def *definition.Definition) *Fork {
 }
 
 func (f *Fork) start() {
-	wrap := channel.NewReaderWrap(f.stdin)
-	scanner := bufio.NewScanner(wrap)
-	for scanner.Scan() {
-		msgBytes := scanner.Bytes()
-		msgBytes = append(msgBytes, []byte("\n")...)
-		f.writeDistribute(msgBytes)
+	envBuff := message.NewEnvelopeBuffer(f.stdin.Read())
+	for env := range envBuff.Envelopes() {
+		f.writeDistribute(env.Bytes)
 	}
 }
 

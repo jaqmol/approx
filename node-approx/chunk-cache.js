@@ -1,4 +1,4 @@
-export default class ChunkCache {
+class ChunkCache {
   constructor() {
     this.chunks = [];
     this.buffer = null;
@@ -71,3 +71,5 @@ export default class ChunkCache {
     this.buffer = null; // Important! Otherwise _extractMessageLengthChunks is not working correctly.
   }
 }
+
+module.exports = ChunkCache;

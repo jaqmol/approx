@@ -21,20 +21,20 @@ type Process struct {
 
 // SetStdin ...
 func (p *Process) SetStdin(r channel.Reader) {
-	wrap := channel.NewReaderWrap(r)
-	p.cmd.Stdin = wrap
+	reader := channel.NewIoReadFromChan(r)
+	p.cmd.Stdin = reader
 }
 
 // SetStdout ...
 func (p *Process) SetStdout(w channel.Writer) {
-	wrap := channel.NewWriterWrap(w)
-	p.cmd.Stdout = wrap
+	writer := channel.NewIoWriteToChan(w)
+	p.cmd.Stdout = writer
 }
 
 // SetStderr ...
 func (p *Process) SetStderr(w channel.Writer) {
-	wrap := channel.NewWriterWrap(w)
-	p.cmd.Stderr = wrap
+	writer := channel.NewIoWriteToChan(w)
+	p.cmd.Stderr = writer
 }
 
 // Definition ...

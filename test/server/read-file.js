@@ -1,19 +1,10 @@
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
-const {Header, Writer} = require('./utils');
+const IO = require('../../node-approx/io');
+const io = new IO();
 
-const reader = readline.createInterface({
-  input: process.stdin
-});
-
-const dispatch = Writer({reader, stream: process.stdout});
-
-reader.on('line', (msgStr) => {
-  const [header, body] = Header.parse(msgStr);
-  if (!header || !body) return;
-    
-  const req = JSON.parse(body);
+io.read((message) => {
+  const req = JSON.parse(message.data);
   let filePath = req.url.path;
   if (filePath === '/') {
     filePath = '/index.html';
@@ -23,22 +14,37 @@ reader.on('line', (msgStr) => {
   readFileB64(filePath, (err, data, isEnd) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        send(header.id, -1, 404, '', '', isEnd);
+        io.send({
+          id: message.id, 
+          role: 'file-content',
+          status: 404,
+          isEnd,
+        });
       } else {
-        const errStr = err.toString();
-        send(header.id, -1, 500, 'utf8', errStr, isEnd);
+        const errData = err.toString();
+        io.send({
+          id: message.id, 
+          role: 'file-content',
+          status: 500,
+          encoding: 'utf8',
+          isEnd,
+          data: errData,
+        });
       }
     } else {
-      send(header.id, seq, 200, 'base64', data, isEnd);
+      io.send({
+        id: message.id,
+        seq, 
+        role: 'file-content',
+        status: 200,
+        encoding: 'base64',
+        isEnd,
+        data,
+      });
     }
     seq++;
   });
 });
-
-function send(id, seq, status, encoding, body, isEnd) {
-  const head = Header.stringify({id, seq, role: 'file-content', status, encoding, isEnd});
-  dispatch(`${head}${body}\n`);
-}
 
 function readFileB64(filePath, callback) {
   const fullPath = path.join(process.cwd(), process.env.BASE_PATH, filePath);

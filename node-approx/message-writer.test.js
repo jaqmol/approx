@@ -11,7 +11,7 @@ test('MessageWriter test', (done) => {
   const conclude = () => {
     for (let i = 0; i < writtenEnvelopes.length; i++) {
       const writtenBuff = writtenEnvelopes[i];
-      const origBuff = messages[i].toBuffer();
+      const origBuff = messages[i].envelope();
       expect(writtenBuff.equals(origBuff)).toBeTruthy();
     }
     done();
