@@ -1,54 +1,32 @@
-const readline = require('readline');
-
-const reader = readline.createInterface({
-  input: process.stdin
-});
+const IO = require('../node-approx/io');
+const io = new IO();
 
 const collector = {};
 
-reader.on('line', (input) => {
-  const msg = JSON.parse(input);
-  let allMessages = collector[msg.id];
-  if (!allMessages) {
-    allMessages = [];
+io.read((message) => {
+  let acc = collector[message.id];
+  if (!acc) {
+    acc = [];
   }
-  allMessages.push(msg);
-  if (allMessages.length === 2) {
-    respond(msg.id, allMessages);  
-    delete collector[msg.id];
+  const strData = message.data.toString();
+  acc.push(JSON.parse(strData));
+  if (acc.length === 2) {
+    send(message.id, acc);  
+    delete collector[message.id];
   } else {
-    collector[msg.id] = allMessages;
+    collector[message.id] = acc;
   }
-
-  // inform(msg);
-  // respond(msg);
 });
 
-function inform(msg) {
-  const info = {
-    id: msg.id,
-    role: 'log',
-    cmd: 'inform',
-    payload: "\"fork-merge-and-return.js got an event\"",
-  };
-  const infoJson = JSON.stringify(info, 2);
-  writeTo(process.stderr, infoJson);
-}
-
-function respond(id, allMsgs) {
-  let bodyStr = JSON.stringify(allMsgs, null, 2);
-  let body = Buffer.from(bodyStr).toString('base64');
-  const resp = {
+function send(id, allMsgs) {
+  const dataStr = JSON.stringify(allMsgs, null, 2);
+  const data = Buffer.from(dataStr).toString('base64');
+  io.send({
     id,
     role: 'response',
-    payload: {
-      status: 200,
-      contentType: 'application/json',
-      body,
-    },
-  };
-  const respJson = JSON.stringify(resp, 2);
-  writeTo(process.stdout, respJson);
+    status: 200,
+    mediaType: 'application/json',
+    encoding: 'base64',
+    data,
+  });
 }
-
-const writeTo = (stream, message) => stream.write(`${message}\n`, 'utf8');

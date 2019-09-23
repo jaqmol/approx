@@ -15,6 +15,12 @@ class MessageReader {
       buffer = this.cache.nextMessageBuffer();
     }
   }
+  pause() {
+    this.stream.pause();
+  }
+  resume() {
+    this.stream.resume();
+  }
   read(callback) {
     if (this.callback) throw new Error('Read must be called once');
     this.callback = callback;

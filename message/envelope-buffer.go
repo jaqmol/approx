@@ -5,20 +5,24 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+
+	"github.com/jaqmol/approx/utils"
 )
 
 // EnvelopeBuffer ...
 type EnvelopeBuffer struct {
-	buffer            []byte
-	envs              chan *Envelope
-	lengthPrefixRegex *regexp.Regexp
+	buffer             []byte
+	envs               chan *Envelope
+	lengthPrefixRegex  *regexp.Regexp
+	invalidSyntaxRegex *regexp.Regexp
 }
 
 // NewEnvelopeBuffer ...
 func NewEnvelopeBuffer(chunks <-chan []byte) *EnvelopeBuffer {
 	cc := EnvelopeBuffer{
-		envs:              make(chan *Envelope),
-		lengthPrefixRegex: regexp.MustCompile("^\\d+:"),
+		envs:               make(chan *Envelope),
+		lengthPrefixRegex:  regexp.MustCompile("^\\d+:"),
+		invalidSyntaxRegex: regexp.MustCompile("invalid syntax$"),
 	}
 	go cc.start(chunks)
 	return &cc
@@ -71,8 +75,8 @@ func (c *EnvelopeBuffer) envelopeLength() (envLen int, msgLen int) {
 	msgLenBuff := c.buffer[0:colonIndex]
 	uMsgLen, err := strconv.ParseUint(string(msgLenBuff), 10, 64)
 	if err != nil {
-		if !c.lengthPrefixRegex.Match(c.buffer) {
-			log.Fatal(string(c.buffer))
+		if c.invalidSyntaxRegex.MatchString(err.Error()) && !c.lengthPrefixRegex.Match(c.buffer) {
+			log.Fatalf("Invalid envelope synthax: %v\n", string(utils.Truncated(c.buffer, 80)))
 		} else {
 			log.Fatal(err.Error())
 		}
