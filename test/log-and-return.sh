@@ -1,1 +1,0 @@
-go run ../main.go ./log-and-return.yaml

@@ -2,90 +2,24 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
+	"strings"
 
-	"github.com/jaqmol/approx/assign"
-	"github.com/jaqmol/approx/check"
-	"github.com/jaqmol/approx/definition"
-	"github.com/jaqmol/approx/env"
-	"github.com/jaqmol/approx/flow"
-	"github.com/jaqmol/approx/run"
-	"gopkg.in/yaml.v2"
-)
-
-// Definition ...
-type Definition struct {
-	Type    DefinitionType
-	Name    string
-	Assign  map[string]string
-	Env     map[string]string
-	Command string
-}
-
-// DefinitionType ...
-type DefinitionType int
-
-// DefinitionTypes
-const (
-	DefTypeHTTPServer DefinitionType = iota
-	DefTypeFork
-	DefTypeMerge
-	DefTypeProcess
+	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/logger"
+	"github.com/jaqmol/approx/message"
 )
 
 func main() {
-	showHelpAndExitIfNeeded()
-
-	formationPath := formationFilePath()
-	formationBytes, err := ioutil.ReadFile(formationPath)
-	if err != nil {
-		log.Fatal(err)
+	input := fmt.Sprintf("Hello%vWorld%v", configuration.MessageEnd, configuration.MessageEnd)
+	scn := message.NewScanner(strings.NewReader(input))
+	for scn.Scan() {
+		log.Println(scn.Text())
 	}
 
-	rawFormation := make(map[interface{}]interface{})
-
-	err = yaml.Unmarshal(formationBytes, &rawFormation)
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
-	definitions := definition.Parse(rawFormation)
-	env.AugmentMissing(definitions)                    // 1. order is important
-	assign.ResolveVariables(rawFormation, definitions) // 2. order is important
-
-	procFlow, tappedPipeNames := flow.Parse(rawFormation)
-	fmt.Printf("procFlow: %v\n", procFlow)
-	fmt.Printf("tappedPipeNames: %v\n", tappedPipeNames)
-	check.Check(definitions, procFlow)
-
-	processors := run.MakeProcessors(definitions)
-	pipes := run.MakePipes(definitions, procFlow, tappedPipeNames)
-	stdErrs := run.MakeStderrs(definitions, tappedPipeNames)
-
-	run.Connect(processors, procFlow, tappedPipeNames, pipes, stdErrs)
-	run.Start(processors)
-	run.Logging(stdErrs)
-}
-
-func showHelpAndExitIfNeeded() {
-	args := os.Args[1:]
-	for _, a := range args {
-		if a == "--help" || a == "-h" {
-			fmt.Println("APPROX HELP:")
-			fmt.Println("--help        | -h      Show this help.")
-			fmt.Println("--json-output | -jo     Output log messages as JSON.")
-			os.Exit(0)
-		}
-	}
-}
-
-func formationFilePath() string {
-	formationPath, err := filepath.Abs(os.Args[1])
-	if err != nil {
-		log.Fatal(err)
-	}
-	return formationPath
+	l := logger.NewLogger(os.Stdout)
+	logMsgs := fmt.Sprintf("LOG%vMESSAGE%v", configuration.MessageEnd, configuration.MessageEnd)
+	l.Add(strings.NewReader(logMsgs))
+	l.Start()
 }

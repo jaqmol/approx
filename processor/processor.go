@@ -1,15 +1,28 @@
 package processor
 
 import (
-	"github.com/jaqmol/approx/channel"
-	"github.com/jaqmol/approx/definition"
+	"io"
+
+	"github.com/jaqmol/approx/configuration"
 )
 
 // Processor ...
 type Processor interface {
-	SetStdin(channel.Reader)
-	SetStdout(channel.Writer)
-	SetStderr(channel.Writer)
-	Definition() *definition.Definition
+	Conf() configuration.Processor
 	Start()
+	Outs() []io.Reader
+	Err() io.Reader
+}
+
+type procPipe struct {
+	reader io.Reader
+	writer io.Writer
+}
+
+func newProcPipe() procPipe {
+	r, w := io.Pipe()
+	return procPipe{
+		reader: r,
+		writer: w,
+	}
 }
