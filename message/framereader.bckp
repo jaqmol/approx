@@ -1,0 +1,143 @@
+package message
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"math"
+	"strconv"
+)
+
+// FrameChunkCallback ...
+// type FrameChunkCallback func(index int64, chunk []byte, length int64)
+
+// FrameChunk ...
+type FrameChunk struct {
+	Index  int64
+	Chunk  []byte
+	Length int64
+}
+
+type frameState int
+
+const (
+	awaitingStart frameState = iota
+	readingEnvelope
+)
+
+// FrameReader ...
+type FrameReader struct {
+	state                frameState
+	isReading            bool
+	expectedLength       int64
+	expectedLengthBuffer []byte
+	channel              chan FrameChunk
+}
+
+var lengthPrefixReadLength int
+
+func init() {
+	maxIntStr := fmt.Sprintf("%v", math.MaxInt64)
+	lengthPrefixReadLength = len(maxIntStr) + 1 // for the :
+}
+
+// NewFrameReader ...
+func NewFrameReader(reader io.Reader) *FrameReader {
+	c := make(chan FrameChunk)
+	fr := FrameReader{channel: c}
+	fr.Start(reader)
+	return &fr
+}
+
+// Channel ...
+func (fr *FrameReader) Channel() <-chan FrameChunk {
+	return fr.channel
+}
+
+// Start ...
+func (fr *FrameReader) Start(reader io.Reader) {
+	if fr.isReading {
+		log.Fatalln("Start must only be called once")
+	}
+	go fr.startReading(reader)
+}
+
+func (fr *FrameReader) startReading(reader io.Reader) {
+	readBuff := make([]byte, lengthPrefixReadLength)
+	var rest []byte
+	var hasRest bool
+	var index int64
+	index = 0
+	for {
+		n, err := reader.Read(readBuff)
+		if err == io.EOF {
+			log.Fatalln("End of input stream")
+		}
+		if fr.state == awaitingStart {
+			var ok bool
+			rest, ok = fr.readExpectedLength(readBuff[:n])
+			if !ok {
+				continue
+			}
+			index = int64(len(rest))
+			hasRest = index > 0
+		} else if fr.state == readingEnvelope {
+			if hasRest {
+				fr.channel <- FrameChunk{
+					Index:  index,
+					Chunk:  rest,
+					Length: fr.expectedLength,
+				}
+				hasRest = false
+				rest = nil
+			}
+			index += int64(n)
+			fr.readEnvelope(index, readBuff[:n])
+		}
+	}
+}
+
+func (fr *FrameReader) readExpectedLength(readBuffer []byte) (rest []byte, ok bool) {
+	fr.expectedLengthBuffer = append(fr.expectedLengthBuffer, readBuffer...)
+	colonIndex := bytes.IndexByte(fr.expectedLengthBuffer, ':')
+	if colonIndex == -1 {
+		if len(fr.expectedLengthBuffer) > lengthPrefixReadLength {
+			log.Fatalf("No envelope length found in %v\n", string(fr.expectedLengthBuffer))
+		}
+	} else {
+		lenStr := string(fr.expectedLengthBuffer[:colonIndex])
+		length, err := strconv.ParseInt(lenStr, 10, 64)
+		if err != nil {
+			log.Fatalf("Length could not be parsed from: %v\n", lenStr)
+		}
+		fr.expectedLength = length
+		rest = fr.expectedLengthBuffer[colonIndex+1:]
+		ok = true
+		fr.expectedLengthBuffer = nil
+		fr.state = readingEnvelope
+	}
+	return
+}
+
+func (fr *FrameReader) readEnvelope(index int64, readBuffer []byte) {
+	reset := false
+	if index > fr.expectedLength {
+		overlap := int(index - fr.expectedLength)
+		frameEndIndex := len(readBuffer) - overlap
+		fr.Callback(
+			fr.expectedLength,
+			readBuffer[:frameEndIndex],
+			fr.expectedLength,
+		)
+		reset = true
+		fr.readExpectedLength(readBuffer[frameEndIndex:])
+	} else {
+		fr.Callback(index, readBuffer, fr.expectedLength)
+		reset = index == fr.expectedLength
+	}
+	if reset {
+		fr.state = awaitingStart
+		fr.expectedLength = 0
+	}
+}
