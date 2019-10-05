@@ -10,21 +10,21 @@ import (
 
 // Merge ...
 type Merge struct {
-	conf       *configuration.Merge
-	ins        []io.Reader
-	out        procPipe
-	err        procPipe
-	serializer chan []byte
+	conf      *configuration.Merge
+	ins       []io.Reader
+	out       procPipe
+	err       procPipe
+	serialize chan []byte
 }
 
 // NewMerge ...
 func NewMerge(conf *configuration.Merge, inputs []io.Reader) *Merge {
 	m := Merge{
-		conf:       conf,
-		ins:        inputs,
-		out:        newProcPipe(),
-		err:        newProcPipe(),
-		serializer: make(chan []byte),
+		conf:      conf,
+		ins:       inputs,
+		out:       newProcPipe(),
+		err:       newProcPipe(),
+		serialize: make(chan []byte),
 	}
 	return &m
 }
@@ -34,16 +34,7 @@ func (m *Merge) Start() {
 	for _, r := range m.ins {
 		go m.readFrom(r)
 	}
-
-	msgEnd := []byte(configuration.MessageEnd)
-
-	for msg := range m.serializer {
-		line := append(msg, msgEnd...)
-		_, err := m.out.writer.Write(line)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-	}
+	go m.start()
 }
 
 // Conf ...
@@ -64,7 +55,19 @@ func (m *Merge) Err() io.Reader {
 func (m *Merge) readFrom(r io.Reader) {
 	scanner := message.NewScanner(r)
 	for scanner.Scan() {
-		m.serializer <- scanner.Bytes()
+		m.serialize <- msgEndedCopy(scanner.Bytes())
 	}
-	close(m.serializer)
+	close(m.serialize)
+}
+
+func (m *Merge) start() {
+	for msg := range m.serialize {
+		n, err := m.out.writer.Write(msg)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		if n != len(msg) {
+			log.Fatalln("Merge couldn't write complete message")
+		}
+	}
 }

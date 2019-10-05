@@ -14,5 +14,5 @@ const (
 type Processor interface {
 	Type() ProcessorType
 	ID() string
-	Subs() []Processor
+	Next() []Processor
 }

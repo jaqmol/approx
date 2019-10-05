@@ -2,6 +2,7 @@ package processor
 
 import (
 	"io"
+	"log"
 	"os/exec"
 
 	"github.com/jaqmol/approx/configuration"
@@ -38,16 +39,7 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 
 // Start ...
 func (c *Command) Start() {
-	err := c.cmd.Start()
-	if err != nil {
-		panic(err.Error())
-	}
-	go func() {
-		err := c.cmd.Wait()
-		if err != nil {
-			panic(err.Error())
-		}
-	}()
+	go c.start()
 }
 
 // Conf ...
@@ -63,4 +55,16 @@ func (c *Command) Outs() []io.Reader {
 // Err ...
 func (c *Command) Err() io.Reader {
 	return c.err.reader
+}
+
+func (c *Command) start() {
+	var err error
+	err = c.cmd.Start()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	err = c.cmd.Wait()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 }

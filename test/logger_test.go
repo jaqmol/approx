@@ -2,15 +2,14 @@ package testpackage
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/logger"
 )
 
-// TestLogger ...
-func TestLogger(t *testing.T) {
+// TestLoggerWithSingleReader ...
+func TestLoggerWithSingleReader(t *testing.T) {
 	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
@@ -43,36 +42,40 @@ func TestLogger(t *testing.T) {
 	}
 }
 
-type logWriter struct {
-	lines   chan []byte
-	running bool
-}
+func TestLoggerWithMultipleReaders(t *testing.T) {
+	originals := loadTestData()
+	originalForID := makePersonForIDMap(originals)
+	originalBytes := marshallPeople(originals)
 
-func newLogWriter() *logWriter {
-	return &logWriter{
-		lines:   make(chan []byte),
-		running: true,
+	originalCombined := bytes.Join(originalBytes, configuration.MsgEndBytes)
+	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
+
+	writer := newLogWriter()
+	l := logger.NewLogger(writer)
+
+	for i := 0; i < 5; i++ {
+		reader := bytes.NewReader(originalCombined)
+		l.Add(reader)
 	}
-}
 
-func (w *logWriter) Write(raw []byte) (int, error) {
-	if w.running {
-		b := bytes.Trim(raw, "\n\r")
-		if len(b) == 0 {
-			return len(raw), nil
+	go l.Start()
+	goal := 5 * len(originals)
+	count := 0
+
+	for b := range writer.lines {
+		parsed, err := unmarshallPerson(b)
+		if err != nil {
+			t.Fatalf("Couldn't unmarshall person from: \"%v\"\n", string(b))
 		}
-		l := make([]byte, len(b))
-		copy(l, b)
-		w.lines <- l
-	} else {
-		log.Fatalf("Writer stopped but received data: \"%v\"\n", string(raw))
+		original := originalForID[parsed.ID]
+		if !original.Equals(parsed) {
+			t.Fatal("Parsed data doesn't conform to original")
+		}
+		count++
+		writer.stop(count == goal)
 	}
-	return len(raw), nil
-}
 
-func (w *logWriter) stop(doStop bool) {
-	if doStop {
-		w.running = false
-		close(w.lines)
+	if goal != count {
+		t.Fatal("Logged line count doesn't corespond to received ones")
 	}
 }

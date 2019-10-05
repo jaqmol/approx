@@ -7,7 +7,7 @@ type Command struct {
 	Args     []string
 	Env      []string
 	Dir      string
-	SubProcs []Processor
+	NextProc Processor
 }
 
 // Type ...
@@ -20,7 +20,7 @@ func (c *Command) ID() string {
 	return c.Ident
 }
 
-// Subs ...
-func (c *Command) Subs() []Processor {
-	return c.SubProcs
+// Next ...
+func (c *Command) Next() []Processor {
+	return []Processor{c.NextProc}
 }

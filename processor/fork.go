@@ -18,11 +18,11 @@ type Fork struct {
 }
 
 // NewFork ...
-func NewFork(conf *configuration.Fork, input io.Reader, outsCount int) *Fork {
+func NewFork(conf *configuration.Fork, input io.Reader) *Fork {
 	f := Fork{
 		conf: conf,
 		in:   input,
-		outs: make([]procPipe, outsCount),
+		outs: make([]procPipe, len(conf.NextProcs)),
 		err:  newProcPipe(),
 	}
 
@@ -58,16 +58,16 @@ func (f *Fork) Err() io.Reader {
 }
 
 func (f *Fork) readAndDistribute(r io.Reader) {
-	msgEnd := []byte(configuration.MessageEnd)
 	scanner := message.NewScanner(r)
 	for scanner.Scan() {
-		msg := scanner.Bytes()
-		line := append(msg, msgEnd...)
-
+		msg := msgEndedCopy(scanner.Bytes())
 		for _, p := range f.outs {
-			_, err := p.writer.Write(line)
+			n, err := p.writer.Write(msg)
 			if err != nil {
 				log.Fatalln(err.Error())
+			}
+			if n != len(msg) {
+				log.Fatalln("Fork couldn't write complete message")
 			}
 		}
 	}

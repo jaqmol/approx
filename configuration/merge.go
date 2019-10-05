@@ -3,7 +3,7 @@ package configuration
 // Merge ...
 type Merge struct {
 	Ident    string
-	SubProcs []Processor
+	NextProc Processor
 }
 
 // Type ...
@@ -16,7 +16,7 @@ func (f *Merge) ID() string {
 	return f.Ident
 }
 
-// Subs ...
-func (f *Merge) Subs() []Processor {
-	return f.SubProcs
+// Next ...
+func (f *Merge) Next() []Processor {
+	return []Processor{f.NextProc}
 }

@@ -2,8 +2,8 @@ package configuration
 
 // Fork ...
 type Fork struct {
-	Ident    string
-	SubProcs []Processor
+	Ident     string
+	NextProcs []Processor
 }
 
 // Type ...
@@ -16,7 +16,7 @@ func (f *Fork) ID() string {
 	return f.Ident
 }
 
-// Subs ...
-func (f *Fork) Subs() []Processor {
-	return f.SubProcs
+// Next ...
+func (f *Fork) Next() []Processor {
+	return f.NextProcs
 }
