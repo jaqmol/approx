@@ -1,97 +1,78 @@
 package testpackage
 
 import (
-	"encoding/json"
-	"io"
-	"io/ioutil"
+	"bytes"
 	"log"
 	"testing"
 
+	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/logger"
 )
 
 // TestLogger ...
 func TestLogger(t *testing.T) {
-	data := readTestData()
-	readers := readersFromData(data, 5)
+	originals := loadTestData()
+	originalForID := makePersonForIDMap(originals)
+	originalBytes := marshallPeople(originals)
 
-	writer := logWriter{collector: data}
-	l := logger.NewLogger(&writer)
+	originalCombined := bytes.Join(originalBytes, configuration.MsgEndBytes)
+	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
+	reader := bytes.NewReader(originalCombined)
 
-	for _, r := range readers {
-		l.Add(&r)
+	writer := newLogWriter()
+	l := logger.NewLogger(writer)
+	l.Add(reader)
+	go l.Start()
+
+	count := 0
+	for b := range writer.lines {
+		parsed, err := unmarshallPerson(b)
+		if err != nil {
+			t.Fatalf("Couldn't unmarshall person from: \"%v\"\n", string(b))
+		}
+		original := originalForID[parsed.ID]
+		if !original.Equals(parsed) {
+			t.Fatal("Parsed data doesn't conform to original")
+		}
+		count++
+		writer.stop(count == len(originalBytes))
 	}
 
-	l.Start()
-
-	log.Println(len(readers))
-}
-
-func readersFromData(data []TestPerson, readersCount int) []logReader {
-	acc := make([]logReader, readersCount)
-	multi := len(data) / readersCount
-
-	for i := 0; i < readersCount; i++ {
-		acc[i] = logReader{testData: make([]TestPerson, 0)}
+	if len(originals) != count {
+		t.Fatal("Logged line count doesn't corespond to received ones")
 	}
-
-	for i, person := range data {
-		rdrIdx := i / multi
-		rdr := acc[rdrIdx]
-		rdr.testData = append(rdr.testData, person)
-		acc[rdrIdx] = rdr
-	}
-
-	return acc
-}
-
-func readTestData() []TestPerson {
-	dat, err := ioutil.ReadFile("./test-data.json")
-	var result []TestPerson
-	err = json.Unmarshal(dat, &result)
-	check(err)
-	return result
-}
-
-type logReader struct {
-	testData []TestPerson
-	index    int
-}
-
-func (l *logReader) Read(b []byte) (int, error) {
-	if l.index == len(l.testData) {
-		return 0, io.EOF
-	}
-	person := l.testData[l.index]
-	bytes, err := json.Marshal(person)
-	check(err)
-	l.index++
-	copy(b, bytes)
-	return len(b), nil
 }
 
 type logWriter struct {
-	collector []TestPerson
+	lines   chan []byte
+	running bool
 }
 
-func (w *logWriter) Write(b []byte) (int, error) {
-	var p TestPerson
-	err := json.Unmarshal(b, &p)
-	check(err)
-	w.collector = append(w.collector, p)
-	return len(b), nil
+func newLogWriter() *logWriter {
+	return &logWriter{
+		lines:   make(chan []byte),
+		running: true,
+	}
 }
 
-// TestPerson ...
-type TestPerson struct {
-	ID        string `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
+func (w *logWriter) Write(raw []byte) (int, error) {
+	if w.running {
+		b := bytes.Trim(raw, "\n\r")
+		if len(b) == 0 {
+			return len(raw), nil
+		}
+		l := make([]byte, len(b))
+		copy(l, b)
+		w.lines <- l
+	} else {
+		log.Fatalf("Writer stopped but received data: \"%v\"\n", string(raw))
+	}
+	return len(raw), nil
 }
 
-func check(err error) {
-	if err != nil {
-		panic(err)
+func (w *logWriter) stop(doStop bool) {
+	if doStop {
+		w.running = false
+		close(w.lines)
 	}
 }

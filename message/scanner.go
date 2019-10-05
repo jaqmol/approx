@@ -4,60 +4,35 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 
 	"github.com/jaqmol/approx/configuration"
 )
 
-var incompleteMsgEndSuffixes [][]byte
-var msgEnd []byte
 var msgEndLength int
 
 func init() {
-	incompleteMsgEndSuffixes = make([][]byte, 0)
-	msgEnd = []byte(configuration.MessageEnd)
-	msgEndLength = len(msgEnd)
-	for i := len(msgEnd) - 1; i > 0; i-- {
-		suffix := msgEnd[:i]
-		log.Printf("incompleteSeparatorSuffix: %v\n", string(suffix))
-		incompleteMsgEndSuffixes = append(incompleteMsgEndSuffixes, suffix)
-	}
+	msgEndLength = len(configuration.MsgEndBytes)
 }
 
 // NewScanner ...
 func NewScanner(r io.Reader) *bufio.Scanner {
 	scanner := bufio.NewScanner(r)
-	scanner.Split(splitFn)
+	scanner.Split(splitFn2)
 	return scanner
 }
 
-func splitFn(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func splitFn2(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF {
 		return 0, nil, io.EOF
 	}
 
-	sepIdx := bytes.Index(data, msgEnd)
-	if sepIdx > -1 {
-		msg := data[:sepIdx]
-		advance = len(msg) + msgEndLength
-		token = msg
-		return
-	}
+	msgEndIndex := bytes.Index(data, configuration.MsgEndBytes)
 
-	if containsIncompleteSeparatorSuffix(data) {
+	if msgEndIndex == -1 {
 		return 0, nil, nil
 	}
 
-	advance = len(data)
-	token = data
+	token = data[:msgEndIndex]
+	advance = len(token) + msgEndLength
 	return
-}
-
-func containsIncompleteSeparatorSuffix(data []byte) bool {
-	for _, suffix := range incompleteMsgEndSuffixes {
-		if bytes.HasSuffix(data, suffix) {
-			return true
-		}
-	}
-	return false
 }

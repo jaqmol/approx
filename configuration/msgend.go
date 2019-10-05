@@ -1,4 +1,11 @@
 package configuration
 
-// MessageEnd ...
-const MessageEnd = "#APRX:/MSGEND#"
+// MsgEnd ...
+const MsgEnd = "#APRX:MSGEND#"
+
+// MsgEndBytes ...
+var MsgEndBytes []byte
+
+func init() {
+	MsgEndBytes = []byte(MsgEnd)
+}
