@@ -23,14 +23,7 @@ func TestScanner(t *testing.T) {
 
 	for scanner.Scan() {
 		b := scanner.Bytes()
-		parsed, err := unmarshallPerson(b)
-		if err != nil {
-			t.Fatalf("Couldn't unmarshall person from: \"%v\"\n", string(b))
-		}
-		original := originalForID[parsed.ID]
-		if !original.Equals(parsed) {
-			t.FailNow()
-		}
+		checkTestSet(t, originalForID, b)
 		count++
 	}
 

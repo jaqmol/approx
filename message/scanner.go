@@ -17,11 +17,11 @@ func init() {
 // NewScanner ...
 func NewScanner(r io.Reader) *bufio.Scanner {
 	scanner := bufio.NewScanner(r)
-	scanner.Split(splitFn2)
+	scanner.Split(splitFn)
 	return scanner
 }
 
-func splitFn2(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func splitFn(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF {
 		return 0, nil, io.EOF
 	}

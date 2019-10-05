@@ -2,19 +2,17 @@ package testpackage
 
 import (
 	"bytes"
-	"io"
 	"testing"
-
-	"github.com/jaqmol/approx/message"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/processor"
 )
 
-// TestFork ...
-func TestFork(t *testing.T) {
-	nextProcsCount := 5
-	originals := loadTestData()
+// TestMerge ...
+func TestMerge(t *testing.T) {
+	// TODO: implement
+	prevProcsCount := 5
+	originals := loadTestData()[:10]
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
@@ -24,7 +22,7 @@ func TestFork(t *testing.T) {
 
 	conf := configuration.Fork{
 		Ident:     "test-fork",
-		NextProcs: makeTestProcs(nextProcsCount),
+		NextProcs: makeTestProcs(prevProcsCount),
 	}
 	fork := processor.NewFork(&conf, reader)
 
@@ -36,7 +34,7 @@ func TestFork(t *testing.T) {
 
 	totalCount := 0
 	countForID := make(map[string]int, 0)
-	goal := nextProcsCount * len(originals)
+	goal := prevProcsCount * len(originals)
 
 	for b := range serialize {
 		parsed := checkTestSet(t, originalForID, b)
@@ -56,19 +54,8 @@ func TestFork(t *testing.T) {
 	}
 
 	for _, count := range countForID {
-		if count != nextProcsCount {
-			t.Fatalf("Expected to receive %v data sets, but got %v\n", nextProcsCount, count)
+		if count != prevProcsCount {
+			t.Fatalf("Expected to receive %v data sets, but got %v\n", prevProcsCount, count)
 		}
-	}
-}
-
-func readFromReader(serialize chan<- []byte, reader io.Reader) {
-	scanner := message.NewScanner(reader)
-	for scanner.Scan() {
-		raw := scanner.Bytes()
-		original := bytes.Trim(raw, "\x00")
-		toPassOn := make([]byte, len(original))
-		copy(toPassOn, original)
-		serialize <- toPassOn
 	}
 }

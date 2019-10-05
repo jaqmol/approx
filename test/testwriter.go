@@ -5,19 +5,19 @@ import (
 	"log"
 )
 
-type logWriter struct {
+type testWriter struct {
 	lines   chan []byte
 	running bool
 }
 
-func newLogWriter() *logWriter {
-	return &logWriter{
+func newTestWriter() *testWriter {
+	return &testWriter{
 		lines:   make(chan []byte),
 		running: true,
 	}
 }
 
-func (w *logWriter) Write(raw []byte) (int, error) {
+func (w *testWriter) Write(raw []byte) (int, error) {
 	if w.running {
 		b := bytes.Trim(raw, "\n\r")
 		if len(b) == 0 {
@@ -32,7 +32,7 @@ func (w *logWriter) Write(raw []byte) (int, error) {
 	return len(raw), nil
 }
 
-func (w *logWriter) stop(doStop bool) {
+func (w *testWriter) stop(doStop bool) {
 	if doStop {
 		w.running = false
 		close(w.lines)

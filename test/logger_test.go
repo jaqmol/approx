@@ -18,21 +18,14 @@ func TestLoggerWithSingleReader(t *testing.T) {
 	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
 	reader := bytes.NewReader(originalCombined)
 
-	writer := newLogWriter()
+	writer := newTestWriter()
 	l := logger.NewLogger(writer)
 	l.Add(reader)
 	go l.Start()
 
 	count := 0
 	for b := range writer.lines {
-		parsed, err := unmarshallPerson(b)
-		if err != nil {
-			t.Fatalf("Couldn't unmarshall person from: \"%v\"\n", string(b))
-		}
-		original := originalForID[parsed.ID]
-		if !original.Equals(parsed) {
-			t.Fatal("Parsed data doesn't conform to original")
-		}
+		checkTestSet(t, originalForID, b)
 		count++
 		writer.stop(count == len(originalBytes))
 	}
@@ -50,7 +43,7 @@ func TestLoggerWithMultipleReaders(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, configuration.MsgEndBytes)
 	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
 
-	writer := newLogWriter()
+	writer := newTestWriter()
 	l := logger.NewLogger(writer)
 
 	for i := 0; i < 5; i++ {
@@ -63,14 +56,7 @@ func TestLoggerWithMultipleReaders(t *testing.T) {
 	count := 0
 
 	for b := range writer.lines {
-		parsed, err := unmarshallPerson(b)
-		if err != nil {
-			t.Fatalf("Couldn't unmarshall person from: \"%v\"\n", string(b))
-		}
-		original := originalForID[parsed.ID]
-		if !original.Equals(parsed) {
-			t.Fatal("Parsed data doesn't conform to original")
-		}
+		checkTestSet(t, originalForID, b)
 		count++
 		writer.stop(count == goal)
 	}
