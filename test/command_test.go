@@ -43,7 +43,7 @@ func TestCommand(t *testing.T) {
 	}
 
 	if len(originals) != totalCount {
-		t.Fatal("Command dispatch count doesn't corespond to multitude of source count")
+		t.Fatal("Command dispatch count doesn't corespond to source count")
 	}
 }
 
