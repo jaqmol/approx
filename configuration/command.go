@@ -3,10 +3,8 @@ package configuration
 // Command ...
 type Command struct {
 	Ident    string
-	Path     string
-	Args     []string
+	Cmd      string
 	Env      []string
-	Dir      string
 	NextProc Processor
 }
 

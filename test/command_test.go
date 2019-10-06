@@ -2,7 +2,6 @@ package testpackage
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
 	"github.com/jaqmol/approx/message"
@@ -13,8 +12,7 @@ import (
 
 // TestCommand ...
 func TestCommand(t *testing.T) {
-	// TODO: NOT WORKING
-	originals := loadTestData()[:10]
+	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
@@ -24,25 +22,32 @@ func TestCommand(t *testing.T) {
 	reader := bytes.NewReader(originalCombined)
 	conf := configuration.Command{
 		Ident: "test-command",
-		Path:  "/usr/bin/node",
-		Args:  []string{"command.js"},
+		Cmd:   "node command.js",
 	}
 	command := processor.NewCommand(&conf, reader)
 
 	totalCount := 0
 	outputReader := command.Outs()[0]
-	log.Println("About to start command ...")
 	command.Start()
-	log.Println("... command did start.")
 	scanner := message.NewScanner(outputReader)
 
 	for scanner.Scan() {
 		raw := scanner.Bytes()
 		data := bytes.Trim(raw, "\x00")
-		parsed := checkTestSet(t, originalForID, data)
-
-		log.Printf("Parsed via command.sh: %v\n", parsed)
+		checkTestSet(t, originalForID, data)
 
 		totalCount++
+		if totalCount == len(originals) {
+			command.SigInt()
+		}
 	}
+
+	if len(originals) != totalCount {
+		t.Fatal("Command dispatch count doesn't corespond to multitude of source count")
+	}
+}
+
+// TestCommandWithLogging ...
+func TestCommandWithLogging(t *testing.T) {
+
 }

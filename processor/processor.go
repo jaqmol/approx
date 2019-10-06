@@ -14,8 +14,8 @@ import (
 
 // Processor ...
 type Processor interface {
-	Conf() configuration.Processor
 	Start()
+	Conf() configuration.Processor
 	Outs() []io.Reader
 	Err() io.Reader
 }
