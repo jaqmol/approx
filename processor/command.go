@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strings"
 
 	"github.com/jaqmol/approx/configuration"
 )
@@ -66,5 +67,14 @@ func (c *Command) start() {
 	err = c.cmd.Wait()
 	if err != nil {
 		log.Fatalln(err.Error())
+	}
+	c.stop()
+}
+
+func (c *Command) stop() {
+	errs := c.out.close()
+	if len(errs) > 0 {
+		s := strings.Join(errsToStrs(errs), ", ")
+		log.Fatalf("Errors closing pipe: %s\n", s)
 	}
 }

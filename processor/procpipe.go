@@ -38,3 +38,12 @@ func (p *procPipe) close() []error {
 	}
 	return acc
 }
+
+func closeProcPipes(ps []procPipe) []error {
+	acc := make([]error, 0)
+	for _, out := range ps {
+		es := out.close()
+		acc = append(acc, es...)
+	}
+	return acc
+}

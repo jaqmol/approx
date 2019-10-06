@@ -91,44 +91,7 @@ func (m *Merge) start() {
 func (m *Merge) stop() {
 	errs := m.out.close()
 	if len(errs) > 0 {
-		errStrs := make([]string, len(errs))
-		for i := range errStrs {
-			errStrs[i] = errs[i].Error()
-		}
-		s := strings.Join(errStrs, ", ")
+		s := strings.Join(errsToStrs(errs), ", ")
 		log.Fatalf("Errors closing pipe: %s\n", s)
 	}
 }
-
-// func (m *Merge) startReadingSerialize() {
-// 	for raw := range m.serialize {
-// 		msg := bytes.Trim(raw, "\x00")
-// 		n, err := m.out.writer().Write(msg)
-// 		if err != nil {
-// 			log.Fatalln(err.Error())
-// 		}
-// 		if n != len(msg) {
-// 			log.Fatalln("Merge couldn't write complete message")
-// 		}
-// 	}
-
-// 	errs := m.out.close()
-// 	if len(errs) > 0 {
-// 		errStrs := make([]string, len(errs))
-// 		for i := range errStrs {
-// 			errStrs[i] = errs[i].Error()
-// 		}
-// 		s := strings.Join(errStrs, ", ")
-// 		log.Fatalf("Errors closing pipe: %s\n", s)
-// 	}
-// }
-
-// func (m *Merge) startReadingChangeScannerCount() {
-// 	for amount := range m.changeScannerCount {
-// 		m.scannerCount += amount
-// 		if m.scannerCount == 0 {
-// 			close(m.serialize)
-// 			close(m.changeScannerCount)
-// 		}
-// 	}
-// }

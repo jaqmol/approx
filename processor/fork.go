@@ -75,15 +75,9 @@ func (f *Fork) readAndDistribute(r io.Reader) {
 }
 
 func (f *Fork) stop() {
-	errStrs := make([]string, 0)
-	for _, out := range f.outs {
-		errs := out.close()
-		for _, err := range errs {
-			errStrs = append(errStrs, err.Error())
-		}
-	}
-	if len(errStrs) > 0 {
-		s := strings.Join(errStrs, ", ")
+	errs := closeProcPipes(f.outs)
+	if len(errs) > 0 {
+		s := strings.Join(errsToStrs(errs), ", ")
 		log.Fatalf("Errors closing pipe: %s\n", s)
 	}
 }
