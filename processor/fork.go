@@ -3,6 +3,7 @@ package processor
 import (
 	"io"
 	"log"
+	"strings"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/message"
@@ -10,11 +11,10 @@ import (
 
 // Fork ...
 type Fork struct {
-	conf       *configuration.Fork
-	in         io.Reader
-	outs       []procPipe
-	err        procPipe
-	serializer chan []byte
+	conf *configuration.Fork
+	in   io.Reader
+	outs []procPipe
+	err  procPipe
 }
 
 // NewFork ...
@@ -47,14 +47,14 @@ func (f *Fork) Conf() configuration.Processor {
 func (f *Fork) Outs() []io.Reader {
 	acc := make([]io.Reader, len(f.outs))
 	for i, p := range f.outs {
-		acc[i] = p.reader
+		acc[i] = p.reader()
 	}
 	return acc
 }
 
 // Err ...
 func (f *Fork) Err() io.Reader {
-	return f.err.reader
+	return f.err.reader()
 }
 
 func (f *Fork) readAndDistribute(r io.Reader) {
@@ -62,7 +62,7 @@ func (f *Fork) readAndDistribute(r io.Reader) {
 	for scanner.Scan() {
 		msg := msgEndedCopy(scanner.Bytes())
 		for _, p := range f.outs {
-			n, err := p.writer.Write(msg)
+			n, err := p.writer().Write(msg)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -70,5 +70,20 @@ func (f *Fork) readAndDistribute(r io.Reader) {
 				log.Fatalln("Fork couldn't write complete message")
 			}
 		}
+	}
+	f.stop()
+}
+
+func (f *Fork) stop() {
+	errStrs := make([]string, 0)
+	for _, out := range f.outs {
+		errs := out.close()
+		for _, err := range errs {
+			errStrs = append(errStrs, err.Error())
+		}
+	}
+	if len(errStrs) > 0 {
+		s := strings.Join(errStrs, ", ")
+		log.Fatalf("Errors closing pipe: %s\n", s)
 	}
 }

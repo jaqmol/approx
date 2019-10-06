@@ -2,51 +2,53 @@ package testpackage
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/message"
 	"github.com/jaqmol/approx/processor"
 )
 
 // TestMerge ...
 func TestMerge(t *testing.T) {
-	// TODO: implement
 	prevProcsCount := 5
-	originals := loadTestData()[:10]
+	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.MsgEndBytes)
 	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
-	reader := bytes.NewReader(originalCombined)
 
-	conf := configuration.Fork{
-		Ident:     "test-fork",
-		NextProcs: makeTestProcs(prevProcsCount),
+	readers := make([]io.Reader, prevProcsCount)
+	for i := range readers {
+		readers[i] = bytes.NewReader(originalCombined)
 	}
-	fork := processor.NewFork(&conf, reader)
 
-	serialize := make(chan []byte)
-	for _, r := range fork.Outs() {
-		go readFromReader(serialize, r)
+	conf := configuration.Merge{
+		Ident:    "test-merge",
+		NextProc: &testProc{},
 	}
-	fork.Start()
+	merge := processor.NewMerge(&conf, readers)
 
 	totalCount := 0
 	countForID := make(map[string]int, 0)
 	goal := prevProcsCount * len(originals)
 
-	for b := range serialize {
-		parsed := checkTestSet(t, originalForID, b)
+	outputReader := merge.Outs()[0]
+	merge.Start()
+	scanner := message.NewScanner(outputReader)
+
+	for scanner.Scan() {
+		raw := scanner.Bytes()
+		data := bytes.Trim(raw, "\x00")
+		parsed := checkTestSet(t, originalForID, data)
 		totalCount++
 		countForID[parsed.ID]++
-		if totalCount == goal {
-			close(serialize)
-		}
 	}
 
 	if goal != totalCount {
-		t.Fatal("Forked count doesn't corespond to multitude of source count")
+		t.Fatal("Merged count doesn't corespond to multitude of source count")
 	}
 
 	if len(originals) != len(countForID) {

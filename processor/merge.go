@@ -1,8 +1,10 @@
 package processor
 
 import (
+	"bytes"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/message"
@@ -10,21 +12,24 @@ import (
 
 // Merge ...
 type Merge struct {
-	conf      *configuration.Merge
-	ins       []io.Reader
-	out       procPipe
-	err       procPipe
-	serialize chan []byte
+	conf               *configuration.Merge
+	ins                []io.Reader
+	out                procPipe
+	err                procPipe
+	serialize          chan []byte
+	changeScannerCount chan int
+	scannerCount       int
 }
 
 // NewMerge ...
 func NewMerge(conf *configuration.Merge, inputs []io.Reader) *Merge {
 	m := Merge{
-		conf:      conf,
-		ins:       inputs,
-		out:       newProcPipe(),
-		err:       newProcPipe(),
-		serialize: make(chan []byte),
+		conf:               conf,
+		ins:                inputs,
+		out:                newProcPipe(),
+		err:                newProcPipe(),
+		serialize:          make(chan []byte),
+		changeScannerCount: make(chan int),
 	}
 	return &m
 }
@@ -32,7 +37,7 @@ func NewMerge(conf *configuration.Merge, inputs []io.Reader) *Merge {
 // Start ...
 func (m *Merge) Start() {
 	for _, r := range m.ins {
-		go m.readFrom(r)
+		go m.readAndSynchronize(r)
 	}
 	go m.start()
 }
@@ -44,30 +49,86 @@ func (m *Merge) Conf() configuration.Processor {
 
 // Outs ...
 func (m *Merge) Outs() []io.Reader {
-	return []io.Reader{m.out.reader}
+	return []io.Reader{m.out.reader()}
 }
 
 // Err ...
 func (m *Merge) Err() io.Reader {
-	return m.err.reader
+	return m.err.reader()
 }
 
-func (m *Merge) readFrom(r io.Reader) {
+func (m *Merge) readAndSynchronize(r io.Reader) {
+	m.changeScannerCount <- 1
 	scanner := message.NewScanner(r)
 	for scanner.Scan() {
-		m.serialize <- msgEndedCopy(scanner.Bytes())
+		msg := msgEndedCopy(scanner.Bytes())
+		m.serialize <- msg
 	}
-	close(m.serialize)
+	m.changeScannerCount <- -1
 }
 
 func (m *Merge) start() {
-	for msg := range m.serialize {
-		n, err := m.out.writer.Write(msg)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-		if n != len(msg) {
-			log.Fatalln("Merge couldn't write complete message")
+	loop := true
+	for loop {
+		select {
+		case raw := <-m.serialize:
+			msg := bytes.Trim(raw, "\x00")
+			n, err := m.out.writer().Write(msg)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+			if n != len(msg) {
+				log.Fatalln("Merge couldn't write complete message")
+			}
+		case amount := <-m.changeScannerCount:
+			m.scannerCount += amount
+			loop = m.scannerCount > 0
 		}
 	}
+	m.stop()
 }
+
+func (m *Merge) stop() {
+	errs := m.out.close()
+	if len(errs) > 0 {
+		errStrs := make([]string, len(errs))
+		for i := range errStrs {
+			errStrs[i] = errs[i].Error()
+		}
+		s := strings.Join(errStrs, ", ")
+		log.Fatalf("Errors closing pipe: %s\n", s)
+	}
+}
+
+// func (m *Merge) startReadingSerialize() {
+// 	for raw := range m.serialize {
+// 		msg := bytes.Trim(raw, "\x00")
+// 		n, err := m.out.writer().Write(msg)
+// 		if err != nil {
+// 			log.Fatalln(err.Error())
+// 		}
+// 		if n != len(msg) {
+// 			log.Fatalln("Merge couldn't write complete message")
+// 		}
+// 	}
+
+// 	errs := m.out.close()
+// 	if len(errs) > 0 {
+// 		errStrs := make([]string, len(errs))
+// 		for i := range errStrs {
+// 			errStrs[i] = errs[i].Error()
+// 		}
+// 		s := strings.Join(errStrs, ", ")
+// 		log.Fatalf("Errors closing pipe: %s\n", s)
+// 	}
+// }
+
+// func (m *Merge) startReadingChangeScannerCount() {
+// 	for amount := range m.changeScannerCount {
+// 		m.scannerCount += amount
+// 		if m.scannerCount == 0 {
+// 			close(m.serialize)
+// 			close(m.changeScannerCount)
+// 		}
+// 	}
+// }

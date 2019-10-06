@@ -19,16 +19,3 @@ type Processor interface {
 	Outs() []io.Reader
 	Err() io.Reader
 }
-
-type procPipe struct {
-	reader io.Reader
-	writer io.Writer
-}
-
-func newProcPipe() procPipe {
-	r, w := io.Pipe()
-	return procPipe{
-		reader: r,
-		writer: w,
-	}
-}

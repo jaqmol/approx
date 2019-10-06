@@ -30,8 +30,8 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 		Env:    conf.Env,
 		Dir:    conf.Dir,
 		Stdin:  input,
-		Stdout: c.out.writer,
-		Stderr: c.err.writer,
+		Stdout: c.out.writer(),
+		Stderr: c.err.writer(),
 	}
 
 	return &c
@@ -49,12 +49,12 @@ func (c *Command) Conf() configuration.Processor {
 
 // Outs ...
 func (c *Command) Outs() []io.Reader {
-	return []io.Reader{c.out.reader}
+	return []io.Reader{c.out.reader()}
 }
 
 // Err ...
 func (c *Command) Err() io.Reader {
-	return c.err.reader
+	return c.err.reader()
 }
 
 func (c *Command) start() {

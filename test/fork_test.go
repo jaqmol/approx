@@ -14,7 +14,7 @@ import (
 // TestFork ...
 func TestFork(t *testing.T) {
 	nextProcsCount := 5
-	originals := loadTestData()
+	originals := loadTestData()[:5]
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
