@@ -1,11 +1,11 @@
-package testpackage
+package test
 
 import (
 	"bytes"
 	"io"
 	"testing"
 
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/processor"
@@ -63,7 +63,7 @@ func TestFork(t *testing.T) {
 }
 
 func readFromReader(serialize chan<- []byte, reader io.Reader) {
-	scanner := message.NewScanner(reader)
+	scanner := event.NewScanner(reader)
 	for scanner.Scan() {
 		raw := scanner.Bytes()
 		original := bytes.Trim(raw, "\x00")

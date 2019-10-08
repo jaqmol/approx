@@ -1,11 +1,11 @@
-package testpackage
+package test
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 )
 
 // TestScanner ...
@@ -18,7 +18,7 @@ func TestScanner(t *testing.T) {
 	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
 	reader := bytes.NewReader(originalCombined)
 
-	scanner := message.NewScanner(reader)
+	scanner := event.NewScanner(reader)
 	count := 0
 
 	for scanner.Scan() {

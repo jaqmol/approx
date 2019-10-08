@@ -7,21 +7,15 @@ const stdin = process.stdin,
 stdin.resume();
 
 stdin.on('data', (chunk) => {
-  console.error(chunk);
-  // if (!stderr.write(chunk)) {
-  //   stdin.pause();
-  //   stderr.once('drain', () => {
-  //     stdin.resume();
-  //   });
-  // }
-  if (!stdout.write(chunk)) {
+  // console.error(chunk);
+  if (!stderr.write(chunk)) {
     stdin.pause();
-    stdout.once('drain', () => {
+    stderr.once('drain', () => {
       stdin.resume();
     });
   }
 });
 
 stdin.on('end', () => {
-  stdout.end();
+  stderr.end();
 });

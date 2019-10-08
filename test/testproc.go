@@ -1,4 +1,4 @@
-package testpackage
+package test
 
 import "github.com/jaqmol/approx/configuration"
 

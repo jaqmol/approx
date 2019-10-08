@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 )
 
 // Logger ...
@@ -46,7 +46,7 @@ func (l *Logger) Add(r io.Reader) {
 }
 
 func (l *Logger) readFrom(r io.Reader) {
-	scanner := message.NewScanner(r)
+	scanner := event.NewScanner(r)
 	for scanner.Scan() {
 		original := scanner.Bytes()
 		toPassOn := make([]byte, len(original))

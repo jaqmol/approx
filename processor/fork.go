@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/jaqmol/approx/configuration"
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 )
 
 // Fork ...
@@ -58,7 +58,7 @@ func (f *Fork) Err() io.Reader {
 }
 
 func (f *Fork) readAndDistribute(r io.Reader) {
-	scanner := message.NewScanner(r)
+	scanner := event.NewScanner(r)
 	for scanner.Scan() {
 		msg := msgEndedCopy(scanner.Bytes())
 		for _, p := range f.outs {
@@ -67,7 +67,7 @@ func (f *Fork) readAndDistribute(r io.Reader) {
 				log.Fatalln(err.Error())
 			}
 			if n != len(msg) {
-				log.Fatalln("Fork couldn't write complete message")
+				log.Fatalln("Fork couldn't write complete event")
 			}
 		}
 	}

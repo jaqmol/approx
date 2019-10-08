@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jaqmol/approx/configuration"
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 )
 
 // Merge ...
@@ -59,7 +59,7 @@ func (m *Merge) Err() io.Reader {
 
 func (m *Merge) readAndSynchronize(r io.Reader) {
 	m.changeScannerCount <- 1
-	scanner := message.NewScanner(r)
+	scanner := event.NewScanner(r)
 	for scanner.Scan() {
 		msg := msgEndedCopy(scanner.Bytes())
 		m.serialize <- msg
@@ -78,7 +78,7 @@ func (m *Merge) start() {
 				log.Fatalln(err.Error())
 			}
 			if n != len(msg) {
-				log.Fatalln("Merge couldn't write complete message")
+				log.Fatalln("Merge couldn't write complete event")
 			}
 		case amount := <-m.changeScannerCount:
 			m.scannerCount += amount

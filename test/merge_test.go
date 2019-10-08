@@ -1,4 +1,4 @@
-package testpackage
+package test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
-	"github.com/jaqmol/approx/message"
+	"github.com/jaqmol/approx/event"
 	"github.com/jaqmol/approx/processor"
 )
 
@@ -37,7 +37,7 @@ func TestMerge(t *testing.T) {
 
 	outputReader := merge.Outs()[0]
 	merge.Start()
-	scanner := message.NewScanner(outputReader)
+	scanner := event.NewScanner(outputReader)
 
 	for scanner.Scan() {
 		raw := scanner.Bytes()
