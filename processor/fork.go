@@ -14,7 +14,7 @@ type Fork struct {
 	conf *configuration.Fork
 	in   io.Reader
 	outs []procPipe
-	err  procPipe
+	err  *procPipe
 }
 
 // NewFork ...
@@ -27,7 +27,8 @@ func NewFork(conf *configuration.Fork, input io.Reader) *Fork {
 	}
 
 	for i := range f.outs {
-		f.outs[i] = newProcPipe()
+		pp := newProcPipe()
+		f.outs[i] = *pp
 	}
 
 	return &f
@@ -60,7 +61,7 @@ func (f *Fork) Err() io.Reader {
 func (f *Fork) readAndDistribute(r io.Reader) {
 	scanner := event.NewScanner(r)
 	for scanner.Scan() {
-		msg := msgEndedCopy(scanner.Bytes())
+		msg := evntEndedCopy(scanner.Bytes())
 		for _, p := range f.outs {
 			n, err := p.writer().Write(msg)
 			if err != nil {

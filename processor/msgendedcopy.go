@@ -4,14 +4,14 @@ import (
 	"github.com/jaqmol/approx/configuration"
 )
 
-var msgEndLength int
+var evntEndLength int
 
 func init() {
-	msgEndLength = len(configuration.MsgEndBytes)
+	evntEndLength = len(configuration.EvntEndBytes)
 }
 
-func msgEndedCopy(data []byte) []byte {
-	dataCopy := make([]byte, len(data)+msgEndLength)
+func evntEndedCopy(data []byte) []byte {
+	dataCopy := make([]byte, len(data)+evntEndLength)
 	copy(dataCopy, data)
-	return append(dataCopy, configuration.MsgEndBytes...)
+	return append(dataCopy, configuration.EvntEndBytes...)
 }

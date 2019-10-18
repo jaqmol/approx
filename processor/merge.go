@@ -14,8 +14,8 @@ import (
 type Merge struct {
 	conf               *configuration.Merge
 	ins                []io.Reader
-	out                procPipe
-	err                procPipe
+	out                *procPipe
+	err                *procPipe
 	serialize          chan []byte
 	changeScannerCount chan int
 	scannerCount       int
@@ -61,7 +61,7 @@ func (m *Merge) readAndSynchronize(r io.Reader) {
 	m.changeScannerCount <- 1
 	scanner := event.NewScanner(r)
 	for scanner.Scan() {
-		msg := msgEndedCopy(scanner.Bytes())
+		msg := evntEndedCopy(scanner.Bytes())
 		m.serialize <- msg
 	}
 	m.changeScannerCount <- -1

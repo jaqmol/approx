@@ -1,77 +1,51 @@
 package processor
 
 import (
+	"bufio"
+	"bytes"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+
+	"github.com/jaqmol/approx/event"
 
 	"github.com/jaqmol/approx/configuration"
-	"github.com/jaqmol/approx/event"
 )
 
 // Command ...
 type Command struct {
-	conf   *configuration.Command
-	cmd    *exec.Cmd
-	in     io.Reader
-	cmdIn  procPipe
-	cmdOut procPipe
-	cmdErr procPipe
+	conf      *configuration.Command
+	waitGroup sync.WaitGroup
+	scanner   *bufio.Scanner
+	cmd       *exec.Cmd
+	cmdIn     *procPipe
 }
 
 // NewCommand ...
 func NewCommand(conf *configuration.Command, input io.Reader) *Command {
+	cmd, args := cmdAndArgs(conf.Cmd)
+
 	c := Command{
-		conf:   conf,
-		in:     input,
-		cmdIn:  newProcPipe(),
-		cmdOut: newProcPipe(),
-		cmdErr: newProcPipe(),
+		conf:      conf,
+		waitGroup: sync.WaitGroup{},
+		scanner:   event.NewScanner(input),
+		cmd:       exec.Command(cmd, args...),
+		cmdIn:     newProcPipe(),
 	}
 
-	cmd, args := cmdAndArgs(conf.Cmd)
-	c.cmd = exec.Command(cmd, args...)
-	c.cmd.Env = append(os.Environ(), conf.Env...)
+	if c.conf.Env != nil && len(c.conf.Env) > 0 {
+		c.cmd.Env = append(os.Environ(), c.conf.Env...)
+	}
+
 	c.cmd.Stdin = c.cmdIn.reader()
-	c.cmd.Stdout = c.cmdOut.writer()
-	c.cmd.Stderr = c.cmdErr.writer()
+	c.cmd.Stdout = os.Stdout
+	c.cmd.Stderr = os.Stderr
 
 	return &c
 }
-
-func cmdAndArgs(cmdPlusArgs string) (string, []string) {
-	acc := make([]string, 0)
-	comps := strings.Split(cmdPlusArgs, " ")
-	for _, cmp := range comps {
-		if len(cmp) > 0 {
-			acc = append(acc, cmp)
-		}
-	}
-	return acc[0], acc[1:]
-}
-
-// // NewCommand ...
-// func NewCommand(conf *configuration.Command, input io.Reader) *Command {
-// 	c := Command{
-// 		conf: conf,
-// 		out:  newProcPipe(),
-// 		err:  newProcPipe(),
-// 	}
-
-// 	c.cmd = &exec.Cmd{
-// 		Path:   conf.Path,
-// 		Args:   conf.Args,
-// 		Env:    conf.Env,
-// 		Dir:    conf.Dir,
-// 		Stdin:  input,
-// 		Stdout: c.out.writer(),
-// 		Stderr: c.err.writer(),
-// 	}
-
-// 	return &c
-// }
 
 // Start ...
 func (c *Command) Start() {
@@ -86,36 +60,21 @@ func (c *Command) Conf() configuration.Processor {
 
 // Outs ...
 func (c *Command) Outs() []io.Reader {
-	return []io.Reader{c.cmdOut.reader()}
+	return nil
 }
 
 // Err ...
 func (c *Command) Err() io.Reader {
-	return c.cmdErr.reader()
+	return nil
 }
 
-func (c *Command) startReadingInput() {
-	scanner := event.NewScanner(c.in)
-
-	log.Println("Command start reading input")
-
-	for scanner.Scan() {
-		msg := msgEndedCopy(scanner.Bytes())
-		n, err := c.cmdIn.writer().Write(msg)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-		if n != len(msg) {
-			log.Fatalln("Command couldn't write complete event")
-		}
-	}
-
-	log.Println("Command stop reading input")
-
-	c.Stop()
+// Wait ...
+func (c *Command) Wait() {
+	c.waitGroup.Wait()
 }
 
 func (c *Command) startCmd() {
+	c.waitGroup.Add(1)
 	var err error
 	err = c.cmd.Start()
 	if err != nil {
@@ -125,29 +84,33 @@ func (c *Command) startCmd() {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
-	c.Stop()
+	c.waitGroup.Done()
 }
 
-// Stop ...
-func (c *Command) Stop() {
-	errs := make([]error, 0)
-	errs = append(errs, c.cmdOut.close()...)
-	errs = append(errs, c.cmdErr.close()...)
-	if len(errs) > 0 {
-		s := strings.Join(errsToStrs(errs), ", ")
-		log.Fatalf("Errors closing pipe: %s\n", s)
+func (c *Command) startReadingInput() {
+	c.waitGroup.Add(1)
+	for c.scanner.Scan() {
+		raw := bytes.Trim(c.scanner.Bytes(), "\x00")
+		data := evntEndedCopy(raw)
+		// log.Println(string(data))
+		n, err := c.cmdIn.writer().Write(data)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		if n != len(data) {
+			log.Fatalln("Command couldn't write complete event")
+		}
 	}
+	c.waitGroup.Done()
 }
 
-// // SigInt ...
-// func (c *Command) SigInt() {
-// 	err := c.cmd.Process.Signal(os.Interrupt)
-// 	if err != nil {
-// 		// log.Println("SIGINT ERR: " + err.Error())
-// 		err = c.cmd.Process.Kill()
-// 		if err != nil {
-// 			// log.Fatalln("KILL ERR: " + err.Error())
-// 		}
-// 	}
-// 	c.Stop()
-// }
+func cmdAndArgs(cmdPlusArgs string) (string, []string) {
+	acc := make([]string, 0)
+	comps := strings.Split(cmdPlusArgs, " ")
+	for _, cmp := range comps {
+		if len(cmp) > 0 {
+			acc = append(acc, cmp)
+		}
+	}
+	return acc[0], acc[1:]
+}

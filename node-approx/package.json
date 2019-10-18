@@ -1,0 +1,21 @@
+{
+  "name": "node-approx",
+  "version": "1.0.0",
+  "description": "NodeJS integration for APPROX",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "APPROX",
+    "NODE"
+  ],
+  "author": "Ronny Reichmann",
+  "license": "MIT",
+  "dependencies": {
+    "buffer-indexof": "^1.1.1"
+  },
+  "devDependencies": {
+    "jest": "^24.9.0"
+  }
+}

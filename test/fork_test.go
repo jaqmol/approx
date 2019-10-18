@@ -18,8 +18,8 @@ func TestFork(t *testing.T) {
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.MsgEndBytes)
-	originalCombined = append(originalCombined, configuration.MsgEndBytes...)
+	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
+	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
 	reader := bytes.NewReader(originalCombined)
 
 	conf := configuration.Fork{

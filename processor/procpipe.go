@@ -7,9 +7,9 @@ type procPipe struct {
 	pipeWriter *io.PipeWriter
 }
 
-func newProcPipe() procPipe {
+func newProcPipe() *procPipe {
 	r, w := io.Pipe()
-	return procPipe{
+	return &procPipe{
 		pipeReader: r,
 		pipeWriter: w,
 	}

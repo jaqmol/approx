@@ -11,7 +11,7 @@ import (
 var msgEndLength int
 
 func init() {
-	msgEndLength = len(configuration.MsgEndBytes)
+	msgEndLength = len(configuration.EvntEndBytes)
 }
 
 // NewScanner ...
@@ -26,7 +26,7 @@ func splitFn(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		return 0, nil, io.EOF
 	}
 
-	msgEndIndex := bytes.Index(data, configuration.MsgEndBytes)
+	msgEndIndex := bytes.Index(data, configuration.EvntEndBytes)
 
 	if msgEndIndex == -1 {
 		return 0, nil, nil
