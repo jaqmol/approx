@@ -20,7 +20,7 @@ class ErrorWriter extends Transform {
     }
 
     try {
-      const str = `${JSON.stringify(obj)}${EvntEnd}\n`;
+      const str = `${JSON.stringify(obj)}${EvntEnd}`;
       const chunk = Buffer.from(str);
       callback(null, chunk);
     } catch(err) {

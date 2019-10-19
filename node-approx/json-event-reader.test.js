@@ -6,7 +6,7 @@ const {
   testDataFilePath
 } = require('./test-utils');
 
-test('streaming directly from filereader', done => {
+test('JSON event reading', done => {
   readAllExpectedEvents((err, expectedEvents) => {
     expect(err).toBe(null);
     const eventForId = createMapById(expectedEvents);
