@@ -12,9 +12,7 @@
   ],
   "author": "Ronny Reichmann",
   "license": "MIT",
-  "dependencies": {
-    "buffer-indexof": "^1.1.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "jest": "^24.9.0"
   }

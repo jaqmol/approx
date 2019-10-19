@@ -1,6 +1,5 @@
 const { Transform } = require('stream');
 const { EvntEndBytes } = require('./config');
-const bindexOf = require('buffer-indexof');
 
 class EventReader extends Transform {
   constructor(inputStream) {
@@ -19,7 +18,11 @@ class EventReader extends Transform {
 
     const progress = () => {
       if (reader.next()) {
-        const event = reader.current();
+        let event = reader.current();
+        // const termIdx = event.lastIndexOf('\x00');
+        // if (termIdx > -1) {
+        //   event = event.slice(0, termIdx);
+        // }
         if (!this.push(event)) {
           this.once('drain', progress);
         } else {
@@ -60,7 +63,7 @@ function eventsReader(buff) {
 }
 
 function binRangeOf(searchIn, searchFor, fromIndex) {
-  const findingIdx = bindexOf(searchIn, searchFor, fromIndex);
+  const findingIdx = searchIn.indexOf(searchFor, fromIndex);
   if (findingIdx === -1) return null;
   return {from: fromIndex, to: findingIdx};
 }

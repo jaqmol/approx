@@ -22,6 +22,8 @@ type Command struct {
 	scanner   *bufio.Scanner
 	cmd       *exec.Cmd
 	cmdIn     *procPipe
+	cmdOut    *procPipe
+	cmdErr    *procPipe
 }
 
 // NewCommand ...
@@ -34,6 +36,8 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 		scanner:   event.NewScanner(input),
 		cmd:       exec.Command(cmd, args...),
 		cmdIn:     newProcPipe(),
+		cmdOut:    newProcPipe(),
+		cmdErr:    newProcPipe(),
 	}
 
 	if c.conf.Env != nil && len(c.conf.Env) > 0 {
@@ -41,8 +45,13 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 	}
 
 	c.cmd.Stdin = c.cmdIn.reader()
+	c.cmd.Stdout = c.cmdOut.writer()
+	c.cmd.Stderr = c.cmdErr.writer()
+
+	/* Last working state:
 	c.cmd.Stdout = os.Stdout
 	c.cmd.Stderr = os.Stderr
+	*/
 
 	return &c
 }
@@ -60,12 +69,12 @@ func (c *Command) Conf() configuration.Processor {
 
 // Outs ...
 func (c *Command) Outs() []io.Reader {
-	return nil
+	return []io.Reader{c.cmdOut.reader()}
 }
 
 // Err ...
 func (c *Command) Err() io.Reader {
-	return nil
+	return c.cmdErr.reader()
 }
 
 // Wait ...
