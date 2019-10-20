@@ -26,6 +26,16 @@ func UnmarshalError(b []byte) (*Error, error) {
 	return &e, nil
 }
 
+// LogMsg ...
+func (e *Error) LogMsg() (LogMsg, error) {
+	data, err := e.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	msg := LogMsg{"error", string(data)}
+	return msg, nil
+}
+
 // Marshal ...
 func (e *Error) Marshal() ([]byte, error) {
 	return json.Marshal(e)

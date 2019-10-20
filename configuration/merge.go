@@ -7,16 +7,16 @@ type Merge struct {
 }
 
 // Type ...
-func (f *Merge) Type() ProcessorType {
+func (m *Merge) Type() ProcessorType {
 	return MergeType
 }
 
 // ID ...
-func (f *Merge) ID() string {
-	return f.Ident
+func (m *Merge) ID() string {
+	return m.Ident
 }
 
 // Next ...
-func (f *Merge) Next() []Processor {
-	return []Processor{f.NextProc}
+func (m *Merge) Next() []Processor {
+	return []Processor{m.NextProc}
 }

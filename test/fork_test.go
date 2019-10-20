@@ -2,10 +2,7 @@ package test
 
 import (
 	"bytes"
-	"io"
 	"testing"
-
-	"github.com/jaqmol/approx/event"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/processor"
@@ -59,16 +56,5 @@ func TestFork(t *testing.T) {
 		if count != nextProcsCount {
 			t.Fatalf("Expected to receive %v data sets, but got %v\n", nextProcsCount, count)
 		}
-	}
-}
-
-func readFromReader(serialize chan<- []byte, reader io.Reader) {
-	scanner := event.NewScanner(reader)
-	for scanner.Scan() {
-		raw := scanner.Bytes()
-		original := bytes.Trim(raw, "\x00")
-		toPassOn := make([]byte, len(original))
-		copy(toPassOn, original)
-		serialize <- toPassOn
 	}
 }

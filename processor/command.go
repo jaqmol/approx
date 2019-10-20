@@ -2,6 +2,7 @@ package processor
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -81,16 +82,30 @@ func (c *Command) Wait() {
 	c.waitGroup.Wait()
 }
 
+// func (c *Command) logFatal(e error) {
+// 	eObj := event.Error{Message: e.Error()}
+// 	eMsg, err2 := eObj.LogMsg()
+// 	if err2 != nil {
+// 		log.Printf("Command couldn't create log message from error: %v\n", err2.Error())
+// 	}
+// 	data, err2 := eMsg.Marshal()
+// 	if err2 != nil {
+// 		log.Printf("Command couldn't marshal log message from error: %v\n", err2.Error())
+// 	}
+// 	c.cmdErr.writer().Write(data)
+// 	os.Exit(-1)
+// }
+
 func (c *Command) startCmd() {
 	c.waitGroup.Add(1)
 	var err error
 	err = c.cmd.Start()
 	if err != nil {
-		log.Fatalln(err.Error())
+		panic(fmt.Sprintf("Can't start \"%v\", %v", c.conf.Cmd, err.Error()))
 	}
 	err = c.cmd.Wait()
 	if err != nil {
-		log.Fatalln(err.Error())
+		panic(fmt.Sprintf("Can't start \"%v\", %v", c.conf.Cmd, err.Error()))
 	}
 	c.waitGroup.Done()
 }
@@ -104,7 +119,7 @@ func (c *Command) startReadingInput() {
 		data := evntEndedCopy(raw)
 		n, err := c.cmdIn.writer().Write(data)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatalln(err)
 		}
 		if n != len(data) {
 			log.Fatalln("Command couldn't write complete event")
