@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 const EventReader = require('../../node-approx/event-reader');
-const ErrorWriter = require('../../node-approx/error-writer');
+const LogWriter = require('../../node-approx/log-writer');
 const EventWriter = require('../../node-approx/event-writer');
 
 const input = new EventReader(process.stdin);
-const error = new ErrorWriter(process.stderr);
+const log = new LogWriter(process.stderr);
 const output = new EventWriter(process.stdout);
 
 input.on('data', (chunk) => {
@@ -15,6 +15,7 @@ input.on('data', (chunk) => {
     const obj = JSON.parse(str);
     obj.first_name = obj.first_name.toUpperCase();
     obj.last_name = obj.last_name.toUpperCase();
+    log.info('Did process:', obj.id);
     const lineStr = JSON.stringify(obj);
     const line = Buffer.from(lineStr);
 
@@ -23,7 +24,7 @@ input.on('data', (chunk) => {
       output.once('drain', () => input.resume());
     }
   } catch(err) {
-    error.write(err);
+    log.error(err);
   }
 });
 

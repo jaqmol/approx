@@ -12,7 +12,7 @@ class JSONEventReader extends Transform {
 
   _transform(chunk, enc, callback) {
     try {
-      const str = chunk.toString('utf8');
+      const str = chunk.toString('utf8').replace(/\x00/g, '');
       const obj = JSON.parse(str);
       callback(null, obj);
     } catch(err) {

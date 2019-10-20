@@ -5,13 +5,25 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jaqmol/approx/event"
+
 	"github.com/jaqmol/approx/processor"
 
 	"github.com/jaqmol/approx/configuration"
 )
 
-// TestCommand ...
-func TestCommand(t *testing.T) {
+// TestCommandWithBufferProcessing ...
+func TestCommandWithBufferProcessing(t *testing.T) {
+	performTestWithCmd(t, "node node-procs/test-buffer-processing.js")
+}
+
+// TestCommandWithJSONProcessing ...
+func TestCommandWithJSONProcessing(t *testing.T) {
+	performTestWithCmd(t, "node node-procs/test-json-processing.js")
+}
+
+func performTestWithCmd(t *testing.T, commandString string) {
+	// t.SkipNow()
 	originals := loadTestData()
 	originalBytes := marshallPeople(originals)
 
@@ -20,34 +32,119 @@ func TestCommand(t *testing.T) {
 
 	reader := bytes.NewReader(originalCombined)
 	config := configuration.Command{
-		Cmd: "node node-procs/test-buffer-processing.js",
+		Cmd: commandString,
 	}
 
 	command := processor.NewCommand(&config, reader)
 
-	serialize := make(chan []byte)
-	r := command.Outs()[0]
-	go readFromReader(serialize, r)
+	serializeOutput := make(chan []byte)
+	serializeLogMsgs := make(chan []byte)
+	output := command.Outs()[0]
+	errors := command.Err()
+	go readFromReader(serializeOutput, output)
+	go readFromReader(serializeLogMsgs, errors)
 	command.Start()
 
 	goal := len(originals)
-	index := 0
+	businessIndex := 0
+	loggingIndex := 0
 
-	for b := range serialize {
-		parsed, err := unmarshallPerson(b)
-		if err != nil {
-			t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(b), err.Error())
-		}
+	loop := true
+	for loop {
+		select {
+		case ob := <-serializeOutput:
+			parsed, err := unmarshallPerson(ob)
+			if err != nil {
+				t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(ob), err.Error())
+			}
 
-		original := originals[index]
-		checkFirstAndLastNames(t, &original, parsed)
+			original := originals[businessIndex]
+			checkFirstAndLastNames(t, &original, parsed)
 
-		index++
-		if index == goal {
-			close(serialize)
+			businessIndex++
+			loop = businessIndex != goal || loggingIndex != goal
+		case eb := <-serializeLogMsgs:
+			msg, err := event.UnmarshalLogMsg(eb)
+			logMsg, cmdErr, err := msg.PayloadOrError()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if logMsg != nil {
+				if strings.HasPrefix(*logMsg, "Did process:") {
+					loggingIndex++
+					loop = businessIndex != goal || loggingIndex != goal
+				}
+			}
+			if cmdErr != nil {
+				t.Fatal(cmdErr.Error())
+			}
 		}
 	}
 }
+
+// TestCommandWithJSONProcessing ...
+// func TestCommandWithJSONProcessing(t *testing.T) {
+// 	// t.SkipNow()
+// 	originals := loadTestData()[:10]
+// 	originalBytes := marshallPeople(originals)
+
+// 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
+// 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+
+// 	reader := bytes.NewReader(originalCombined)
+// 	config := configuration.Command{
+// 		Cmd: "node node-procs/test-json-processing.js",
+// 	}
+
+// 	command := processor.NewCommand(&config, reader)
+
+// 	serializeOutput := make(chan []byte)
+// 	serializeLogMsgs := make(chan []byte)
+// 	output := command.Outs()[0]
+// 	errors := command.Err()
+// 	go readFromReader(serializeOutput, output)
+// 	go readFromReader(serializeLogMsgs, errors)
+// 	command.Start()
+
+// 	goal := len(originals)
+// 	businessIndex := 0
+// 	loggingIndex := 0
+
+// 	loop := true
+// 	for loop {
+// 		select {
+// 		case ob := <-serializeOutput:
+// 			parsed, err := unmarshallPerson(ob)
+// 			if err != nil {
+// 				t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(ob), err.Error())
+// 			}
+
+// 			original := originals[businessIndex]
+// 			checkFirstAndLastNames(t, &original, parsed)
+
+// 			businessIndex++
+// 			loop = businessIndex == goal
+// 		case eb := <-serializeLogMsgs:
+// 			msg, err := event.UnmarshalLogMsg(eb)
+// 			logMsg, cmdErr, err := msg.PayloadOrError()
+// 			if err != nil {
+// 				t.Fatal(err)
+// 			}
+// 			if logMsg != nil {
+// 				if strings.HasPrefix(*logMsg, "Did process:") {
+// 					loggingIndex++
+// 					loop = businessIndex != goal || loggingIndex != goal
+// 				}
+// 			}
+// 			if cmdErr != nil {
+// 				t.Fatal(cmdErr)
+// 			}
+// 		}
+// 	}
+
+// 	// close(serializeOutput)
+// 	// close(serializeLogMsgs)
+// }
 
 func checkFirstAndLastNames(t *testing.T, original, parsed *TestPerson) {
 	upperOrigFirstName := strings.ToUpper(original.FirstName)
@@ -60,27 +157,3 @@ func checkFirstAndLastNames(t *testing.T, original, parsed *TestPerson) {
 		t.Fatalf("Expected uppercase last name %v, but got: %v", upperOrigLastName, parsed.LastName)
 	}
 }
-
-// type readerToChannelTransformer struct {
-// 	scanner *bufio.Scanner
-// 	lines   chan []byte
-// }
-
-// func newReaderToChannelTransformer(reader io.Reader) *readerToChannelTransformer {
-// 	return &readerToChannelTransformer{
-// 		scanner: event.NewScanner(reader),
-// 		lines:   make(chan []byte),
-// 	}
-// }
-
-// func (t *readerToChannelTransformer) start() {
-// 	for t.scanner.Scan() {
-// 		raw := t.scanner.Bytes()
-// 		data := bytes.Trim(raw, "\x00")
-// 		cp := make([]byte, len(data))
-// 		copy(cp, data)
-// 		t.lines <- cp
-// 	}
-
-// 	close(t.lines)
-// }

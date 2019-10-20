@@ -2,7 +2,6 @@ package processor
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"log"
 	"os"
@@ -99,9 +98,10 @@ func (c *Command) startCmd() {
 func (c *Command) startReadingInput() {
 	c.waitGroup.Add(1)
 	for c.scanner.Scan() {
-		raw := bytes.Trim(c.scanner.Bytes(), "\x00")
+		// This is not solving the problem, for unknown reasons:
+		// raw := bytes.Trim(c.scanner.Bytes(), "\x00")
+		raw := c.scanner.Bytes()
 		data := evntEndedCopy(raw)
-		// log.Println(string(data))
 		n, err := c.cmdIn.writer().Write(data)
 		if err != nil {
 			log.Fatalln(err.Error())

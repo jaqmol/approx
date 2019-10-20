@@ -53,6 +53,15 @@ func unmarshallPerson(data []byte) (*TestPerson, error) {
 	return &p, nil
 }
 
+func unmarshallError(data []byte) (*TestPerson, error) {
+	var p TestPerson
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func makePersonForIDMap(people []TestPerson) map[string]TestPerson {
 	acc := make(map[string]TestPerson)
 	for _, p := range people {

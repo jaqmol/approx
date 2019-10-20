@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"strings"
@@ -71,8 +70,9 @@ func (m *Merge) start() {
 	loop := true
 	for loop {
 		select {
-		case raw := <-m.serialize:
-			msg := bytes.Trim(raw, "\x00")
+		case msg := <-m.serialize:
+			// This is not solving the problem, for unknown reasons:
+			// msg := bytes.Trim(raw, "\x00")
 			n, err := m.out.writer().Write(msg)
 			if err != nil {
 				log.Fatalln(err.Error())
