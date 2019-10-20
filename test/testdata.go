@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-// TestPerson ...
-type TestPerson struct {
+// Person ...
+type Person struct {
 	ID        string `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -15,14 +15,14 @@ type TestPerson struct {
 }
 
 // Equals ...
-func (a *TestPerson) Equals(b *TestPerson) bool {
+func (a *Person) Equals(b *Person) bool {
 	return a.ID == b.ID &&
 		a.FirstName == b.FirstName &&
 		a.LastName == b.LastName &&
 		a.Email == b.Email
 }
 
-func marshallPeople(testData []TestPerson) [][]byte {
+func marshallPeople(testData []Person) [][]byte {
 	acc := make([][]byte, 0)
 	for _, p := range testData {
 		b, err := json.Marshal(&p)
@@ -32,8 +32,8 @@ func marshallPeople(testData []TestPerson) [][]byte {
 	return acc
 }
 
-func unmarshallPeople(data [][]byte) []TestPerson {
-	acc := make([]TestPerson, 0)
+func unmarshallPeople(data [][]byte) []Person {
+	acc := make([]Person, 0)
 	for i, b := range data {
 		p, err := unmarshallPerson(b)
 		if err != nil {
@@ -44,8 +44,8 @@ func unmarshallPeople(data [][]byte) []TestPerson {
 	return acc
 }
 
-func unmarshallPerson(data []byte) (*TestPerson, error) {
-	var p TestPerson
+func unmarshallPerson(data []byte) (*Person, error) {
+	var p Person
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -53,8 +53,8 @@ func unmarshallPerson(data []byte) (*TestPerson, error) {
 	return &p, nil
 }
 
-func unmarshallError(data []byte) (*TestPerson, error) {
-	var p TestPerson
+func unmarshallError(data []byte) (*Person, error) {
+	var p Person
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -62,17 +62,17 @@ func unmarshallError(data []byte) (*TestPerson, error) {
 	return &p, nil
 }
 
-func makePersonForIDMap(people []TestPerson) map[string]TestPerson {
-	acc := make(map[string]TestPerson)
+func makePersonForIDMap(people []Person) map[string]Person {
+	acc := make(map[string]Person)
 	for _, p := range people {
 		acc[p.ID] = p
 	}
 	return acc
 }
 
-func loadTestData() []TestPerson {
+func loadTestData() []Person {
 	dat, err := ioutil.ReadFile("./test-data.json")
-	var result []TestPerson
+	var result []Person
 	err = json.Unmarshal(dat, &result)
 	check(err)
 	return result

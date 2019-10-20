@@ -77,7 +77,7 @@ func performTestWithCmd(t *testing.T, commandString string) {
 	}
 }
 
-func checkFirstAndLastNames(t *testing.T, original, parsed *TestPerson) {
+func checkFirstAndLastNames(t *testing.T, original, parsed *Person) {
 	upperOrigFirstName := strings.ToUpper(original.FirstName)
 	if upperOrigFirstName != parsed.FirstName {
 		t.Fatalf("Expected uppercase first name %v, but got: %v", upperOrigFirstName, parsed.FirstName)

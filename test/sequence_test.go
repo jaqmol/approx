@@ -50,6 +50,8 @@ func TestSimpleCommandSequence(t *testing.T) {
 		lastNameExtractCmd.Outs()[0],
 	})
 
+	// TODO: Continue with wiring the pipes and starting the processors
+
 	log.Println(merge)
 
 	// serializeOutput := outputSerializerChannel(command.Outs()[0])
