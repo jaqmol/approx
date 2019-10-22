@@ -36,7 +36,7 @@ func performTestWithCmd(t *testing.T, commandString string) {
 
 	command := processor.NewCommand(&config, reader)
 
-	serializeOutput := outputSerializerChannel(command.Outs()[0])
+	serializeOutput := outputSerializerChannel(command.Out())
 	serializeLogMsgs := outputSerializerChannel(command.Err())
 	command.Start()
 

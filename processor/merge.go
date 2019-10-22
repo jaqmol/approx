@@ -51,6 +51,11 @@ func (m *Merge) Outs() []io.Reader {
 	return []io.Reader{m.out.reader()}
 }
 
+// Out ...
+func (m *Merge) Out() io.Reader {
+	return m.out.reader()
+}
+
 // Err ...
 func (m *Merge) Err() io.Reader {
 	return m.err.reader()

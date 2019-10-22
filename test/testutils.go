@@ -23,3 +23,11 @@ func readFromReader(serialize chan<- []byte, reader io.Reader) {
 		serialize <- toPassOn
 	}
 }
+
+func outputsSerializerChannel(outputs []io.Reader) <-chan []byte {
+	serializer := make(chan []byte)
+	for _, reader := range outputs {
+		go readFromReader(serializer, reader)
+	}
+	return serializer
+}

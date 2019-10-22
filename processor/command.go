@@ -72,6 +72,11 @@ func (c *Command) Outs() []io.Reader {
 	return []io.Reader{c.cmdOut.reader()}
 }
 
+// Out ...
+func (c *Command) Out() io.Reader {
+	return c.cmdOut.reader()
+}
+
 // Err ...
 func (c *Command) Err() io.Reader {
 	return c.cmdErr.reader()
@@ -81,20 +86,6 @@ func (c *Command) Err() io.Reader {
 func (c *Command) Wait() {
 	c.waitGroup.Wait()
 }
-
-// func (c *Command) logFatal(e error) {
-// 	eObj := event.Error{Message: e.Error()}
-// 	eMsg, err2 := eObj.LogMsg()
-// 	if err2 != nil {
-// 		log.Printf("Command couldn't create log message from error: %v\n", err2.Error())
-// 	}
-// 	data, err2 := eMsg.Marshal()
-// 	if err2 != nil {
-// 		log.Printf("Command couldn't marshal log message from error: %v\n", err2.Error())
-// 	}
-// 	c.cmdErr.writer().Write(data)
-// 	os.Exit(-1)
-// }
 
 func (c *Command) startCmd() {
 	c.waitGroup.Add(1)

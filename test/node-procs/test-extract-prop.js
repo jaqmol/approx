@@ -22,7 +22,7 @@ input.on('data', (inObj) => {
       [propName]: value,
     };
 
-    log.info(`Did extract prop-name: "${propName}" from: "${inObj.id}"`);
+    log.info(`Did extract "${propName}" from: "${inObj.id}"`);
 
     if (!output.write(outObj)) {
         input.pause();

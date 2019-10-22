@@ -17,5 +17,6 @@ type Processor interface {
 	Start()
 	Conf() configuration.Processor
 	Outs() []io.Reader
+	Out() io.Reader
 	Err() io.Reader
 }

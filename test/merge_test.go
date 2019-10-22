@@ -35,7 +35,7 @@ func TestMerge(t *testing.T) {
 	countForID := make(map[string]int, 0)
 	goal := prevProcsCount * len(originals)
 
-	outputReader := merge.Outs()[0]
+	outputReader := merge.Out()
 	merge.Start()
 	scanner := event.NewScanner(outputReader)
 

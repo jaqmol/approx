@@ -53,6 +53,11 @@ func (f *Fork) Outs() []io.Reader {
 	return acc
 }
 
+// Out ...
+func (f *Fork) Out() io.Reader {
+	return f.outs[0].reader()
+}
+
 // Err ...
 func (f *Fork) Err() io.Reader {
 	return f.err.reader()
