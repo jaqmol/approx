@@ -1,0 +1,27 @@
+definition:
+  - name: fork
+    type: fork
+
+  - name: extract-first-name
+    type: command
+    cmd: node ../node-procs/test-extract-prop.js
+    env:
+      PROP_NAME: first_name
+
+  - name: extract-last-name
+    type: command
+    cmd: node ../node-procs/test-extract-prop.js
+    env:
+      PROP_NAME: last_name
+
+  - name: merge
+    type: merge
+
+flow:
+  - - fork
+    - extract-first-name
+    - merge
+    
+  - - fork
+    - extract-last-name
+    - merge
