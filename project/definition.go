@@ -21,7 +21,7 @@ const (
 // Definition ...
 type Definition interface {
 	Type() DefinitionType
-	Name() string
+	Ident() string
 }
 
 // LoadDefinition ...

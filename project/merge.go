@@ -2,14 +2,14 @@ package project
 
 // Merge ...
 type Merge struct {
-	name string
+	ident string
 }
 
 // NewMerge ...
-func NewMerge(name string, originalData interface{}) *Merge {
-	// data := originalData.(map[string]interface{})
+func NewMerge(ident string, originalData interface{}) *Merge {
+	// data := originalData.(map[string]interface{}) // TODO: REMOVE
 	f := Merge{
-		name: name,
+		ident: ident,
 	}
 	return &f
 }
@@ -19,7 +19,7 @@ func (f *Merge) Type() DefinitionType {
 	return MergeType
 }
 
-// Name ...
-func (f *Merge) Name() string {
-	return f.name
+// Ident ...
+func (f *Merge) Ident() string {
+	return f.ident
 }

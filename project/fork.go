@@ -2,14 +2,14 @@ package project
 
 // Fork ...
 type Fork struct {
-	name string
+	ident string
 }
 
 // NewFork ...
-func NewFork(name string, originalData interface{}) *Fork {
-	// data := originalData.(map[string]interface{})
+func NewFork(ident string, originalData interface{}) *Fork {
+	// data := originalData.(map[string]interface{}) // TODO: REMOVE
 	f := Fork{
-		name: name,
+		ident: ident,
 	}
 	return &f
 }
@@ -19,7 +19,7 @@ func (f *Fork) Type() DefinitionType {
 	return ForkType
 }
 
-// Name ...
-func (f *Fork) Name() string {
-	return f.name
+// Ident ...
+func (f *Fork) Ident() string {
+	return f.ident
 }

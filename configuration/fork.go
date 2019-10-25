@@ -16,7 +16,14 @@ func (f *Fork) ID() string {
 	return f.Ident
 }
 
-// Next ...
-func (f *Fork) Next() []Processor {
-	return f.NextProcs
-}
+// TODO: REMOVE
+// // Next ...
+// func (f *Fork) Next() []Processor {
+// 	return f.NextProcs
+// }
+
+// TODO: REMOVE
+// // SetNext ...
+// func (f *Fork) SetNext(next ...Processor) {
+// 	f.NextProcs = next
+// }

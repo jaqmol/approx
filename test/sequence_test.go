@@ -122,16 +122,16 @@ func makeSimpleSequenceConfig() *simpleSequenceConfig {
 		Ident: "merge",
 	}
 	firstNameExtractConf := configuration.Command{
-		Ident:    "extract-first-name",
-		Cmd:      "node node-procs/test-extract-prop.js",
-		Env:      []string{"PROP_NAME=first_name"},
-		NextProc: &mergeConf,
+		Ident: "extract-first-name",
+		Cmd:   "node node-procs/test-extract-prop.js",
+		Env:   []string{"PROP_NAME=first_name"},
+		// NextProc: &mergeConf, // TODO: REMOVE
 	}
 	lastNameExtractConf := configuration.Command{
-		Ident:    "extract-last-name",
-		Cmd:      "node node-procs/test-extract-prop.js",
-		Env:      []string{"PROP_NAME=last_name"},
-		NextProc: &mergeConf,
+		Ident: "extract-last-name",
+		Cmd:   "node node-procs/test-extract-prop.js",
+		Env:   []string{"PROP_NAME=last_name"},
+		// NextProc: &mergeConf, // TODO: REMOVE
 	}
 	forkConf := configuration.Fork{
 		Ident: "fork",

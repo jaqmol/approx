@@ -26,8 +26,8 @@ func TestMerge(t *testing.T) {
 	}
 
 	conf := configuration.Merge{
-		Ident:    "test-merge",
-		NextProc: &testProc{},
+		Ident: "test-merge",
+		// NextProc: &testProc{}, // TODO: REMOVE
 	}
 	merge := processor.NewMerge(&conf, readers)
 

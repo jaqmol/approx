@@ -27,13 +27,13 @@ func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
 	}
 
 	forkExp := defs["fork"]
-	if forkExp.Name() != "fork" || forkExp.Type() != project.ForkType {
-		t.Fatalf("Expected \"fork\", but got \"%v\"", forkExp.Name())
+	if forkExp.Ident() != "fork" || forkExp.Type() != project.ForkType {
+		t.Fatalf("Expected \"fork\", but got \"%v\"", forkExp.Ident())
 	}
 
 	cmd1Exp := defs["extract-first-name"]
-	if cmd1Exp.Name() != "extract-first-name" || cmd1Exp.Type() != project.CommandType {
-		t.Fatalf("Expected \"extract-first-name\", but got \"%v\"", cmd1Exp.Name())
+	if cmd1Exp.Ident() != "extract-first-name" || cmd1Exp.Type() != project.CommandType {
+		t.Fatalf("Expected \"extract-first-name\", but got \"%v\"", cmd1Exp.Ident())
 	}
 	cmd1 := cmd1Exp.(*project.Command)
 	if cmd1.Cmd() != "node ../node-procs/test-extract-prop.js" {
@@ -44,8 +44,8 @@ func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
 	}
 
 	cmd2Exp := defs["extract-last-name"]
-	if cmd2Exp.Name() != "extract-last-name" || cmd2Exp.Type() != project.CommandType {
-		t.Fatalf("Expected \"extract-last-name\", but got \"%v\"", cmd2Exp.Name())
+	if cmd2Exp.Ident() != "extract-last-name" || cmd2Exp.Type() != project.CommandType {
+		t.Fatalf("Expected \"extract-last-name\", but got \"%v\"", cmd2Exp.Ident())
 	}
 	cmd2 := cmd2Exp.(*project.Command)
 	if cmd2.Cmd() != "node ../node-procs/test-extract-prop.js" {
@@ -56,7 +56,7 @@ func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
 	}
 
 	mergeExp := defs["merge"]
-	if mergeExp.Name() != "merge" || mergeExp.Type() != project.MergeType {
-		t.Fatalf("Expected \"merge\", but got \"%v\"", mergeExp.Name())
+	if mergeExp.Ident() != "merge" || mergeExp.Type() != project.MergeType {
+		t.Fatalf("Expected \"merge\", but got \"%v\"", mergeExp.Ident())
 	}
 }

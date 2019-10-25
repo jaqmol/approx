@@ -2,18 +2,18 @@ package project
 
 // Command ...
 type Command struct {
-	name string            // `yaml:"name,omitempty"`
-	cmd  string            // `yaml:"cmd,omitempty"`
-	env  map[string]string // `yaml:"env,omitempty"`
+	ident string            // `yaml:"ident,omitempty"`
+	cmd   string            // `yaml:"cmd,omitempty"`
+	env   map[string]string // `yaml:"env,omitempty"`
 }
 
 // NewCommand ...
-func NewCommand(name string, originalData interface{}) *Command {
+func NewCommand(ident string, originalData interface{}) *Command {
 	data := originalData.(map[string]interface{})
 	c := Command{
-		name: name,
-		cmd:  data["cmd"].(string),
-		env:  toStringMapString(data["env"]),
+		ident: ident,
+		cmd:   data["cmd"].(string),
+		env:   toStringMapString(data["env"]),
 	}
 	return &c
 }
@@ -23,9 +23,9 @@ func (c *Command) Type() DefinitionType {
 	return CommandType
 }
 
-// Name ...
-func (c *Command) Name() string {
-	return c.name
+// Ident ...
+func (c *Command) Ident() string {
+	return c.ident
 }
 
 // Cmd ...
