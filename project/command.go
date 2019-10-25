@@ -8,10 +8,10 @@ type Command struct {
 }
 
 // NewCommand ...
-func NewCommand(originalData interface{}) *Command {
+func NewCommand(name string, originalData interface{}) *Command {
 	data := originalData.(map[string]interface{})
 	c := Command{
-		name: data["name"].(string),
+		name: name,
 		cmd:  data["cmd"].(string),
 		env:  toStringMapString(data["env"]),
 	}

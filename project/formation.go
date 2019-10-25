@@ -14,8 +14,8 @@ import (
 
 // Formation ...
 type Formation struct {
-	Definitions []Definition // `yaml:"definition,omitempty"`
-	Flow        []Flow       // `yaml:"flow,omitempty"`
+	Definitions map[string]Definition // `yaml:"definition,omitempty"`
+	Flows       []Flow                // `yaml:"flow,omitempty"`
 }
 
 // LoadFormation ...
@@ -38,7 +38,7 @@ func LoadFormation(projectDirectory string) (*Formation, error) {
 	}
 	f := Formation{
 		Definitions: def,
-		Flow:        flow,
+		Flows:       flow,
 	}
 	return &f, nil
 }
@@ -53,12 +53,12 @@ func loadFormationFromPath(formationFilepath string) (*Formation, error) {
 	if err != nil {
 		return nil, err
 	}
-	defData := forMap["definition"].([]map[string]interface{})
+	defData := toMapStrMapStrIf(forMap["definition"])
 	defs, err := interpreteDefinition(defData)
 	if err != nil {
 		return nil, err
 	}
-	flowData := forMap["flow"].([][]string)
+	flowData := toListListStr(forMap["flow"])
 	flows, err := interpreteFlow(flowData)
 	if err != nil {
 		return nil, err
@@ -75,4 +75,31 @@ func noFormationError(causes []error) error {
 		buff.WriteString(e.Error())
 	}
 	return fmt.Errorf("No formation.yaml found, expected definition.yaml and flow.yaml, but found error(s): %v", buff.String())
+}
+
+func toMapStrMapStrIf(originalData interface{}) map[string]map[string]interface{} {
+	dataList := originalData.(map[interface{}]interface{})
+	rootAcc := make(map[string]map[string]interface{})
+	for ifName, ifData := range dataList {
+		mapAcc := make(map[string]interface{})
+		for ifKey, ifValue := range ifData.(map[interface{}]interface{}) {
+			mapAcc[ifKey.(string)] = ifValue
+		}
+		rootAcc[ifName.(string)] = mapAcc
+	}
+	return rootAcc
+}
+
+func toListListStr(originalData interface{}) [][]string {
+	dataList := originalData.([]interface{})
+	acc := make([][]string, len(dataList))
+	for i, ifData := range dataList {
+		ifList := ifData.([]interface{})
+		strList := make([]string, len(ifList))
+		for j, ifData := range ifList {
+			strList[j] = ifData.(string)
+		}
+		acc[i] = strList
+	}
+	return acc
 }

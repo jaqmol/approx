@@ -6,10 +6,10 @@ type Merge struct {
 }
 
 // NewMerge ...
-func NewMerge(originalData interface{}) *Merge {
-	data := originalData.(map[string]interface{})
+func NewMerge(name string, originalData interface{}) *Merge {
+	// data := originalData.(map[string]interface{})
 	f := Merge{
-		name: data["name"].(string),
+		name: name,
 	}
 	return &f
 }

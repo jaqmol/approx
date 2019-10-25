@@ -1,17 +1,17 @@
-fork:
+- name: fork
   type: fork
 
-extract-first-name:
+- name: extract-first-name
   type: command
   cmd: node ../node-procs/test-extract-prop.js
   env:
     PROP_NAME: first_name
 
-extract-last-name:
+- name: extract-last-name
   type: command
   cmd: node ../node-procs/test-extract-prop.js
   env:
     PROP_NAME: last_name
 
-merge:
+- name: merge
   type: merge

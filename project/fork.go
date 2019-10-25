@@ -6,10 +6,10 @@ type Fork struct {
 }
 
 // NewFork ...
-func NewFork(originalData interface{}) *Fork {
-	data := originalData.(map[string]interface{})
+func NewFork(name string, originalData interface{}) *Fork {
+	// data := originalData.(map[string]interface{})
 	f := Fork{
-		name: data["name"].(string),
+		name: name,
 	}
 	return &f
 }

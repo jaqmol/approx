@@ -13,21 +13,25 @@ func TestProjectDefinition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	def, err := project.LoadDefinition(projDir)
+	defs, err := project.LoadDefinition(projDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(def) != 4 {
-		t.Fatalf("Expected 4 definitions, but got \"%v\"", len(def))
+	checkProjectDefinitions(t, defs)
+}
+
+func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
+	if len(defs) != 4 {
+		t.Fatalf("Expected 4 definitions, but got \"%v\"", len(defs))
 	}
 
-	forkExp := def[0]
+	forkExp := defs["fork"]
 	if forkExp.Name() != "fork" || forkExp.Type() != project.ForkType {
 		t.Fatalf("Expected \"fork\", but got \"%v\"", forkExp.Name())
 	}
 
-	cmd1Exp := def[1]
+	cmd1Exp := defs["extract-first-name"]
 	if cmd1Exp.Name() != "extract-first-name" || cmd1Exp.Type() != project.CommandType {
 		t.Fatalf("Expected \"extract-first-name\", but got \"%v\"", cmd1Exp.Name())
 	}
@@ -39,7 +43,7 @@ func TestProjectDefinition(t *testing.T) {
 		t.Fatalf("Expected command 1 env PROP_NAME to be \"first_name\", but got \"%v\"", cmd1.Env()["PROP_NAME"])
 	}
 
-	cmd2Exp := def[2]
+	cmd2Exp := defs["extract-last-name"]
 	if cmd2Exp.Name() != "extract-last-name" || cmd2Exp.Type() != project.CommandType {
 		t.Fatalf("Expected \"extract-last-name\", but got \"%v\"", cmd2Exp.Name())
 	}
@@ -51,7 +55,7 @@ func TestProjectDefinition(t *testing.T) {
 		t.Fatalf("Expected command 2 env PROP_NAME to be \"last_name\", but got \"%v\"", cmd2.Env()["PROP_NAME"])
 	}
 
-	mergeExp := def[3]
+	mergeExp := defs["merge"]
 	if mergeExp.Name() != "merge" || mergeExp.Type() != project.MergeType {
 		t.Fatalf("Expected \"merge\", but got \"%v\"", mergeExp.Name())
 	}

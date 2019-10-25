@@ -25,7 +25,7 @@ type Definition interface {
 }
 
 // LoadDefinition ...
-func LoadDefinition(projectDirectory string) ([]Definition, error) {
+func LoadDefinition(projectDirectory string) (map[string]Definition, error) {
 	definitionFilepath := filepath.Join(projectDirectory, "definition.yaml")
 	_, err := os.Stat(definitionFilepath)
 	if !os.IsNotExist(err) {
@@ -34,12 +34,12 @@ func LoadDefinition(projectDirectory string) ([]Definition, error) {
 	return nil, err
 }
 
-func loadDefinitionFromPath(definitionFilepath string) ([]Definition, error) {
+func loadDefinitionFromPath(definitionFilepath string) (map[string]Definition, error) {
 	data, err := ioutil.ReadFile(definitionFilepath)
 	if err != nil {
 		return nil, err
 	}
-	var parsed []map[string]interface{}
+	var parsed map[string]map[string]interface{}
 	err = yaml.Unmarshal(data, &parsed)
 	if err != nil {
 		return nil, err
@@ -47,16 +47,16 @@ func loadDefinitionFromPath(definitionFilepath string) ([]Definition, error) {
 	return interpreteDefinition(parsed)
 }
 
-func interpreteDefinition(dataMap []map[string]interface{}) ([]Definition, error) {
-	defs := make([]Definition, len(dataMap))
-	for i, d := range dataMap {
-		switch d["type"] {
+func interpreteDefinition(dataMap map[string]map[string]interface{}) (map[string]Definition, error) {
+	defs := make(map[string]Definition)
+	for name, data := range dataMap {
+		switch data["type"] {
 		case "command":
-			defs[i] = NewCommand(d)
+			defs[name] = NewCommand(name, data)
 		case "fork":
-			defs[i] = NewFork(d)
+			defs[name] = NewFork(name, data)
 		case "merge":
-			defs[i] = NewMerge(d)
+			defs[name] = NewMerge(name, data)
 		}
 	}
 	return defs, nil
