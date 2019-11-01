@@ -6,10 +6,12 @@ import (
 	"github.com/jaqmol/approx/project"
 )
 
+// TODO: Write Test
+
 // Formation ...
 type Formation struct {
 	Processors map[string]Processor
-	FlowTree   *FlowNode
+	FlowTree   *FlowTree
 }
 
 // NewFormation ...

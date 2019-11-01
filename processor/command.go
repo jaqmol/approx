@@ -48,7 +48,8 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 	c.cmd.Stdout = c.cmdOut.writer()
 	c.cmd.Stderr = c.cmdErr.writer()
 
-	/* Last working state:
+	/* TODO: Remove
+	Last working state:
 	c.cmd.Stdout = os.Stdout
 	c.cmd.Stderr = os.Stderr
 	*/

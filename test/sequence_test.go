@@ -125,7 +125,7 @@ func makeSimpleSequenceConfig() *simpleSequenceConfig {
 		Ident: "extract-first-name",
 		Cmd:   "node node-procs/test-extract-prop.js",
 		Env:   []string{"PROP_NAME=first_name"},
-		// NextProc: &mergeConf, // TODO: REMOVE
+		// Next:  &mergeConf, // TODO: REMOVE
 	}
 	lastNameExtractConf := configuration.Command{
 		Ident: "extract-last-name",
@@ -135,10 +135,11 @@ func makeSimpleSequenceConfig() *simpleSequenceConfig {
 	}
 	forkConf := configuration.Fork{
 		Ident: "fork",
-		NextProcs: []configuration.Processor{
-			&firstNameExtractConf,
-			&lastNameExtractConf,
-		},
+		Count: 2,
+		// NextProcs: []configuration.Processor{
+		// 	&firstNameExtractConf,
+		// 	&lastNameExtractConf,
+		// },
 	}
 	return &simpleSequenceConfig{
 		fork:             forkConf,

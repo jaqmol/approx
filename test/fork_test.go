@@ -20,8 +20,9 @@ func TestFork(t *testing.T) {
 	reader := bytes.NewReader(originalCombined)
 
 	conf := configuration.Fork{
-		Ident:     "test-fork",
-		NextProcs: makeTestProcs(nextProcsCount),
+		Ident: "test-fork",
+		Count: nextProcsCount,
+		// NextProcs: makeTestProcs(nextProcsCount), // TODO: Remove
 	}
 	fork := processor.NewFork(&conf, reader)
 

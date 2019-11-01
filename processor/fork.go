@@ -22,7 +22,7 @@ func NewFork(conf *configuration.Fork, input io.Reader) *Fork {
 	f := Fork{
 		conf: conf,
 		in:   input,
-		outs: make([]procPipe, len(conf.NextProcs)),
+		outs: make([]procPipe, conf.Count),
 		err:  newProcPipe(),
 	}
 

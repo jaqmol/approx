@@ -2,8 +2,9 @@ package configuration
 
 // Fork ...
 type Fork struct {
-	Ident     string
-	NextProcs []Processor
+	Ident string
+	Count int
+	// NextProcs []Processor
 }
 
 // Type ...
