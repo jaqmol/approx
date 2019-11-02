@@ -120,26 +120,21 @@ type simpleSequenceConfig struct {
 func makeSimpleSequenceConfig() *simpleSequenceConfig {
 	mergeConf := configuration.Merge{
 		Ident: "merge",
+		Count: 2,
 	}
 	firstNameExtractConf := configuration.Command{
 		Ident: "extract-first-name",
 		Cmd:   "node node-procs/test-extract-prop.js",
 		Env:   []string{"PROP_NAME=first_name"},
-		// Next:  &mergeConf, // TODO: REMOVE
 	}
 	lastNameExtractConf := configuration.Command{
 		Ident: "extract-last-name",
 		Cmd:   "node node-procs/test-extract-prop.js",
 		Env:   []string{"PROP_NAME=last_name"},
-		// NextProc: &mergeConf, // TODO: REMOVE
 	}
 	forkConf := configuration.Fork{
 		Ident: "fork",
 		Count: 2,
-		// NextProcs: []configuration.Processor{
-		// 	&firstNameExtractConf,
-		// 	&lastNameExtractConf,
-		// },
 	}
 	return &simpleSequenceConfig{
 		fork:             forkConf,

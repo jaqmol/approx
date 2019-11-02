@@ -4,7 +4,6 @@ package configuration
 type Fork struct {
 	Ident string
 	Count int
-	// NextProcs []Processor
 }
 
 // Type ...
@@ -16,15 +15,3 @@ func (f *Fork) Type() ProcessorType {
 func (f *Fork) ID() string {
 	return f.Ident
 }
-
-// TODO: REMOVE
-// // Next ...
-// func (f *Fork) Next() []Processor {
-// 	return f.NextProcs
-// }
-
-// TODO: REMOVE
-// // SetNext ...
-// func (f *Fork) SetNext(next ...Processor) {
-// 	f.NextProcs = next
-// }

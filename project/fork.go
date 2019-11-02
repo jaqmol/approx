@@ -7,7 +7,6 @@ type Fork struct {
 
 // NewFork ...
 func NewFork(ident string, originalData interface{}) *Fork {
-	// data := originalData.(map[string]interface{}) // TODO: REMOVE
 	f := Fork{
 		ident: ident,
 	}

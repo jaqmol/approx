@@ -7,7 +7,6 @@ type Merge struct {
 
 // NewMerge ...
 func NewMerge(ident string, originalData interface{}) *Merge {
-	// data := originalData.(map[string]interface{}) // TODO: REMOVE
 	f := Merge{
 		ident: ident,
 	}
