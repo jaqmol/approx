@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
@@ -19,42 +21,64 @@ func TestFlowNodes(t *testing.T) {
 
 	visited := make(map[string]bool)
 
+	checkLen := lengthChecker(map[string]int{
+		forkNode.Processor().ID():  0,
+		fneNode.Processor().ID():   1,
+		lneNode.Processor().ID():   1,
+		mergeNode.Processor().ID(): 2,
+	})
+
 	forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode) {
-		visited[curr.Processor().ID()] = true
-		if nodesEqual(curr, forkNode) {
-			if len(prev) != 0 {
-				t.Fatal("Expected fork node to have 0 predecessors")
-			}
-		} else if nodesEqual(curr, fneNode) {
-			if len(prev) != 1 {
-				t.Fatal("Expected fne node to have 1 predecessors")
-			}
-		} else if nodesEqual(curr, lneNode) {
-			if len(prev) != 1 {
-				t.Fatal("Expected lne node to have 1 predecessors")
-			}
-		} else if nodesEqual(curr, mergeNode) {
-			if len(prev) != 2 {
-				t.Fatal("Expected merge node to have 2 predecessors")
-			}
+		id := curr.Processor().ID()
+		visited[id] = true
+		if err := checkLen(id, len(prev)); err != nil {
+			t.Fatal(err)
 		}
 	})
 
 	if len(visited) != 4 {
 		t.Fatal("Expected to visit 4 nodes, but got:", len(visited))
 	}
-	if _, ok := visited[forkNode.Processor().ID()]; !ok {
-		t.Fatal("Expected to visit fork nodes, but didn't")
+	errs := checkContainsAll(
+		visited,
+		forkNode.Processor().ID(),
+		fneNode.Processor().ID(),
+		lneNode.Processor().ID(),
+		mergeNode.Processor().ID(),
+	)
+	if len(errs) > 0 {
+		err := fmt.Errorf("Errors visiting nodes: %v", strings.Join(errorsToStrings(errs), ", "))
+		t.Fatal(err)
 	}
-	if _, ok := visited[fneNode.Processor().ID()]; !ok {
-		t.Fatal("Expected to visit fne nodes, but didn't")
+}
+
+func lengthChecker(expected map[string]int) func(string, int) error {
+	return func(id string, givenLen int) error {
+		expectedLen := expected[id]
+		if expectedLen != givenLen {
+			return fmt.Errorf("Expected %v node to have %v predecessors, but got %v", id, expectedLen, givenLen)
+		}
+		return nil
 	}
-	if _, ok := visited[lneNode.Processor().ID()]; !ok {
-		t.Fatal("Expected to visit lne nodes, but didn't")
+}
+
+func checkContainsAll(checkIn map[string]bool, checkForAll ...string) []error {
+	acc := make([]error, 0)
+	for _, checkFor := range checkForAll {
+		if _, ok := checkIn[checkFor]; !ok {
+			err := fmt.Errorf("Expected to visit %v node, but didn't", checkFor)
+			acc = append(acc, err)
+		}
 	}
-	if _, ok := visited[mergeNode.Processor().ID()]; !ok {
-		t.Fatal("Expected to visit merge nodes, but didn't")
+	return acc
+}
+
+func errorsToStrings(errs []error) []string {
+	acc := make([]string, len(errs))
+	for i, e := range errs {
+		acc[i] = e.Error()
 	}
+	return acc
 }
 
 func createTestFlow() (

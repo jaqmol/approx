@@ -1,7 +1,9 @@
 package test
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jaqmol/approx/configuration"
@@ -30,5 +32,36 @@ func TestFlowTree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// TODO: CONTINUE HERE
+
+	visited := make(map[string]bool)
+
+	checkLen := lengthChecker(map[string]int{
+		config.fork.ID():             0,
+		config.firstNameExtract.ID(): 1,
+		config.lastNameExtract.ID():  1,
+		config.merge.ID():            2,
+	})
+
+	tree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode) {
+		id := curr.Processor().ID()
+		visited[id] = true
+		if err := checkLen(id, len(prev)); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	if len(visited) != 4 {
+		t.Fatal("Expected to visit 4 nodes, but got:", len(visited))
+	}
+	errs := checkContainsAll(
+		visited,
+		config.fork.ID(),
+		config.firstNameExtract.ID(),
+		config.lastNameExtract.ID(),
+		config.merge.ID(),
+	)
+	if len(errs) > 0 {
+		err := fmt.Errorf("Errors visiting nodes: %v", strings.Join(errorsToStrings(errs), ", "))
+		t.Fatal(err)
+	}
 }

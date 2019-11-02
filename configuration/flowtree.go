@@ -7,8 +7,6 @@ import (
 	"github.com/jaqmol/approx/project"
 )
 
-// TODO: Implement test
-
 // FlowTree ...
 type FlowTree struct {
 	Input  *FlowNode
@@ -17,15 +15,13 @@ type FlowTree struct {
 
 // NewFlowTree ...
 func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, error) {
-	nodeForName := make(map[string]FlowNode)
+	nodeForName := make(map[string]*FlowNode)
 	for _, line := range flows {
 		for j, toName := range line {
 			if j > 0 {
 				fromName := line[j-1]
-
 				fromNode := getCreateNode(fromName, procs[fromName], nodeForName)
 				toNode := getCreateNode(toName, procs[toName], nodeForName)
-
 				fromNode.AppendNext(toNode)
 				toNode.AppendPrevious(fromNode)
 			} else {
@@ -34,7 +30,6 @@ func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, e
 		}
 	}
 
-	// TODO: Check if necessary
 	for _, node := range nodeForName {
 		node.previous = makeUniqueSet(node.previous)
 		node.next = makeUniqueSet(node.next)
@@ -60,13 +55,13 @@ func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode)) {
 	})
 }
 
-func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]FlowNode) (
+func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]*FlowNode) (
 	noPredecessor *FlowNode,
 	noSuccessor *FlowNode,
 	err error,
 ) {
-	inputNodes := make([]FlowNode, 0)
-	outputNodes := make([]FlowNode, 0)
+	inputNodes := make([]*FlowNode, 0)
+	outputNodes := make([]*FlowNode, 0)
 	for _, node := range nodeForName {
 		if len(node.previous) == 0 {
 			inputNodes = append(inputNodes, node)
@@ -77,9 +72,9 @@ func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]FlowNode) (
 	}
 	// Happy path
 	if len(inputNodes) == 1 {
-		noPredecessor = &inputNodes[0]
+		noPredecessor = inputNodes[0]
 		if len(outputNodes) == 1 {
-			noSuccessor = &outputNodes[0]
+			noSuccessor = outputNodes[0]
 		}
 		return
 	}
@@ -98,13 +93,13 @@ func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]FlowNode) (
 	return nil, nil, err
 }
 
-func getCreateNode(name string, proc Processor, acc map[string]FlowNode) *FlowNode {
+func getCreateNode(name string, proc Processor, acc map[string]*FlowNode) *FlowNode {
 	node, ok := acc[name]
 	if !ok {
-		node = *NewFlowNode(proc)
+		node = NewFlowNode(proc)
 		acc[name] = node
 	}
-	return &node
+	return node
 }
 
 func makeUniqueSet(input []*FlowNode) []*FlowNode {
@@ -121,7 +116,7 @@ func makeUniqueSet(input []*FlowNode) []*FlowNode {
 	return output
 }
 
-func collectIDs(nodes []FlowNode) []string {
+func collectIDs(nodes []*FlowNode) []string {
 	ids := make([]string, len(nodes))
 	for i, n := range nodes {
 		ids[i] = n.processor.ID()
