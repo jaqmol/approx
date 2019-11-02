@@ -3,6 +3,7 @@ package configuration
 // Merge ...
 type Merge struct {
 	Ident string
+	Count int
 	// NextProc Processor // TODO: REMOVE
 }
 

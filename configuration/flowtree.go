@@ -43,14 +43,14 @@ func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, e
 }
 
 // Iterate ...
-func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode)) {
+func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode)) {
 	wasVisitedForID := make(map[string]bool)
-	ft.Input.Iterate(func(prev []*FlowNode, curr *FlowNode) {
+	ft.Input.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) {
 		id := curr.processor.ID()
 		_, ok := wasVisitedForID[id]
 		if !ok {
 			wasVisitedForID[id] = true
-			callback(prev, curr)
+			callback(prev, curr, next)
 		}
 	})
 }

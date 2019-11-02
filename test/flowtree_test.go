@@ -33,19 +33,19 @@ func TestFlowTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	visited := make(map[string]bool)
+	visited := make(map[string]int)
 
-	checkLen := lengthChecker(map[string]int{
-		config.fork.ID():             0,
-		config.firstNameExtract.ID(): 1,
-		config.lastNameExtract.ID():  1,
-		config.merge.ID():            2,
+	checkLen := lengthChecker(map[string][]int{
+		config.fork.ID():             []int{0, 2},
+		config.firstNameExtract.ID(): []int{1, 1},
+		config.lastNameExtract.ID():  []int{1, 1},
+		config.merge.ID():            []int{2, 0},
 	})
 
-	tree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode) {
+	tree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) {
 		id := curr.Processor().ID()
-		visited[id] = true
-		if err := checkLen(id, len(prev)); err != nil {
+		visited[id]++
+		if err := checkLen(id, len(prev), len(next)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -53,12 +53,14 @@ func TestFlowTree(t *testing.T) {
 	if len(visited) != 4 {
 		t.Fatal("Expected to visit 4 nodes, but got:", len(visited))
 	}
-	errs := checkContainsAll(
+	errs := checkContainsAllTimes(
 		visited,
-		config.fork.ID(),
-		config.firstNameExtract.ID(),
-		config.lastNameExtract.ID(),
-		config.merge.ID(),
+		map[string]int{
+			config.fork.ID():             1,
+			config.firstNameExtract.ID(): 1,
+			config.lastNameExtract.ID():  1,
+			config.merge.ID():            1,
+		},
 	)
 	if len(errs) > 0 {
 		err := fmt.Errorf("Errors visiting nodes: %v", strings.Join(errorsToStrings(errs), ", "))

@@ -36,11 +36,22 @@ func NewFormation(projForm *project.Formation) (*Formation, error) {
 			}
 		}
 	}
-	flow, err := NewFlowTree(projForm.Flows, acc)
+	tree, err := NewFlowTree(projForm.Flows, acc)
 	if err != nil {
 		return nil, err
 	}
-	return &Formation{acc, flow}, nil
+	tree.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) {
+		if curr.Processor().Type() == ForkType {
+			// TODO: test
+			fork := curr.Processor().(*Fork)
+			fork.Count = len(next)
+		} else if curr.Processor().Type() == MergeType {
+			// TODO: test
+			merge := curr.Processor().(*Merge)
+			merge.Count = len(prev)
+		}
+	})
+	return &Formation{acc, tree}, nil
 }
 
 func joinKeyValues(mapping map[string]string) []string {

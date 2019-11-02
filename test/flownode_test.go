@@ -19,19 +19,19 @@ func TestFlowNodes(t *testing.T) {
 	checkNodeNextCount(t, lneNode, 1, "lneNode")
 	checkNodePreviousCount(t, mergeNode, 2, "mergeNode")
 
-	visited := make(map[string]bool)
+	visited := make(map[string]int)
 
-	checkLen := lengthChecker(map[string]int{
-		forkNode.Processor().ID():  0,
-		fneNode.Processor().ID():   1,
-		lneNode.Processor().ID():   1,
-		mergeNode.Processor().ID(): 2,
+	checkLen := lengthChecker(map[string][]int{
+		forkNode.Processor().ID():  []int{0, 2},
+		fneNode.Processor().ID():   []int{1, 1},
+		lneNode.Processor().ID():   []int{1, 1},
+		mergeNode.Processor().ID(): []int{2, 0},
 	})
 
-	forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode) {
+	forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) {
 		id := curr.Processor().ID()
-		visited[id] = true
-		if err := checkLen(id, len(prev)); err != nil {
+		visited[id]++
+		if err := checkLen(id, len(prev), len(next)); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -39,12 +39,14 @@ func TestFlowNodes(t *testing.T) {
 	if len(visited) != 4 {
 		t.Fatal("Expected to visit 4 nodes, but got:", len(visited))
 	}
-	errs := checkContainsAll(
+	errs := checkContainsAllTimes(
 		visited,
-		forkNode.Processor().ID(),
-		fneNode.Processor().ID(),
-		lneNode.Processor().ID(),
-		mergeNode.Processor().ID(),
+		map[string]int{
+			forkNode.Processor().ID():  1,
+			fneNode.Processor().ID():   1,
+			lneNode.Processor().ID():   1,
+			mergeNode.Processor().ID(): 2,
+		},
 	)
 	if len(errs) > 0 {
 		err := fmt.Errorf("Errors visiting nodes: %v", strings.Join(errorsToStrings(errs), ", "))
@@ -52,26 +54,39 @@ func TestFlowNodes(t *testing.T) {
 	}
 }
 
-func lengthChecker(expected map[string]int) func(string, int) error {
-	return func(id string, givenLen int) error {
-		expectedLen := expected[id]
-		if expectedLen != givenLen {
-			return fmt.Errorf("Expected %v node to have %v predecessors, but got %v", id, expectedLen, givenLen)
+func lengthChecker(expected map[string][]int) func(string, int, int) error {
+	return func(id string, givenPrevLen, givenNextLen int) error {
+		expectedLens := expected[id]
+		expectedPrevLen := expectedLens[0]
+		expectedNextLen := expectedLens[1]
+		if expectedPrevLen != givenPrevLen {
+			return fmt.Errorf("Expected %v node to have %v predecessors, but got %v", id, expectedPrevLen, givenPrevLen)
+		}
+		if expectedNextLen != givenNextLen {
+			return fmt.Errorf("Expected %v node to have %v successors, but got %v", id, expectedNextLen, givenNextLen)
 		}
 		return nil
 	}
 }
 
-func checkContainsAll(checkIn map[string]bool, checkForAll ...string) []error {
+func checkContainsAllTimes(checkIn map[string]int, checkForTimes map[string]int) []error {
 	acc := make([]error, 0)
-	for _, checkFor := range checkForAll {
-		if _, ok := checkIn[checkFor]; !ok {
-			err := fmt.Errorf("Expected to visit %v node, but didn't", checkFor)
+	for checkFor, expectedTimes := range checkForTimes {
+		if givenTimes := checkIn[checkFor]; givenTimes != expectedTimes {
+			err := fmt.Errorf("Expected to visit %v node %v times, but got %v", checkFor, expectedTimes, givenTimes)
 			acc = append(acc, err)
 		}
 	}
 	return acc
 }
+
+// func checkContainsTimes(checkIn map[string]int, checkFor string, expectedTimes int) error {
+// 	givenTimes := checkIn[checkFor]
+// 	if givenTimes != expectedTimes {
+// 		return fmt.Errorf("Expected to visit %v node %v times, but got %v", checkFor, expectedTimes, givenTimes)
+// 	}
+// 	return nil
+// }
 
 func errorsToStrings(errs []error) []string {
 	acc := make([]string, len(errs))

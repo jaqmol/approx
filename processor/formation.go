@@ -29,7 +29,7 @@ func NewFormation() (*Formation, error) {
 	}
 	procForID := make(map[string]Processor)
 
-	confForm.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode) {
+	confForm.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) {
 		switch curr.Processor().Type() {
 		case configuration.MergeType:
 			ids := collectNodeIDs(prev)
