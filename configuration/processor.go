@@ -5,9 +5,11 @@ type ProcessorType int
 
 // ProcessorType ...
 const (
-	CommandType ProcessorType = iota
+	StdinType ProcessorType = iota
+	CommandType
 	ForkType
 	MergeType
+	StdoutType
 )
 
 // Processor ...

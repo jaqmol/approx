@@ -1,8 +1,8 @@
 package processor
 
 import (
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -14,7 +14,8 @@ import (
 
 // Formation ...
 type Formation struct {
-	Processors []Processor
+	Configuration *configuration.Formation
+	Processors    map[string]Processor
 }
 
 // NewFormation ...
@@ -29,23 +30,46 @@ func NewFormation() (*Formation, error) {
 	}
 	procForID := make(map[string]Processor)
 
-	confForm.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) {
-		switch curr.Processor().Type() {
-		case configuration.MergeType:
-			ids := collectNodeIDs(prev)
-			getCreateProcessor(curr.Processor(), procForID, ids...)
-		default:
-			if len(prev) != 1 {
-				log.Fatalf("Expected precisely 1 input for type of processor \"%v\"\n", curr.Processor().ID())
-			}
-			id := prev[0].Processor().ID()
-			getCreateProcessor(curr.Processor(), procForID, id)
-		}
-	})
+	err = createProcessors(confForm, procForID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = connectProcessors(confForm, procForID)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Formation{
-		Processors: toProcList(procForID),
+		Configuration: confForm,
+		Processors:    procForID,
 	}, nil
+}
+
+// Root ...
+func (f *Formation) Root() Processor {
+	id := f.Configuration.FlowTree.Root.Processor().ID()
+	return f.Processors[id]
+}
+
+// Input ...
+func (f *Formation) Input() Processor {
+	inputNode := f.Configuration.FlowTree.Input
+	if inputNode == nil {
+		return nil
+	}
+	id := inputNode.Processor().ID()
+	return f.Processors[id]
+}
+
+// Output ...
+func (f *Formation) Output() Processor {
+	outputNode := f.Configuration.FlowTree.Output
+	if outputNode == nil {
+		return nil
+	}
+	id := outputNode.Processor().ID()
+	return f.Processors[id]
 }
 
 // Start ...
@@ -65,34 +89,59 @@ func (f *Formation) WaitForCommands() {
 	}
 }
 
+func createProcessors(form *configuration.Formation, procForID map[string]Processor) error {
+	return form.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, _ []*configuration.FlowNode) error {
+		switch curr.Processor().Type() {
+		case configuration.StdinType:
+			getCreateProcessor(curr.Processor(), procForID)
+		case configuration.MergeType:
+			getCreateProcessor(curr.Processor(), procForID)
+		default:
+			if len(prev) != 1 {
+				return fmt.Errorf("Expected precisely 1 input for type of processor \"%v\"", curr.Processor().ID())
+			}
+			getCreateProcessor(curr.Processor(), procForID)
+		}
+		return nil
+	})
+}
+
 func getCreateProcessor(
 	currConfProc configuration.Processor,
 	procForID map[string]Processor,
-	prevIDs ...string,
-) Processor {
+) (Processor, error) {
 	id := currConfProc.ID()
 	pp, ok := procForID[id]
+	var err error
 	if !ok {
 		switch currConfProc.Type() {
+		case configuration.StdinType:
+			pp = &Stdin
 		case configuration.CommandType:
-			pp = NewCommand(
-				currConfProc.(*configuration.Command),
-				procForID[prevIDs[0]].Out(),
-			)
+			pp, err = NewCommand(currConfProc.(*configuration.Command))
 		case configuration.ForkType:
-			pp = NewFork(
-				currConfProc.(*configuration.Fork),
-				procForID[prevIDs[0]].Out(),
-			)
+			pp, err = NewFork(currConfProc.(*configuration.Fork))
 		case configuration.MergeType:
-			pp = NewMerge(
-				currConfProc.(*configuration.Merge),
-				collectOutputReaders(prevIDs, procForID),
-			)
+			pp, err = NewMerge(currConfProc.(*configuration.Merge))
+		case configuration.StdoutType:
+			pp = &Stdout
 		}
 		procForID[id] = pp
 	}
-	return pp
+	return pp, err
+}
+
+func connectProcessors(form *configuration.Formation, procForID map[string]Processor) error {
+	return form.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, _ []*configuration.FlowNode) error {
+		prevIDs := collectNodeIDs(prev)
+		readers := collectOutputReaders(prevIDs, procForID)
+		currID := curr.Processor().ID()
+		currProc, ok := procForID[currID]
+		if !ok {
+			return fmt.Errorf("Processor to connect to not found: %v", currID)
+		}
+		return currProc.Connect(readers...)
+	})
 }
 
 func collectNodeIDs(nodes []*configuration.FlowNode) []string {
@@ -120,6 +169,7 @@ func loadProjectFormation() (*project.Formation, error) {
 	} else {
 		projPath, err = os.Getwd()
 	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -142,12 +192,12 @@ func loadConfigFormation(projForm *project.Formation) (*configuration.Formation,
 	return confForm, nil
 }
 
-func toProcList(procForID map[string]Processor) []Processor {
-	acc := make([]Processor, len(procForID))
-	idx := 0
-	for _, p := range procForID {
-		acc[0] = p
-		idx++
-	}
-	return acc
-}
+// func toProcList(procForID map[string]Processor) []Processor {
+// 	acc := make([]Processor, len(procForID))
+// 	i := 0
+// 	for _, p := range procForID {
+// 		acc[i] = p
+// 		i++
+// 	}
+// 	return acc
+// }

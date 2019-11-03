@@ -18,13 +18,24 @@ func TestProjectFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkProjectFlows(t, flows)
+	checkProjectFlows(t, flows, false)
 }
 
-func checkProjectFlows(t *testing.T, flows []project.Flow) {
-	expected := [][]string{
-		[]string{"fork", "extract-first-name", "merge"},
-		[]string{"fork", "extract-last-name", "merge"},
+func checkProjectFlows(t *testing.T, flows []project.Flow, isComplex bool) {
+	var expected [][]string
+
+	if isComplex {
+		expected = [][]string{
+			[]string{"<stdin>", "fork"},
+			[]string{"fork", "extract-first-name", "merge"},
+			[]string{"fork", "extract-last-name", "merge"},
+			[]string{"merge", "<stdout>"},
+		}
+	} else {
+		expected = [][]string{
+			[]string{"fork", "extract-first-name", "merge"},
+			[]string{"fork", "extract-last-name", "merge"},
+		}
 	}
 
 	if len(flows) != len(expected) {

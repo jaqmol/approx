@@ -9,9 +9,14 @@ import (
 
 // FlowTree ...
 type FlowTree struct {
+	Root   *FlowNode
 	Input  *FlowNode
 	Output *FlowNode
 }
+
+// TODO:
+// Loopback-applications like a web-server don't connect to stdin and stdout.
+// In this case the definition of one command processor must specify as root.
 
 // NewFlowTree ...
 func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, error) {
@@ -36,22 +41,28 @@ func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, e
 	}
 
 	input, output, err := findNoPredecessorAndNoSuccessorNodes(nodeForName)
+	// TODO: ^ intput and output can be nil in case of a loopback app
 	if err != nil {
 		return nil, err
 	}
-	return &FlowTree{input, output}, nil
+	return &FlowTree{
+		Root:   input, // TODO: Loopback apps need diverging handling
+		Input:  input,
+		Output: output,
+	}, nil
 }
 
 // Iterate ...
-func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode)) {
+func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error) error {
 	wasVisitedForID := make(map[string]bool)
-	ft.Input.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) {
+	return ft.Root.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error {
 		id := curr.processor.ID()
 		_, ok := wasVisitedForID[id]
 		if !ok {
 			wasVisitedForID[id] = true
-			callback(prev, curr, next)
+			return callback(prev, curr, next)
 		}
+		return nil
 	})
 }
 
@@ -73,9 +84,11 @@ func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]*FlowNode) (
 	// Happy path
 	if len(inputNodes) == 1 {
 		noPredecessor = inputNodes[0]
-		if len(outputNodes) == 1 {
-			noSuccessor = outputNodes[0]
-		}
+	}
+	if len(outputNodes) == 1 {
+		noSuccessor = outputNodes[0]
+	}
+	if len(inputNodes) < 2 || len(outputNodes) < 2 {
 		return
 	}
 	// Fail path

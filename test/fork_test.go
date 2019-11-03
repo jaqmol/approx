@@ -22,9 +22,15 @@ func TestFork(t *testing.T) {
 	conf := configuration.Fork{
 		Ident: "test-fork",
 		Count: nextProcsCount,
-		// NextProcs: makeTestProcs(nextProcsCount), // TODO: Remove
 	}
-	fork := processor.NewFork(&conf, reader)
+	fork, err := processor.NewFork(&conf /*, reader TODO: REMOVE */)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = fork.Connect(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	serialize := make(chan []byte)
 	for _, r := range fork.Outs() {

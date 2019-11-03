@@ -18,6 +18,9 @@ definition:
     type: merge
 
 flow:
+  - - <stdin>
+    - fork
+
   - - fork
     - extract-first-name
     - merge
@@ -25,3 +28,6 @@ flow:
   - - fork
     - extract-last-name
     - merge
+
+  - - merge
+    - <stdout>

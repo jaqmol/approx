@@ -24,13 +24,29 @@ func TestSimpleCommandSequence(t *testing.T) {
 	reader := bytes.NewReader(originalCombined)
 	config := makeSimpleSequenceConfig()
 
-	fork := processor.NewFork(&config.fork, reader)
-	firstNameExtractCmd := processor.NewCommand(&config.firstNameExtract, fork.Outs()[0])
-	lastNameExtractCmd := processor.NewCommand(&config.lastNameExtract, fork.Outs()[1])
-	merge := processor.NewMerge(&config.merge, []io.Reader{
+	fork, err := processor.NewFork(&config.fork /*, reader TODO: REMOVE */)
+	catchToFatal(t, err)
+	err = fork.Connect(reader)
+	catchToFatal(t, err)
+
+	firstNameExtractCmd, err := processor.NewCommand(&config.firstNameExtract /*, fork.Outs()[0] TODO: REMOVE */)
+	catchToFatal(t, err)
+	err = firstNameExtractCmd.Connect(fork.Outs()[0])
+	catchToFatal(t, err)
+
+	lastNameExtractCmd, err := processor.NewCommand(&config.lastNameExtract /*, fork.Outs()[1] TODO: REMOVE */)
+	catchToFatal(t, err)
+	err = lastNameExtractCmd.Connect(fork.Outs()[1])
+	catchToFatal(t, err)
+
+	merge, err := processor.NewMerge(&config.merge)
+	/*, []io.Reader{
 		firstNameExtractCmd.Out(),
 		lastNameExtractCmd.Out(),
-	})
+	} TODO: REMOVE */
+	catchToFatal(t, err)
+	err = merge.Connect(firstNameExtractCmd.Out(), lastNameExtractCmd.Out())
+	catchToFatal(t, err)
 
 	serializeOutput := outputSerializerChannel(merge.Out())
 	serializeLogMsgs := outputsSerializerChannel([]io.Reader{
@@ -87,6 +103,12 @@ func TestSimpleCommandSequence(t *testing.T) {
 				t.Fatal(cmdErr.Error())
 			}
 		}
+	}
+}
+
+func catchToFatal(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

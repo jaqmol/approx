@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -21,16 +22,28 @@ type Merge struct {
 }
 
 // NewMerge ...
-func NewMerge(conf *configuration.Merge, inputs []io.Reader) *Merge {
+func NewMerge(conf *configuration.Merge /*, inputs []io.Reader TODO: REMOVE */) (*Merge, error) {
+	// if len(inputs) < 2 { TODO: REMOVE
+	// 	return nil, fmt.Errorf("Merge processor %v requires more than 1 input", conf.ID())
+	// }
 	m := Merge{
 		conf:               conf,
-		ins:                inputs,
+		ins:                nil,
 		out:                newProcPipe(),
 		err:                newProcPipe(),
 		serialize:          make(chan []byte),
 		changeScannerCount: make(chan int),
 	}
-	return &m
+	return &m, nil
+}
+
+// Connect ...
+func (m *Merge) Connect(inputs ...io.Reader) error {
+	if m.ins != nil {
+		return fmt.Errorf("Fork can only be connected once")
+	}
+	m.ins = inputs
+	return nil
 }
 
 // Start ...

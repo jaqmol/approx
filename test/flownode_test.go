@@ -28,13 +28,14 @@ func TestFlowNodes(t *testing.T) {
 		mergeNode.Processor().ID(): []int{2, 0},
 	})
 
-	forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) {
+	err := forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) error {
 		id := curr.Processor().ID()
 		visited[id]++
-		if err := checkLen(id, len(prev), len(next)); err != nil {
-			t.Fatal(err)
-		}
+		return checkLen(id, len(prev), len(next))
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if len(visited) != 4 {
 		t.Fatal("Expected to visit 4 nodes, but got:", len(visited))

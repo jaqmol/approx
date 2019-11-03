@@ -34,7 +34,14 @@ func performTestWithCmd(t *testing.T, commandString string) {
 		Cmd: commandString,
 	}
 
-	command := processor.NewCommand(&config, reader)
+	command, err := processor.NewCommand(&config /*, reader TODO: REMOVE */)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = command.Connect(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	serializeOutput := outputSerializerChannel(command.Out())
 	serializeLogMsgs := outputSerializerChannel(command.Err())

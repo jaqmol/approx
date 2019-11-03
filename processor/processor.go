@@ -19,4 +19,5 @@ type Processor interface {
 	Outs() []io.Reader
 	Out() io.Reader
 	Err() io.Reader
+	Connect(inputs ...io.Reader) error
 }

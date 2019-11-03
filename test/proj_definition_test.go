@@ -13,17 +13,30 @@ func TestProjectDefinition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defs, err := project.LoadDefinition(projDir)
+	defs, err := project.LoadDefinition(projDir, []project.Flow{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	checkProjectDefinitions(t, defs)
+	checkProjectDefinitions(t, defs, false)
 }
 
-func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
-	if len(defs) != 4 {
-		t.Fatalf("Expected 4 definitions, but got \"%v\"", len(defs))
+func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition, isComplex bool) {
+	if isComplex {
+		if len(defs) != 6 {
+			t.Fatalf("Expected 6 definitions, but got \"%v\"", len(defs))
+		}
+	} else {
+		if len(defs) != 4 {
+			t.Fatalf("Expected 4 definitions, but got \"%v\"", len(defs))
+		}
+	}
+
+	if isComplex {
+		stdinExp := defs["<stdin>"]
+		if stdinExp.Ident() != "<stdin>" || stdinExp.Type() != project.StdinType {
+			t.Fatalf("Expected \"<stdin>\", but got \"%v\"", stdinExp.Ident())
+		}
 	}
 
 	forkExp := defs["fork"]
@@ -58,5 +71,12 @@ func checkProjectDefinitions(t *testing.T, defs map[string]project.Definition) {
 	mergeExp := defs["merge"]
 	if mergeExp.Ident() != "merge" || mergeExp.Type() != project.MergeType {
 		t.Fatalf("Expected \"merge\", but got \"%v\"", mergeExp.Ident())
+	}
+
+	if isComplex {
+		stdoutExp := defs["<stdout>"]
+		if stdoutExp.Ident() != "<stdout>" || stdoutExp.Type() != project.StdoutType {
+			t.Fatalf("Expected \"<stdout>\", but got \"%v\"", stdoutExp.Ident())
+		}
 	}
 }

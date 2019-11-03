@@ -42,9 +42,16 @@ func (fn *FlowNode) Processor() Processor {
 }
 
 // Iterate ...
-func (fn *FlowNode) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode)) {
-	callback(fn.previous, fn, fn.next)
-	for _, next := range fn.next {
-		next.Iterate(callback)
+func (fn *FlowNode) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error) (err error) {
+	err = callback(fn.previous, fn, fn.next)
+	if err != nil {
+		return
 	}
+	for _, next := range fn.next {
+		err = next.Iterate(callback)
+		if err != nil {
+			break
+		}
+	}
+	return
 }

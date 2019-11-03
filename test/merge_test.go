@@ -28,7 +28,14 @@ func TestMerge(t *testing.T) {
 	conf := configuration.Merge{
 		Ident: "test-merge",
 	}
-	merge := processor.NewMerge(&conf, readers)
+	merge, err := processor.NewMerge(&conf /*, readers TODO: REMOVE */)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = merge.Connect(readers...)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	totalCount := 0
 	countForID := make(map[string]int, 0)

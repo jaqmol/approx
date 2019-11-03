@@ -27,13 +27,16 @@ type Command struct {
 }
 
 // NewCommand ...
-func NewCommand(conf *configuration.Command, input io.Reader) *Command {
+func NewCommand(conf *configuration.Command /*, input io.Reader TODO: REMOVE */) (*Command, error) {
+	// if input == nil { TODO: REMOVE
+	// 	return nil, fmt.Errorf("Command processor %v requires 1 input", conf.ID())
+	// }
 	cmd, args := cmdAndArgs(conf.Cmd)
 
 	c := Command{
 		conf:      conf,
 		waitGroup: sync.WaitGroup{},
-		scanner:   event.NewScanner(input),
+		scanner:   nil, // event.NewScanner(input), TODO: REMOVE
 		cmd:       exec.Command(cmd, args...),
 		cmdIn:     newProcPipe(),
 		cmdOut:    newProcPipe(),
@@ -48,7 +51,16 @@ func NewCommand(conf *configuration.Command, input io.Reader) *Command {
 	c.cmd.Stdout = c.cmdOut.writer()
 	c.cmd.Stderr = c.cmdErr.writer()
 
-	return &c
+	return &c, nil
+}
+
+// Connect ...
+func (c *Command) Connect(inputs ...io.Reader) error {
+	if c.scanner != nil {
+		return fmt.Errorf("Command can only be connected once")
+	}
+	c.scanner = event.NewScanner(inputs[0])
+	return nil
 }
 
 // Start ...

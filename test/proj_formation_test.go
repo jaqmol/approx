@@ -9,7 +9,6 @@ import (
 
 // TestComplexProjectFormation ...
 func TestComplexProjectFormation(t *testing.T) {
-	// t.SkipNow()
 	projDir, err := filepath.Abs("complx-test-proj") // /formation.yaml
 	if err != nil {
 		t.Fatal(err)
@@ -19,13 +18,12 @@ func TestComplexProjectFormation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkProjectDefinitions(t, form.Definitions)
-	checkProjectFlows(t, form.Flows)
+	checkProjectDefinitions(t, form.Definitions, true)
+	checkProjectFlows(t, form.Flows, true)
 }
 
 // TestSimpleProjectFormation ...
 func TestSimpleProjectFormation(t *testing.T) {
-	// t.SkipNow()
 	projDir, err := filepath.Abs("simpl-test-proj") // /definition.yaml /flow.yaml
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +33,6 @@ func TestSimpleProjectFormation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkProjectDefinitions(t, form.Definitions)
-	checkProjectFlows(t, form.Flows)
+	checkProjectDefinitions(t, form.Definitions, false)
+	checkProjectFlows(t, form.Flows, false)
 }

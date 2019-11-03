@@ -25,14 +25,17 @@ func LoadFormation(projectDirectory string) (*Formation, error) {
 		return loadFormationFromPath(formationFilepath)
 	}
 	errsAcc := make([]error, 0)
-	def, err := LoadDefinition(projectDirectory)
-	if err != nil {
-		errsAcc = append(errsAcc, err)
-	}
+
 	flow, err := LoadFlow(projectDirectory)
 	if err != nil {
 		errsAcc = append(errsAcc, err)
 	}
+
+	def, err := LoadDefinition(projectDirectory, flow)
+	if err != nil {
+		errsAcc = append(errsAcc, err)
+	}
+
 	if len(errsAcc) > 0 {
 		return nil, noFormationError(errsAcc)
 	}
@@ -53,16 +56,19 @@ func loadFormationFromPath(formationFilepath string) (*Formation, error) {
 	if err != nil {
 		return nil, err
 	}
-	defData := toMapStrMapStrIf(forMap["definition"])
-	defs, err := interpreteDefinition(defData)
-	if err != nil {
-		return nil, err
-	}
+
 	flowData := toListListStr(forMap["flow"])
 	flows, err := interpreteFlow(flowData)
 	if err != nil {
 		return nil, err
 	}
+
+	defData := toMapStrMapStrIf(forMap["definition"])
+	defs, err := interpreteDefinition(defData, flows)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Formation{defs, flows}, nil
 }
 

@@ -6,8 +6,6 @@ import (
 	"github.com/jaqmol/approx/project"
 )
 
-// TODO: Write Test
-
 // Formation ...
 type Formation struct {
 	Processors map[string]Processor
@@ -16,42 +14,45 @@ type Formation struct {
 
 // NewFormation ...
 func NewFormation(projForm *project.Formation) (*Formation, error) {
-	acc := make(map[string]Processor, len(projForm.Definitions))
+	procs := make(map[string]Processor, len(projForm.Definitions))
 	for name, def := range projForm.Definitions {
 		switch def.Type() {
+		case project.StdinType:
+			procs[name] = &Stdin
 		case project.CommandType:
 			prCmd := def.(*project.Command)
-			acc[name] = &Command{
+			procs[name] = &Command{
 				Ident: prCmd.Ident(),
 				Cmd:   prCmd.Cmd(),
 				Env:   joinKeyValues(prCmd.Env()),
 			}
 		case project.ForkType:
-			acc[name] = &Fork{
+			procs[name] = &Fork{
 				Ident: def.Ident(),
 			}
 		case project.MergeType:
-			acc[name] = &Merge{
+			procs[name] = &Merge{
 				Ident: def.Ident(),
 			}
+		case project.StdoutType:
+			procs[name] = &Stdout
 		}
 	}
-	tree, err := NewFlowTree(projForm.Flows, acc)
+	tree, err := NewFlowTree(projForm.Flows, procs)
 	if err != nil {
 		return nil, err
 	}
-	tree.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) {
+	tree.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error {
 		if curr.Processor().Type() == ForkType {
-			// TODO: test
 			fork := curr.Processor().(*Fork)
 			fork.Count = len(next)
 		} else if curr.Processor().Type() == MergeType {
-			// TODO: test
 			merge := curr.Processor().(*Merge)
 			merge.Count = len(prev)
 		}
+		return nil
 	})
-	return &Formation{acc, tree}, nil
+	return &Formation{procs, tree}, nil
 }
 
 func joinKeyValues(mapping map[string]string) []string {

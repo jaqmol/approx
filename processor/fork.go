@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -18,10 +19,17 @@ type Fork struct {
 }
 
 // NewFork ...
-func NewFork(conf *configuration.Fork, input io.Reader) *Fork {
+func NewFork(conf *configuration.Fork /*, input io.Reader TODO: REMOVE */) (*Fork, error) {
+	// if input == nil { TODO: REMOVE
+	// 	return nil, fmt.Errorf("Fork processor %v requires 1 input", conf.ID())
+	// }
+	if conf.Count < 2 {
+		return nil, fmt.Errorf("Fork processor %v requires more than 1 output", conf.ID())
+	}
+
 	f := Fork{
 		conf: conf,
-		in:   input,
+		in:   nil,
 		outs: make([]procPipe, conf.Count),
 		err:  newProcPipe(),
 	}
@@ -31,7 +39,16 @@ func NewFork(conf *configuration.Fork, input io.Reader) *Fork {
 		f.outs[i] = *pp
 	}
 
-	return &f
+	return &f, nil
+}
+
+// Connect ...
+func (f *Fork) Connect(inputs ...io.Reader) error {
+	if f.in != nil {
+		return fmt.Errorf("Fork can only be connected once")
+	}
+	f.in = inputs[0]
+	return nil
 }
 
 // Start ...
