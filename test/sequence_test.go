@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -13,8 +14,10 @@ import (
 	"github.com/jaqmol/approx/processor"
 )
 
+// TODO: Add complex with Stdin and Stdout
+
 func TestSimpleCommandSequence(t *testing.T) {
-	originals := loadTestData()[:10]
+	originals := loadTestData() // [:10]
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
@@ -24,26 +27,22 @@ func TestSimpleCommandSequence(t *testing.T) {
 	reader := bytes.NewReader(originalCombined)
 	config := makeSimpleSequenceConfig()
 
-	fork, err := processor.NewFork(&config.fork /*, reader TODO: REMOVE */)
+	fork, err := processor.NewFork(&config.fork)
 	catchToFatal(t, err)
 	err = fork.Connect(reader)
 	catchToFatal(t, err)
 
-	firstNameExtractCmd, err := processor.NewCommand(&config.firstNameExtract /*, fork.Outs()[0] TODO: REMOVE */)
+	firstNameExtractCmd, err := processor.NewCommand(&config.firstNameExtract)
 	catchToFatal(t, err)
 	err = firstNameExtractCmd.Connect(fork.Outs()[0])
 	catchToFatal(t, err)
 
-	lastNameExtractCmd, err := processor.NewCommand(&config.lastNameExtract /*, fork.Outs()[1] TODO: REMOVE */)
+	lastNameExtractCmd, err := processor.NewCommand(&config.lastNameExtract)
 	catchToFatal(t, err)
 	err = lastNameExtractCmd.Connect(fork.Outs()[1])
 	catchToFatal(t, err)
 
 	merge, err := processor.NewMerge(&config.merge)
-	/*, []io.Reader{
-		firstNameExtractCmd.Out(),
-		lastNameExtractCmd.Out(),
-	} TODO: REMOVE */
 	catchToFatal(t, err)
 	err = merge.Connect(firstNameExtractCmd.Out(), lastNameExtractCmd.Out())
 	catchToFatal(t, err)
@@ -67,43 +66,28 @@ func TestSimpleCommandSequence(t *testing.T) {
 	for loop {
 		select {
 		case ob := <-serializeOutput:
-			var extraction map[string]string
-			err := json.Unmarshal(ob, &extraction)
-			if err != nil {
-				t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(ob), err.Error())
-			}
-
-			original := originalForID[extraction["id"]]
-			checkExtractedProp(t, original, extraction)
-
+			err = checkOutoutEvent(ob, originalForID)
+			catchToFatal(t, err)
 			businessIndex++
 			loop = businessIndex != goal || loggingCounter != goal
 		case eb := <-serializeLogMsgs:
-			msg, err := event.UnmarshalLogMsg(eb)
-			if err != nil {
-				t.Fatal(err)
-			}
-			logMsgPntr, cmdErr, err := msg.PayloadOrError()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if logMsgPntr != nil {
-				logMsg := *logMsgPntr
-				if strings.HasPrefix(logMsg, "Did extract \"first_name\"") {
-					loggingCounter++
-				} else if strings.HasPrefix(logMsg, "Did extract \"last_name\"") {
-					loggingCounter++
-				} else {
-					log.Println("Unexpected log message:", logMsg)
-				}
-				loop = businessIndex != goal || loggingCounter != goal
-			}
-			if cmdErr != nil {
-				t.Fatal(cmdErr.Error())
-			}
+			counter, err := checkErrorEvent(eb)
+			catchToFatal(t, err)
+			loggingCounter += counter
+			loop = businessIndex != goal || loggingCounter != goal
 		}
 	}
+}
+
+func checkOutoutEvent(ob []byte, originalForID map[string]Person) error {
+	var extraction map[string]string
+	err := json.Unmarshal(ob, &extraction)
+	if err != nil {
+		return fmt.Errorf("Couldn't unmarshall person from: \"%v\" -> %v", string(ob), err.Error())
+	}
+
+	original := originalForID[extraction["id"]]
+	return checkExtractedPerson(original, extraction)
 }
 
 func catchToFatal(t *testing.T, err error) {
@@ -112,24 +96,51 @@ func catchToFatal(t *testing.T, err error) {
 	}
 }
 
-func checkExtractedProp(t *testing.T, original Person, extraction map[string]string) {
+func checkExtractedPerson(original Person, extraction map[string]string) (err error) {
 	extractedValue, ok := extraction["first_name"]
 	if ok {
 		upperValue := strings.ToUpper(original.FirstName)
 		if upperValue != extractedValue {
-			t.Fatalf("Extracted value %v not as expected: %v", extractedValue, upperValue)
+			err = fmt.Errorf("Extracted value %v not as expected: %v", extractedValue, upperValue)
 		}
 	} else {
 		extractedValue, ok = extraction["last_name"]
 		if ok {
 			upperValue := strings.ToUpper(original.LastName)
 			if upperValue != extractedValue {
-				t.Fatalf("Extracted value %v not as expected: %v", extractedValue, upperValue)
+				err = fmt.Errorf("Extracted value %v not as expected: %v", extractedValue, upperValue)
 			}
 		} else {
-			t.Fatalf("Extraction not as expected: %v", extraction)
+			err = fmt.Errorf("Extraction not as expected: %v", extraction)
 		}
 	}
+	return
+}
+
+func checkErrorEvent(eb []byte) (counter int, err error) {
+	msg, err := event.UnmarshalLogMsg(eb)
+	if err != nil {
+		return
+	}
+	logMsgPntr, cmdErr, err := msg.PayloadOrError()
+	if err != nil {
+		return
+	}
+
+	if logMsgPntr != nil {
+		logMsg := *logMsgPntr
+		if strings.HasPrefix(logMsg, "Did extract \"first_name\"") {
+			counter++
+		} else if strings.HasPrefix(logMsg, "Did extract \"last_name\"") {
+			counter++
+		} else {
+			log.Println("Unexpected log message:", logMsg)
+		}
+	}
+	if cmdErr != nil {
+		err = cmdErr
+	}
+	return
 }
 
 type simpleSequenceConfig struct {

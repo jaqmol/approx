@@ -28,7 +28,7 @@ func TestMerge(t *testing.T) {
 	conf := configuration.Merge{
 		Ident: "test-merge",
 	}
-	merge, err := processor.NewMerge(&conf /*, readers TODO: REMOVE */)
+	merge, err := processor.NewMerge(&conf)
 	if err != nil {
 		t.Fatal(err)
 	}

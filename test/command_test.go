@@ -34,7 +34,7 @@ func performTestWithCmd(t *testing.T, commandString string) {
 		Cmd: commandString,
 	}
 
-	command, err := processor.NewCommand(&config /*, reader TODO: REMOVE */)
+	command, err := processor.NewCommand(&config)
 	if err != nil {
 		t.Fatal(err)
 	}

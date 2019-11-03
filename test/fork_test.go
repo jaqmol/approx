@@ -23,7 +23,7 @@ func TestFork(t *testing.T) {
 		Ident: "test-fork",
 		Count: nextProcsCount,
 	}
-	fork, err := processor.NewFork(&conf /*, reader TODO: REMOVE */)
+	fork, err := processor.NewFork(&conf)
 	if err != nil {
 		t.Fatal(err)
 	}
