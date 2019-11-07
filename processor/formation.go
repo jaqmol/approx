@@ -116,7 +116,7 @@ func getCreateProcessor(
 	if !ok {
 		switch currConfProc.Type() {
 		case configuration.StdinType:
-			pp = &Stdin
+			pp = Stdin
 		case configuration.CommandType:
 			pp, err = NewCommand(currConfProc.(*configuration.Command))
 		case configuration.ForkType:
@@ -124,7 +124,7 @@ func getCreateProcessor(
 		case configuration.MergeType:
 			pp, err = NewMerge(currConfProc.(*configuration.Merge))
 		case configuration.StdoutType:
-			pp = &Stdout
+			pp = Stdout
 		}
 		procForID[id] = pp
 	}

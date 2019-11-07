@@ -18,6 +18,7 @@ func newTestWriter() *testWriter {
 }
 
 func (w *testWriter) Write(raw []byte) (int, error) {
+	// log.Println("Test writer was written to", len(raw), "bytes") TODO: REMOVE
 	if w.running {
 		b := bytes.Trim(raw, "\n\r")
 		if len(b) == 0 {

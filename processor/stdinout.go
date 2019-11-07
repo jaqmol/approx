@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/event"
@@ -20,34 +21,21 @@ var stdoutWriter io.Writer
 var stderrWriter io.Writer
 
 // Stdin ...
-var Stdin stdinProc
+var Stdin *stdinProc
 
 // Stdout ...
-var Stdout stdoutProc
+var Stdout *stdoutProc
 
 func init() {
 	stdinReader = os.Stdin
 	stdoutWriter = os.Stdout
 	stderrWriter = os.Stderr
 
-	Stdin = stdinProc{newProcPipe()}
-	Stdout = stdoutProc{
+	Stdin = &stdinProc{newProcPipe()}
+	Stdout = &stdoutProc{
 		err: newProcPipe(),
 		in:  nil,
 	}
-}
-
-// ChangeInterface for testing
-func ChangeInterface(altStdin io.Reader, altStdout, altStderr io.Writer) error {
-	for _, pair := range os.Environ() {
-		if pair == "APPROX_ENV=development" {
-			stdinReader = altStdin
-			stdoutWriter = altStdout
-			stderrWriter = altStderr
-			return nil
-		}
-	}
-	return fmt.Errorf("Interface can only be changed in development environment")
 }
 
 // stdinProc ...
@@ -136,5 +124,53 @@ func (s *stdoutProc) Connect(inputs ...io.Reader) error {
 		return fmt.Errorf("Stdout can only be connected once")
 	}
 	s.in = inputs[0]
+	// log.Println("processor.Stdout did connect to an input") TODO: REMOVE
 	return nil
+}
+
+// DebugChangeStdin for testing
+func DebugChangeStdin(altStdin io.Reader) error {
+	if !inApproxDevEnv() {
+		return fmt.Errorf("Stdin can only be changed in development environment")
+	}
+	stdinReader = altStdin
+	return nil
+}
+
+// DebugResetStdin ...
+func DebugResetStdin() {
+	stdinReader = os.Stdin
+}
+
+// DebugChangeStdout for testing
+func DebugChangeStdout(altStdout io.Writer) error {
+	if !inApproxDevEnv() {
+		return fmt.Errorf("Stdout can only be changed in development environment")
+	}
+	stdoutWriter = altStdout
+	return nil
+}
+
+// DebugResetStdout ...
+func DebugResetStdout() {
+	stdoutWriter = os.Stdout
+}
+
+// DebugChangeStderr for testing
+func DebugChangeStderr(altStderr io.Writer) error {
+	if !inApproxDevEnv() {
+		return fmt.Errorf("Stderr can only be changed in development environment")
+	}
+	stderrWriter = altStderr
+	return nil
+}
+
+// DebugResetStderr ...
+func DebugResetStderr() {
+	stderrWriter = os.Stderr
+}
+
+func inApproxDevEnv() bool {
+	approxEnv := strings.ToLower(os.Getenv("APPROX_ENV"))
+	return approxEnv == "development" || approxEnv == "dev"
 }
