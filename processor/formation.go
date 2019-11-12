@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jaqmol/approx/logger"
+
 	"github.com/jaqmol/approx/configuration"
 	"github.com/jaqmol/approx/project"
 )
@@ -16,35 +18,62 @@ import (
 type Formation struct {
 	Configuration *configuration.Formation
 	Processors    map[string]Processor
+	Logger        *logger.Logger
 }
 
 // NewFormation ...
-func NewFormation() (*Formation, error) {
+func NewFormation(stdin *StdInOut, stdout *StdInOut, errWriter io.Writer) (*Formation, error) {
 	projForm, err := loadProjectFormation()
 	if err != nil {
 		return nil, err
 	}
-	confForm, err := loadConfigFormation(projForm)
-	if err != nil {
-		return nil, err
-	}
-	procForID := make(map[string]Processor)
-
-	err = createProcessors(confForm, procForID)
+	confForm, err := configuration.NewFormation(projForm)
 	if err != nil {
 		return nil, err
 	}
 
-	err = connectProcessors(confForm, procForID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Formation{
+	f := Formation{
 		Configuration: confForm,
-		Processors:    procForID,
-	}, nil
+		Processors:    make(map[string]Processor),
+		Logger:        logger.NewLogger(errWriter),
+	}
+
+	f.Processors[stdin.Conf().ID()] = stdin
+	f.Processors[stdout.Conf().ID()] = stdout
+
+	err = f.createProcessors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = f.connectProcessors()
+	if err != nil {
+		return nil, err
+	}
+
+	f.connectLogger()
+	return &f, nil
 }
+
+// // Stdin ...
+// func (f *Formation) Stdin() *StdInOut {
+// 	proc := f.Processors[configuration.Stdin.ID()]
+// 	si, ok := proc.(*StdInOut)
+// 	if ok {
+// 		return si
+// 	}
+// 	return nil
+// }
+
+// // Stdout ...
+// func (f *Formation) Stdout() *StdInOut {
+// 	proc := f.Processors[configuration.Stdout.ID()]
+// 	so, ok := proc.(*StdInOut)
+// 	if ok {
+// 		return so
+// 	}
+// 	return nil
+// }
 
 // Root ...
 func (f *Formation) Root() Processor {
@@ -77,6 +106,9 @@ func (f *Formation) Start() {
 	for _, p := range f.Processors {
 		p.Start()
 	}
+	go f.Logger.Start()
+	// TODO: Last step is connect a Collector
+	//       and pull data through the flow.
 }
 
 // WaitForCommands ...
@@ -89,34 +121,35 @@ func (f *Formation) WaitForCommands() {
 	}
 }
 
-func createProcessors(form *configuration.Formation, procForID map[string]Processor) error {
-	return form.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, _ []*configuration.FlowNode) error {
+func (f *Formation) createProcessors() error {
+	return f.Configuration.FlowTree.Iterate(func(
+		prev []*configuration.FlowNode,
+		curr *configuration.FlowNode,
+		_ []*configuration.FlowNode,
+	) error {
 		switch curr.Processor().Type() {
 		case configuration.StdinType:
-			getCreateProcessor(curr.Processor(), procForID)
+			f.getCreateProcessor(curr.Processor())
 		case configuration.MergeType:
-			getCreateProcessor(curr.Processor(), procForID)
+			f.getCreateProcessor(curr.Processor())
 		default:
 			if len(prev) != 1 {
 				return fmt.Errorf("Expected precisely 1 input for type of processor \"%v\"", curr.Processor().ID())
 			}
-			getCreateProcessor(curr.Processor(), procForID)
+			f.getCreateProcessor(curr.Processor())
 		}
 		return nil
 	})
 }
 
-func getCreateProcessor(
-	currConfProc configuration.Processor,
-	procForID map[string]Processor,
-) (Processor, error) {
+func (f *Formation) getCreateProcessor(currConfProc configuration.Processor) (Processor, error) {
 	id := currConfProc.ID()
-	pp, ok := procForID[id]
+	pp, ok := f.Processors[id]
 	var err error
 	if !ok {
 		switch currConfProc.Type() {
 		case configuration.StdinType:
-			pp = Stdin
+			pp = NewStdin()
 		case configuration.CommandType:
 			pp, err = NewCommand(currConfProc.(*configuration.Command))
 		case configuration.ForkType:
@@ -124,39 +157,63 @@ func getCreateProcessor(
 		case configuration.MergeType:
 			pp, err = NewMerge(currConfProc.(*configuration.Merge))
 		case configuration.StdoutType:
-			pp = Stdout
+			pp = NewStdout()
 		}
-		procForID[id] = pp
+		f.Processors[id] = pp
 	}
 	return pp, err
 }
 
-func connectProcessors(form *configuration.Formation, procForID map[string]Processor) error {
-	return form.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, _ []*configuration.FlowNode) error {
-		prevIDs := collectNodeIDs(prev)
-		readers := collectOutputReaders(prevIDs, procForID)
+func (f *Formation) connectProcessors() error {
+	return f.Configuration.FlowTree.Iterate(func(
+		prev []*configuration.FlowNode,
+		curr *configuration.FlowNode,
+		_ []*configuration.FlowNode,
+	) error {
+		prevIDs := getNodeIDs(prev)
+		readers, err := f.getOutputReaders(prevIDs)
+		if err != nil {
+			return err
+		}
 		currID := curr.Processor().ID()
-		currProc, ok := procForID[currID]
+		currProc, ok := f.Processors[currID]
 		if !ok {
 			return fmt.Errorf("Processor to connect to not found: %v", currID)
 		}
-		return currProc.Connect(readers...)
+
+		if len(readers) > 0 {
+			return currProc.Connect(readers...)
+		}
+		return nil
 	})
 }
 
-func collectNodeIDs(nodes []*configuration.FlowNode) []string {
+func (f *Formation) connectLogger() {
+	for _, proc := range f.Processors {
+		f.Logger.Add(proc.Err())
+	}
+}
+
+func (f *Formation) getOutputReaders(procIDs []string) ([]io.Reader, error) {
+	acc := make([]io.Reader, len(procIDs))
+	for i, id := range procIDs {
+		procProc, ok := f.Processors[id]
+		if !ok {
+			return nil, fmt.Errorf("Could not find processor for ID %v", id)
+		}
+		output := procProc.Out()
+		if output == nil {
+			return nil, fmt.Errorf("Processor %v returned nil output", id)
+		}
+		acc[i] = output
+	}
+	return acc, nil
+}
+
+func getNodeIDs(nodes []*configuration.FlowNode) []string {
 	acc := make([]string, len(nodes))
 	for i, n := range nodes {
 		acc[i] = n.Processor().ID()
-	}
-	return acc
-}
-
-func collectOutputReaders(procIDs []string, procForID map[string]Processor) []io.Reader {
-	acc := make([]io.Reader, len(procIDs))
-	for i, id := range procIDs {
-		procProc := procForID[id]
-		acc[i] = procProc.Out()
 	}
 	return acc
 }
@@ -184,13 +241,13 @@ func loadProjectFormation() (*project.Formation, error) {
 	return projForm, nil
 }
 
-func loadConfigFormation(projForm *project.Formation) (*configuration.Formation, error) {
-	confForm, err := configuration.NewFormation(projForm)
-	if err != nil {
-		return nil, err
-	}
-	return confForm, nil
-}
+// func loadConfigFormation(projForm *project.Formation) (*configuration.Formation, error) {
+// 	confForm, err := configuration.NewFormation(projForm)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return confForm, nil
+// }
 
 // func toProcList(procForID map[string]Processor) []Processor {
 // 	acc := make([]Processor, len(procForID))

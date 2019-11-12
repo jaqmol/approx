@@ -19,10 +19,7 @@ type Fork struct {
 }
 
 // NewFork ...
-func NewFork(conf *configuration.Fork /*, input io.Reader TODO: REMOVE */) (*Fork, error) {
-	// if input == nil { TODO: REMOVE
-	// 	return nil, fmt.Errorf("Fork processor %v requires 1 input", conf.ID())
-	// }
+func NewFork(conf *configuration.Fork) (*Fork, error) {
 	if conf.Count < 2 {
 		return nil, fmt.Errorf("Fork processor %v requires more than 1 output", conf.ID())
 	}
@@ -44,8 +41,9 @@ func NewFork(conf *configuration.Fork /*, input io.Reader TODO: REMOVE */) (*For
 
 // Connect ...
 func (f *Fork) Connect(inputs ...io.Reader) error {
-	if f.in != nil {
-		return fmt.Errorf("Fork can only be connected once")
+	err := errorIfInvalidConnect(f.conf.Ident, inputs, f.in != nil)
+	if err != nil {
+		return err
 	}
 	f.in = inputs[0]
 	return nil
@@ -53,6 +51,9 @@ func (f *Fork) Connect(inputs ...io.Reader) error {
 
 // Start ...
 func (f *Fork) Start() {
+	if f.in == nil {
+		panic(fmt.Sprintf("Fork %v cannot be started without being connected", f.conf.Ident))
+	}
 	go f.readAndDistribute(f.in)
 }
 

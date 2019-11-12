@@ -13,7 +13,7 @@ import (
 
 // TeTestConfigurationFormation ...
 func TestConfigurationFormation(t *testing.T) {
-	projDir, err := filepath.Abs("complx-test-proj") // /formation.yaml
+	projDir, err := filepath.Abs("beta-test-proj") // /formation.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

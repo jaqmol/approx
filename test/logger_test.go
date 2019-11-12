@@ -10,6 +10,7 @@ import (
 
 // TestLoggerWithSingleReader ...
 func TestLoggerWithSingleReader(t *testing.T) {
+	// t.SkipNow()
 	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
@@ -36,6 +37,7 @@ func TestLoggerWithSingleReader(t *testing.T) {
 }
 
 func TestLoggerWithMultipleReaders(t *testing.T) {
+	t.SkipNow()
 	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)

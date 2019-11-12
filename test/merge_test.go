@@ -12,6 +12,7 @@ import (
 
 // TestMerge ...
 func TestMerge(t *testing.T) {
+	// t.SkipNow()
 	prevProcsCount := 5
 	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)

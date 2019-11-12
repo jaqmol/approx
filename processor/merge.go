@@ -22,10 +22,7 @@ type Merge struct {
 }
 
 // NewMerge ...
-func NewMerge(conf *configuration.Merge /*, inputs []io.Reader TODO: REMOVE */) (*Merge, error) {
-	// if len(inputs) < 2 { TODO: REMOVE
-	// 	return nil, fmt.Errorf("Merge processor %v requires more than 1 input", conf.ID())
-	// }
+func NewMerge(conf *configuration.Merge) (*Merge, error) {
 	m := Merge{
 		conf:               conf,
 		ins:                nil,
@@ -39,8 +36,9 @@ func NewMerge(conf *configuration.Merge /*, inputs []io.Reader TODO: REMOVE */) 
 
 // Connect ...
 func (m *Merge) Connect(inputs ...io.Reader) error {
-	if m.ins != nil {
-		return fmt.Errorf("Fork can only be connected once")
+	err := errorIfInvalidConnect(m.conf.Ident, inputs, m.ins != nil)
+	if err != nil {
+		return err
 	}
 	m.ins = inputs
 	return nil
@@ -48,6 +46,9 @@ func (m *Merge) Connect(inputs ...io.Reader) error {
 
 // Start ...
 func (m *Merge) Start() {
+	if m.ins == nil || len(m.ins) == 0 {
+		panic(fmt.Sprintf("Merg %v cannot be started without being connected", m.conf.Ident))
+	}
 	for _, r := range m.ins {
 		go m.readAndSynchronize(r)
 	}

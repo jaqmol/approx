@@ -9,7 +9,8 @@ import (
 
 // TestProjectFlow ...
 func TestProjectFlow(t *testing.T) {
-	projDir, err := filepath.Abs("simpl-test-proj") // /flow.yaml
+	// t.SkipNow()
+	projDir, err := filepath.Abs("alpha-test-proj") // /flow.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

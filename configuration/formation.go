@@ -18,7 +18,7 @@ func NewFormation(projForm *project.Formation) (*Formation, error) {
 	for name, def := range projForm.Definitions {
 		switch def.Type() {
 		case project.StdinType:
-			procs[name] = &Stdin
+			procs[name] = Stdin
 		case project.CommandType:
 			prCmd := def.(*project.Command)
 			procs[name] = &Command{
@@ -35,7 +35,7 @@ func NewFormation(projForm *project.Formation) (*Formation, error) {
 				Ident: def.Ident(),
 			}
 		case project.StdoutType:
-			procs[name] = &Stdout
+			procs[name] = Stdout
 		}
 	}
 	tree, err := NewFlowTree(projForm.Flows, procs)

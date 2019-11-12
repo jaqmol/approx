@@ -81,14 +81,6 @@ func checkContainsAllTimes(checkIn map[string]int, checkForTimes map[string]int)
 	return acc
 }
 
-// func checkContainsTimes(checkIn map[string]int, checkFor string, expectedTimes int) error {
-// 	givenTimes := checkIn[checkFor]
-// 	if givenTimes != expectedTimes {
-// 		return fmt.Errorf("Expected to visit %v node %v times, but got %v", checkFor, expectedTimes, givenTimes)
-// 	}
-// 	return nil
-// }
-
 func errorsToStrings(errs []error) []string {
 	acc := make([]string, len(errs))
 	for i, e := range errs {

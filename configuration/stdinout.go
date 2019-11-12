@@ -7,14 +7,18 @@ type Stdinout struct {
 }
 
 // Stdin ...
-var Stdin Stdinout
+var Stdin *Stdinout
 
 // Stdout ...
-var Stdout Stdinout
+var Stdout *Stdinout
+
+// // Stderr ...
+// var Stderr *Stdinout
 
 func init() {
-	Stdin = Stdinout{StdinType, "<stdin>"}
-	Stdout = Stdinout{StdoutType, "<stdout>"}
+	Stdin = &Stdinout{StdinType, "<stdin>"}
+	Stdout = &Stdinout{StdoutType, "<stdout>"}
+	// Stderr = &Stdinout{StdoutType, "<stderr>"}
 }
 
 // Type ...

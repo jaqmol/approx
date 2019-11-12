@@ -10,6 +10,7 @@ import (
 
 // TestScanner ...
 func TestScanner(t *testing.T) {
+	// t.SkipNow()
 	originals := loadTestData() // [:10]
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)

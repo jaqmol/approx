@@ -6,6 +6,7 @@ import (
 
 // TestTestData ...
 func TestTestData(t *testing.T) {
+	// t.SkipNow()
 	original := loadTestData()
 	originalForID := makePersonForIDMap(original)
 	originalBytes := marshallPeople(original)

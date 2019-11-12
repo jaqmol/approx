@@ -43,9 +43,18 @@ func performTestWithCmd(t *testing.T, commandString string) {
 		t.Fatal(err)
 	}
 
-	serializeOutput := outputSerializerChannel(command.Out())
-	serializeLogMsgs := outputSerializerChannel(command.Err())
+	outputCollector, err := processor.NewCollector(command.Out())
+	if err != nil {
+		t.Fatal(err)
+	}
+	logMsgsCollector, err := processor.NewCollector(command.Err())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	command.Start()
+	outputCollector.Start()
+	logMsgsCollector.Start()
 
 	goal := len(originals)
 	businessIndex := 0
@@ -54,7 +63,7 @@ func performTestWithCmd(t *testing.T, commandString string) {
 	loop := true
 	for loop {
 		select {
-		case ob := <-serializeOutput:
+		case ob := <-outputCollector.Events():
 			parsed, err := unmarshallPerson(ob)
 			if err != nil {
 				t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(ob), err.Error())
@@ -65,7 +74,7 @@ func performTestWithCmd(t *testing.T, commandString string) {
 
 			businessIndex++
 			loop = businessIndex != goal || loggingIndex != goal
-		case eb := <-serializeLogMsgs:
+		case eb := <-logMsgsCollector.Events():
 			msg, err := event.UnmarshalLogMsg(eb)
 			logMsg, cmdErr, err := msg.PayloadOrError()
 			if err != nil {

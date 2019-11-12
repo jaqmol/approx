@@ -10,8 +10,9 @@ import (
 
 // TestFork ...
 func TestFork(t *testing.T) {
+	// t.SkipNow()
 	nextProcsCount := 5
-	originals := loadTestData() // [:5]
+	originals := loadTestData()
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
 
@@ -32,22 +33,27 @@ func TestFork(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serialize := make(chan []byte)
-	for _, r := range fork.Outs() {
-		go readFromReader(serialize, r)
+	collector, err := processor.NewCollector(fork.Outs()...)
+	if err != nil {
+		t.Fatal(err)
 	}
+	collector.Start()
+	// serialize := make(chan []byte)
+	// for _, r := range fork.Outs() {
+	// 	go readFromReader(serialize, r)
+	// }
 	fork.Start()
 
 	totalCount := 0
 	countForID := make(map[string]int, 0)
 	goal := nextProcsCount * len(originals)
 
-	for b := range serialize {
+	for b := range collector.Events() {
 		parsed := checkTestSet(t, originalForID, b)
 		totalCount++
 		countForID[parsed.ID]++
 		if totalCount == goal {
-			close(serialize)
+			break
 		}
 	}
 

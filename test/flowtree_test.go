@@ -12,7 +12,7 @@ import (
 
 // TestFlowTree ...
 func TestFlowTree(t *testing.T) {
-	projDir, err := filepath.Abs("simpl-test-proj") // /flow.yaml
+	projDir, err := filepath.Abs("alpha-test-proj") // /flow.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

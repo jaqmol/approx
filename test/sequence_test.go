@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 	"testing"
@@ -14,9 +13,10 @@ import (
 	"github.com/jaqmol/approx/processor"
 )
 
-// TODO: Add complex with Stdin and Stdout
+// TODO: Add complex with Stdin and Stdout!!!
 
 func TestSimpleCommandSequence(t *testing.T) {
+	// t.SkipNow()
 	originals := loadTestData() // [:10]
 	originalForID := makePersonForIDMap(originals)
 	originalBytes := marshallPeople(originals)
@@ -47,11 +47,24 @@ func TestSimpleCommandSequence(t *testing.T) {
 	err = merge.Connect(firstNameExtractCmd.Out(), lastNameExtractCmd.Out())
 	catchToFatal(t, err)
 
-	serializeOutput := outputSerializerChannel(merge.Out())
-	serializeLogMsgs := outputsSerializerChannel([]io.Reader{
+	outputCollector, err := processor.NewCollector(merge.Out())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// serializeOutput := outputSerializerChannel(merge.Out())
+	logMsgsCollector, err := processor.NewCollector(
 		firstNameExtractCmd.Err(),
 		lastNameExtractCmd.Err(),
-	})
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputCollector.Start()
+	logMsgsCollector.Start()
+	// serializeLogMsgs := outputsSerializerChannel([]io.Reader{
+	// 	firstNameExtractCmd.Err(),
+	// 	lastNameExtractCmd.Err(),
+	// })
 
 	fork.Start()
 	firstNameExtractCmd.Start()
@@ -65,12 +78,12 @@ func TestSimpleCommandSequence(t *testing.T) {
 	loop := true
 	for loop {
 		select {
-		case ob := <-serializeOutput:
-			err = checkOutoutEvent(ob, originalForID)
+		case ob := <-outputCollector.Events():
+			err = checkOutEvent(ob, originalForID)
 			catchToFatal(t, err)
 			businessIndex++
 			loop = businessIndex != goal || loggingCounter != goal
-		case eb := <-serializeLogMsgs:
+		case eb := <-logMsgsCollector.Events():
 			counter, err := checkErrorEvent(eb)
 			catchToFatal(t, err)
 			loggingCounter += counter
@@ -79,7 +92,92 @@ func TestSimpleCommandSequence(t *testing.T) {
 	}
 }
 
-func checkOutoutEvent(ob []byte, originalForID map[string]Person) error {
+func TestComplexCommandSequence(t *testing.T) {
+	// t.SkipNow()
+	originals := loadTestData()[:10]
+	originalForID := makePersonForIDMap(originals)
+	originalBytes := marshallPeople(originals)
+
+	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
+	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+
+	reader := bytes.NewReader(originalCombined)
+	config := makeSimpleSequenceConfig()
+
+	stdin := processor.NewStdin()
+	err := stdin.Connect(reader)
+	catchToFatal(t, err)
+
+	fork, err := processor.NewFork(&config.fork)
+	catchToFatal(t, err)
+	err = fork.Connect(stdin.Out())
+	catchToFatal(t, err)
+
+	firstNameExtractCmd, err := processor.NewCommand(&config.firstNameExtract)
+	catchToFatal(t, err)
+	err = firstNameExtractCmd.Connect(fork.Outs()[0])
+	catchToFatal(t, err)
+
+	lastNameExtractCmd, err := processor.NewCommand(&config.lastNameExtract)
+	catchToFatal(t, err)
+	err = lastNameExtractCmd.Connect(fork.Outs()[1])
+	catchToFatal(t, err)
+
+	merge, err := processor.NewMerge(&config.merge)
+	catchToFatal(t, err)
+	err = merge.Connect(firstNameExtractCmd.Out(), lastNameExtractCmd.Out())
+	catchToFatal(t, err)
+
+	stdout := processor.NewStdout()
+	err = stdout.Connect(merge.Out())
+	catchToFatal(t, err)
+
+	outputCollector, err := processor.NewCollector(stdout.Out())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// serializeOutput := outputSerializerChannel(stdout.Out())
+	logMsgsCollector, err := processor.NewCollector(
+		firstNameExtractCmd.Err(),
+		lastNameExtractCmd.Err(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputCollector.Start()
+	logMsgsCollector.Start()
+	// serializeLogMsgs := outputsSerializerChannel([]io.Reader{
+	// 	firstNameExtractCmd.Err(),
+	// 	lastNameExtractCmd.Err(),
+	// })
+
+	fork.Start()
+	firstNameExtractCmd.Start()
+	lastNameExtractCmd.Start()
+	merge.Start()
+
+	goal := len(originals) * 2
+	businessIndex := 0
+	loggingCounter := 0
+
+	loop := true
+	for loop {
+		select {
+		case ob := <-outputCollector.Events():
+			err = checkOutEvent(ob, originalForID)
+			catchToFatal(t, err)
+			businessIndex++
+			loop = businessIndex != goal || loggingCounter != goal
+		case eb := <-logMsgsCollector.Events():
+			counter, err := checkErrorEvent(eb)
+			catchToFatal(t, err)
+			loggingCounter += counter
+			loop = businessIndex != goal || loggingCounter != goal
+		}
+	}
+}
+
+func checkOutEvent(ob []byte, originalForID map[string]Person) error {
 	var extraction map[string]string
 	err := json.Unmarshal(ob, &extraction)
 	if err != nil {

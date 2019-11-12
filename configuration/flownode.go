@@ -50,7 +50,7 @@ func (fn *FlowNode) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next
 	for _, next := range fn.next {
 		err = next.Iterate(callback)
 		if err != nil {
-			break
+			return
 		}
 	}
 	return
