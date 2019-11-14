@@ -11,9 +11,9 @@ import (
 // TestLoggerWithSingleReader ...
 func TestLoggerWithSingleReader(t *testing.T) {
 	// t.SkipNow()
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -26,7 +26,7 @@ func TestLoggerWithSingleReader(t *testing.T) {
 
 	count := 0
 	for b := range writer.lines {
-		checkTestSet(t, originalForID, b)
+		CheckTestSet(t, originalForID, b)
 		count++
 		writer.stop(count == len(originalBytes))
 	}
@@ -38,9 +38,9 @@ func TestLoggerWithSingleReader(t *testing.T) {
 
 func TestLoggerWithMultipleReaders(t *testing.T) {
 	t.SkipNow()
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -58,7 +58,7 @@ func TestLoggerWithMultipleReaders(t *testing.T) {
 	count := 0
 
 	for b := range writer.lines {
-		checkTestSet(t, originalForID, b)
+		CheckTestSet(t, originalForID, b)
 		count++
 		writer.stop(count == goal)
 	}

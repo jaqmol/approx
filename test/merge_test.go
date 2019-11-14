@@ -14,9 +14,9 @@ import (
 func TestMerge(t *testing.T) {
 	// t.SkipNow()
 	prevProcsCount := 5
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -49,7 +49,7 @@ func TestMerge(t *testing.T) {
 	for scanner.Scan() {
 		raw := scanner.Bytes()
 		data := bytes.Trim(raw, "\x00")
-		parsed := checkTestSet(t, originalForID, data)
+		parsed := CheckTestSet(t, originalForID, data)
 		totalCount++
 		countForID[parsed.ID]++
 	}

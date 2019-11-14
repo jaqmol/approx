@@ -7,11 +7,11 @@ import (
 // TestTestData ...
 func TestTestData(t *testing.T) {
 	// t.SkipNow()
-	original := loadTestData()
-	originalForID := makePersonForIDMap(original)
-	originalBytes := marshallPeople(original)
-	parsed := unmarshallPeople(originalBytes)
-	parsedForID := makePersonForIDMap(parsed)
+	original := LoadTestData()
+	originalForID := MakePersonForIDMap(original)
+	originalBytes := MarshallPeople(original)
+	parsed := unMarshallPeople(originalBytes)
+	parsedForID := MakePersonForIDMap(parsed)
 	for id, person := range originalForID {
 		readPerson, ok := parsedForID[id]
 		if !ok {

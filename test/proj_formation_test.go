@@ -9,7 +9,7 @@ import (
 
 // TestComplexProjectFormation ...
 func TestComplexProjectFormation(t *testing.T) {
-	t.SkipNow()
+	t.SkipNow()                                    // TODO CONTINUE
 	projDir, err := filepath.Abs("beta-test-proj") // /formation.yaml
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestComplexProjectFormation(t *testing.T) {
 
 // TestSimpleProjectFormation ...
 func TestSimpleProjectFormation(t *testing.T) {
-	t.SkipNow()
+	t.SkipNow()                                     // TODO CONTINUE
 	projDir, err := filepath.Abs("alpha-test-proj") // /definition.yaml /flow.yaml
 	if err != nil {
 		t.Fatal(err)

@@ -12,9 +12,9 @@ import (
 func TestFork(t *testing.T) {
 	// t.SkipNow()
 	nextProcsCount := 5
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -49,7 +49,7 @@ func TestFork(t *testing.T) {
 	goal := nextProcsCount * len(originals)
 
 	for b := range collector.Events() {
-		parsed := checkTestSet(t, originalForID, b)
+		parsed := CheckTestSet(t, originalForID, b)
 		totalCount++
 		countForID[parsed.ID]++
 		if totalCount == goal {

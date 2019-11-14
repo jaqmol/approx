@@ -36,3 +36,18 @@ func splitFn(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	advance = len(token) + msgEndLength
 	return
 }
+
+// ScannedBytesCopy ...
+func ScannedBytesCopy(raw []byte) []byte {
+	source := bytes.Trim(raw, "\x00")
+	destination := make([]byte, len(source))
+	copy(destination, source)
+	return destination
+}
+
+// TerminatedBytesCopy ...
+func TerminatedBytesCopy(source []byte) []byte {
+	destination := make([]byte, len(source)+msgEndLength)
+	copy(destination, source)
+	return append(destination, configuration.EvntEndBytes...)
+}

@@ -2,7 +2,8 @@ package test
 
 import "testing"
 
-func checkTestSet(t *testing.T, originalForID map[string]Person, b []byte) *Person {
+// CheckTestSet ...
+func CheckTestSet(t *testing.T, originalForID map[string]Person, b []byte) *Person {
 	parsed, err := unmarshallPerson(b)
 	if err != nil {
 		t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(b), err.Error())

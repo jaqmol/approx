@@ -23,8 +23,8 @@ func TestCommandWithJSONProcessing(t *testing.T) {
 }
 
 func performTestWithCmd(t *testing.T, commandString string) {
-	originals := loadTestData()
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)

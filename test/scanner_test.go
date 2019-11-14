@@ -11,9 +11,9 @@ import (
 // TestScanner ...
 func TestScanner(t *testing.T) {
 	// t.SkipNow()
-	originals := loadTestData() // [:10]
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData() // [:10]
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -24,7 +24,7 @@ func TestScanner(t *testing.T) {
 
 	for scanner.Scan() {
 		b := scanner.Bytes()
-		checkTestSet(t, originalForID, b)
+		CheckTestSet(t, originalForID, b)
 		count++
 	}
 

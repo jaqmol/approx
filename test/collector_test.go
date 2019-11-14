@@ -10,9 +10,9 @@ import (
 
 // TestSingleCollector ...
 func TestSingleCollector(t *testing.T) {
-	originals := loadTestData() // [:10]
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData() // [:10]
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -29,7 +29,7 @@ func TestSingleCollector(t *testing.T) {
 	counter := 0
 
 	for b := range collector.Events() {
-		checkTestSet(t, originalForID, b)
+		CheckTestSet(t, originalForID, b)
 		counter++
 		if counter == goal {
 			break
@@ -39,9 +39,9 @@ func TestSingleCollector(t *testing.T) {
 
 // TestMultipleCollectors ...
 func TestMultipleCollectors(t *testing.T) {
-	originals := loadTestData()[:10]
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()[:10]
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -59,7 +59,7 @@ func TestMultipleCollectors(t *testing.T) {
 	counter := 0
 
 	for b := range collector.Events() {
-		checkTestSet(t, originalForID, b)
+		CheckTestSet(t, originalForID, b)
 		counter++
 		if counter == goal {
 			break

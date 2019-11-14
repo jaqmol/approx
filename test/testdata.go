@@ -22,7 +22,8 @@ func (a *Person) Equals(b *Person) bool {
 		a.Email == b.Email
 }
 
-func marshallPeople(testData []Person) [][]byte {
+// MarshallPeople ...
+func MarshallPeople(testData []Person) [][]byte {
 	acc := make([][]byte, 0)
 	for _, p := range testData {
 		b, err := json.Marshal(&p)
@@ -32,7 +33,7 @@ func marshallPeople(testData []Person) [][]byte {
 	return acc
 }
 
-func unmarshallPeople(data [][]byte) []Person {
+func unMarshallPeople(data [][]byte) []Person {
 	acc := make([]Person, 0)
 	for i, b := range data {
 		p, err := unmarshallPerson(b)
@@ -62,7 +63,8 @@ func unmarshallError(data []byte) (*Person, error) {
 	return &p, nil
 }
 
-func makePersonForIDMap(people []Person) map[string]Person {
+// MakePersonForIDMap ...
+func MakePersonForIDMap(people []Person) map[string]Person {
 	acc := make(map[string]Person)
 	for _, p := range people {
 		acc[p.ID] = p
@@ -70,8 +72,9 @@ func makePersonForIDMap(people []Person) map[string]Person {
 	return acc
 }
 
-func loadTestData() []Person {
-	dat, err := ioutil.ReadFile("./test-data.json")
+// LoadTestData ...
+func LoadTestData() []Person {
+	dat, err := ioutil.ReadFile("../test/test-data.json")
 	var result []Person
 	err = json.Unmarshal(dat, &result)
 	check(err)

@@ -11,9 +11,9 @@ import (
 // TestProcStdin ...
 func TestProcStdin(t *testing.T) {
 	t.SkipNow()
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -39,7 +39,7 @@ func TestProcStdin(t *testing.T) {
 	goal := len(originals)
 
 	for b := range collector.Events() {
-		parsed := checkTestSet(t, originalForID, b)
+		parsed := CheckTestSet(t, originalForID, b)
 		totalCount++
 		countForID[parsed.ID]++
 		if totalCount == goal {
@@ -61,9 +61,9 @@ func TestProcStdin(t *testing.T) {
 // TestProcStdout ...
 func TestProcStdout(t *testing.T) {
 	t.SkipNow()
-	originals := loadTestData()
-	originalForID := makePersonForIDMap(originals)
-	originalBytes := marshallPeople(originals)
+	originals := LoadTestData()
+	originalForID := MakePersonForIDMap(originals)
+	originalBytes := MarshallPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -84,7 +84,7 @@ func TestProcStdout(t *testing.T) {
 
 	for raw := range writer.lines {
 		b := processor.ClearEventEnd(raw)
-		parsed := checkTestSet(t, originalForID, b)
+		parsed := CheckTestSet(t, originalForID, b)
 		totalCount++
 		countForID[parsed.ID]++
 		writer.stop(totalCount == goal)
