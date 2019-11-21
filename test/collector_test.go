@@ -12,7 +12,7 @@ import (
 func TestSingleCollector(t *testing.T) {
 	originals := LoadTestData() // [:10]
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -41,7 +41,7 @@ func TestSingleCollector(t *testing.T) {
 func TestMultipleCollectors(t *testing.T) {
 	originals := LoadTestData()[:10]
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)

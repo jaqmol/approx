@@ -10,7 +10,7 @@ import (
 func TestSimpleProcessorFormation(t *testing.T) {
 	// originals := LoadTestData()[:10]
 	// originalForID := MakePersonForIDMap(originals)
-	// originalBytes := MarshallPeople(originals)
+	// originalBytes := MarshalPeople(originals)
 	// originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	// originalCombined = append(originalCombined, configuration.EvntEndBytes...)
 
@@ -64,7 +64,7 @@ func TestSimpleProcessorFormation(t *testing.T) {
 // 	t.SkipNow()
 // 	originals := LoadTestData()[:10]
 // 	originalForID := MakePersonForIDMap(originals)
-// 	originalBytes := MarshallPeople(originals)
+// 	originalBytes := MarshalPeople(originals)
 // 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 // 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
 

@@ -13,7 +13,7 @@ func TestProcStdin(t *testing.T) {
 	t.SkipNow()
 	originals := LoadTestData()
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -63,7 +63,7 @@ func TestProcStdout(t *testing.T) {
 	t.SkipNow()
 	originals := LoadTestData()
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)

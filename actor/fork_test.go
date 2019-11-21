@@ -11,7 +11,7 @@ import (
 func TestSimpleFork(t *testing.T) {
 	originals := test.LoadTestData()
 	originalForID := test.MakePersonForIDMap(originals)
-	originalBytes := test.MarshallPeople(originals)
+	originalBytes := test.MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -59,7 +59,7 @@ func TestSimpleFork(t *testing.T) {
 func TestMultipleFork(t *testing.T) {
 	originals := test.LoadTestData()
 	originalForID := test.MakePersonForIDMap(originals)
-	originalBytes := test.MarshallPeople(originals)
+	originalBytes := test.MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)

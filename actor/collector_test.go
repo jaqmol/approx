@@ -8,14 +8,14 @@ import (
 	"github.com/jaqmol/approx/test"
 )
 
-func TestSincleCollector(t *testing.T) {
+func TestSingleCollector(t *testing.T) {
 	// Single collector is being tested in producer_test.go
 }
 
 func TestMultipleCollectors(t *testing.T) {
 	originals := test.LoadTestData()
 	originalForID := test.MakePersonForIDMap(originals)
-	originalBytes := test.MarshallPeople(originals)
+	originalBytes := test.MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)

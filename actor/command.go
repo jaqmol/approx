@@ -12,27 +12,43 @@ import (
 // Command ...
 type Command struct {
 	Actor
-	ident        string
-	cmd          *exec.Cmd
-	logging      io.Writer
-	inputWriter  io.WriteCloser
-	outputReader io.ReadCloser
+	ident  string
+	cmd    *exec.Cmd
+	input  io.WriteCloser
+	output io.ReadCloser
 }
 
 // NewCommand ...
 func NewCommand(inboxSize int, ident string, cmd string, args ...string) *Command {
 	c := &Command{
-		ident:   ident,
-		cmd:     exec.Command(cmd, args...),
-		logging: os.Stderr,
+		ident: ident,
+		cmd:   exec.Command(cmd, args...),
 	}
+	c.cmd.Stderr = os.Stderr
+
+	input, err := c.cmd.StdinPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	output, err := c.cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	c.input = input
+	c.output = output
+
 	c.init(inboxSize)
 	return c
 }
 
 // Logging ...
 func (c *Command) Logging(writer io.Writer) {
-	c.logging = writer
+	c.cmd.Stderr = writer
+}
+
+// Directory ...
+func (c *Command) Directory(dir string) {
+	c.cmd.Dir = dir
 }
 
 // Start ...
@@ -44,52 +60,41 @@ func (c *Command) Start() {
 			len(c.next),
 		)
 	}
-	c.cmd.Stderr = c.logging
-	c.initInputOutput()
-	go c.startReceiving()
-	go c.startSending()
+
+	go c.startDispatchingInboxToCmd()
+	go c.startReceivingCmdOutput()
 	go c.startCommand()
 }
 
-func (c *Command) initInputOutput() {
-	inputWriter, err := c.cmd.StdinPipe()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	c.inputWriter = inputWriter
-	outputReader, err := c.cmd.StdoutPipe()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	c.outputReader = outputReader
-}
-
-func (c *Command) startReceiving() {
+func (c *Command) startDispatchingInboxToCmd() {
 	for message := range c.inbox {
 		switch message.Type {
 		case DataMessage:
 			termMsg := event.TerminatedBytesCopy(message.Data)
-			n, err := c.inputWriter.Write(termMsg)
+			n, err := c.input.Write(termMsg)
 			if err != nil {
 				log.Fatalln(err)
 			}
-			if n != len(message.Data) {
+			if n < len(message.Data) {
 				log.Fatalf(
-					"Command \"%v\" couldn't write complete event",
+					"Command \"%v\" couldn't write all data, only %v/%v\n",
 					c.ident,
+					n,
+					len(message.Data),
 				)
 			}
 		case CloseInbox:
-			c.next[0].Receive(message)
 			close(c.inbox)
-			c.inputWriter.Close()
-			c.outputReader.Close()
+			err := c.input.Close() // This triggers graceful termination
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
 	}
 }
 
-func (c *Command) startSending() {
-	scanner := event.NewScanner(c.outputReader)
+func (c *Command) startReceivingCmdOutput() {
+	scanner := event.NewScanner(c.output)
 	for scanner.Scan() {
 		raw := scanner.Bytes()
 		data := event.ScannedBytesCopy(raw)
@@ -99,8 +104,13 @@ func (c *Command) startSending() {
 }
 
 func (c *Command) startCommand() {
-	err := c.cmd.Run()
+	err := c.cmd.Start()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Error starting command \"%v\": %v\n", c.ident, err.Error())
 	}
+	err = c.cmd.Wait()
+	if err != nil {
+		log.Fatalf("Error completing command \"%v\": %v\n", c.ident, err.Error())
+	}
+	c.next[0].Receive(NewCloseMessage())
 }

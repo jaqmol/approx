@@ -24,7 +24,7 @@ func TestCommandWithJSONProcessing(t *testing.T) {
 
 func performTestWithCmd(t *testing.T, commandString string) {
 	originals := LoadTestData()
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -64,13 +64,13 @@ func performTestWithCmd(t *testing.T, commandString string) {
 	for loop {
 		select {
 		case ob := <-outputCollector.Events():
-			parsed, err := unmarshallPerson(ob)
+			parsed, err := UnmarshalPerson(ob)
 			if err != nil {
 				t.Fatalf("Couldn't unmarshall person from: \"%v\" -> %v\n", string(ob), err.Error())
 			}
 
 			original := originals[businessIndex]
-			checkFirstAndLastNames(t, &original, parsed)
+			CheckUpperFirstAndLastNames(t, &original, parsed)
 
 			businessIndex++
 			loop = businessIndex != goal || loggingIndex != goal
@@ -90,17 +90,5 @@ func performTestWithCmd(t *testing.T, commandString string) {
 				t.Fatal(cmdErr.Error())
 			}
 		}
-	}
-}
-
-func checkFirstAndLastNames(t *testing.T, original, parsed *Person) {
-	upperOrigFirstName := strings.ToUpper(original.FirstName)
-	if upperOrigFirstName != parsed.FirstName {
-		t.Fatalf("Expected uppercase first name %v, but got: %v", upperOrigFirstName, parsed.FirstName)
-	}
-
-	upperOrigLastName := strings.ToUpper(original.LastName)
-	if upperOrigLastName != parsed.LastName {
-		t.Fatalf("Expected uppercase last name %v, but got: %v", upperOrigLastName, parsed.LastName)
 	}
 }

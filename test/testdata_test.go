@@ -9,8 +9,8 @@ func TestTestData(t *testing.T) {
 	// t.SkipNow()
 	original := LoadTestData()
 	originalForID := MakePersonForIDMap(original)
-	originalBytes := MarshallPeople(original)
-	parsed := unMarshallPeople(originalBytes)
+	originalBytes := MarshalPeople(original)
+	parsed := UnmarshalPeople(originalBytes)
 	parsedForID := MakePersonForIDMap(parsed)
 	for id, person := range originalForID {
 		readPerson, ok := parsedForID[id]

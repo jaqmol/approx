@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"strings"
+	"testing"
 )
 
 // Person ...
@@ -22,8 +24,8 @@ func (a *Person) Equals(b *Person) bool {
 		a.Email == b.Email
 }
 
-// MarshallPeople ...
-func MarshallPeople(testData []Person) [][]byte {
+// MarshalPeople ...
+func MarshalPeople(testData []Person) [][]byte {
 	acc := make([][]byte, 0)
 	for _, p := range testData {
 		b, err := json.Marshal(&p)
@@ -33,10 +35,11 @@ func MarshallPeople(testData []Person) [][]byte {
 	return acc
 }
 
-func unMarshallPeople(data [][]byte) []Person {
+// UnmarshalPeople ...
+func UnmarshalPeople(data [][]byte) []Person {
 	acc := make([]Person, 0)
 	for i, b := range data {
-		p, err := unmarshallPerson(b)
+		p, err := UnmarshalPerson(b)
 		if err != nil {
 			log.Fatalf("Couldn't unmarshall person #%v: \"%v\"\n", i+1, string(b))
 		}
@@ -45,7 +48,8 @@ func unMarshallPeople(data [][]byte) []Person {
 	return acc
 }
 
-func unmarshallPerson(data []byte) (*Person, error) {
+// UnmarshalPerson ...
+func UnmarshalPerson(data []byte) (*Person, error) {
 	var p Person
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -54,7 +58,7 @@ func unmarshallPerson(data []byte) (*Person, error) {
 	return &p, nil
 }
 
-func unmarshallError(data []byte) (*Person, error) {
+func unmarshalError(data []byte) (*Person, error) {
 	var p Person
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -84,5 +88,18 @@ func LoadTestData() []Person {
 func check(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+// CheckUpperFirstAndLastNames ...
+func CheckUpperFirstAndLastNames(t *testing.T, original, parsed *Person) {
+	upperOrigFirstName := strings.ToUpper(original.FirstName)
+	if upperOrigFirstName != parsed.FirstName {
+		t.Fatalf("Expected uppercase first name %v, but got: %v", upperOrigFirstName, parsed.FirstName)
+	}
+
+	upperOrigLastName := strings.ToUpper(original.LastName)
+	if upperOrigLastName != parsed.LastName {
+		t.Fatalf("Expected uppercase last name %v, but got: %v", upperOrigLastName, parsed.LastName)
 	}
 }

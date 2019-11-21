@@ -13,7 +13,7 @@ func TestLoggerWithSingleReader(t *testing.T) {
 	// t.SkipNow()
 	originals := LoadTestData()
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
@@ -40,7 +40,7 @@ func TestLoggerWithMultipleReaders(t *testing.T) {
 	t.SkipNow()
 	originals := LoadTestData()
 	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshallPeople(originals)
+	originalBytes := MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
