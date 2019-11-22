@@ -5,36 +5,39 @@ import (
 	"log"
 )
 
-type testWriter struct {
-	lines   chan []byte
-	running bool
+// Writer ...
+type Writer struct {
+	Lines   chan []byte
+	Running bool
 }
 
-func newTestWriter() *testWriter {
-	return &testWriter{
-		lines:   make(chan []byte),
-		running: true,
+// NewWriter ...
+func NewWriter() *Writer {
+	return &Writer{
+		Lines:   make(chan []byte),
+		Running: true,
 	}
 }
 
-func (w *testWriter) Write(raw []byte) (int, error) {
-	if w.running {
+func (w *Writer) Write(raw []byte) (int, error) {
+	if w.Running {
 		b := bytes.Trim(raw, "\n\r")
 		if len(b) == 0 {
 			return len(raw), nil
 		}
 		l := make([]byte, len(b))
 		copy(l, b)
-		w.lines <- l
+		w.Lines <- l
 	} else {
 		log.Fatalf("Writer stopped but received data: \"%v\"\n", string(raw))
 	}
 	return len(raw), nil
 }
 
-func (w *testWriter) stop(doStop bool) {
+// Stop ...
+func (w *Writer) Stop(doStop bool) {
 	if doStop {
-		w.running = false
-		close(w.lines)
+		w.Running = false
+		close(w.Lines)
 	}
 }

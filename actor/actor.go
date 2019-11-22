@@ -1,5 +1,7 @@
 package actor
 
+import "log"
+
 // Actor ...
 type Actor struct {
 	inbox chan Message
@@ -30,4 +32,9 @@ func (a *Actor) Next(next ...Actable) {
 // Receive ...
 func (a *Actor) Receive(message Message) {
 	a.inbox <- message
+}
+
+// Start ...
+func (a *Actor) Start() {
+	log.Fatalln("Actor.Start() must be overwritten")
 }

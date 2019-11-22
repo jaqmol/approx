@@ -1,21 +1,27 @@
 package actor
 
 import (
+	"fmt"
 	"io"
 	"log"
-	"os"
 	"os/exec"
+	"strings"
 
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/event"
 )
 
 // Command ...
 type Command struct {
 	Actor
-	ident  string
-	cmd    *exec.Cmd
-	input  io.WriteCloser
-	output io.ReadCloser
+	ident string
+	cmd   *exec.Cmd
+	// input   io.WriteCloser
+	// logging io.ReadCloser
+	// output  io.ReadCloser
+	input   *io.PipeWriter
+	logging *io.PipeReader
+	output  *io.PipeReader
 }
 
 // NewCommand ...
@@ -24,26 +30,54 @@ func NewCommand(inboxSize int, ident string, cmd string, args ...string) *Comman
 		ident: ident,
 		cmd:   exec.Command(cmd, args...),
 	}
-	c.cmd.Stderr = os.Stderr
+	// c.cmd.Stderr = os.Stderr
 
-	input, err := c.cmd.StdinPipe()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	output, err := c.cmd.StdoutPipe()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	c.input = input
-	c.output = output
+	inputReader, inputWriter := io.Pipe()
+	// loggingReader, loggingWriter := io.Pipe()
+	outputReader, outputWriter := io.Pipe()
+
+	c.cmd.Stdin = inputReader
+	// c.cmd.Stderr = loggingWriter
+	c.cmd.Stdout = outputWriter
+
+	c.input = inputWriter
+	// c.logging = loggingReader
+	c.output = outputReader
+
+	// logging, err := c.cmd.StderrPipe()
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// output, err := c.cmd.StdoutPipe()
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// c.input = input
+	// c.logging = logging
+	// c.output = output
 
 	c.init(inboxSize)
 	return c
 }
 
+// NewCommandFromConf ...
+func NewCommandFromConf(inboxSize int, conf *config.Command) (*Command, error) {
+	cmdAndArgs := strings.Split(conf.Cmd, " ")
+	// TODO: actor.Command ENV support missing
+	var c *Command
+	if len(cmdAndArgs) == 1 {
+		c = NewCommand(inboxSize, conf.Ident, cmdAndArgs[0])
+	} else if len(cmdAndArgs) > 1 {
+		c = NewCommand(inboxSize, conf.Ident, cmdAndArgs[0], cmdAndArgs[1:]...)
+	} else {
+		return nil, fmt.Errorf("Command definition of \"%v\" is wrong: \"%v\"", conf.Ident, conf.Cmd)
+	}
+	return c, nil
+}
+
 // Logging ...
-func (c *Command) Logging(writer io.Writer) {
-	c.cmd.Stderr = writer
+func (c *Command) Logging() io.Reader {
+	return c.logging
 }
 
 // Directory ...
@@ -73,7 +107,12 @@ func (c *Command) startDispatchingInboxToCmd() {
 			termMsg := event.TerminatedBytesCopy(message.Data)
 			n, err := c.input.Write(termMsg)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatalf(
+					"Error dispatching event to command \"%v\": %v -> %v\n",
+					c.ident,
+					err,
+					string(termMsg),
+				)
 			}
 			if n < len(message.Data) {
 				log.Fatalf(
@@ -85,11 +124,16 @@ func (c *Command) startDispatchingInboxToCmd() {
 			}
 		case CloseInbox:
 			close(c.inbox)
-			err := c.input.Close() // This triggers graceful termination
-			if err != nil {
-				log.Fatalln(err)
-			}
 		}
+	}
+
+	err := c.input.Close() // This triggers graceful termination
+	if err != nil {
+		log.Fatalf(
+			"Error closing <stdin> on command \"%v\": %v\n",
+			c.ident,
+			err,
+		)
 	}
 }
 

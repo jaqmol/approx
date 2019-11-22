@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
 
@@ -13,8 +13,8 @@ func TestSimpleMerge(t *testing.T) {
 	originalForID := test.MakePersonForIDMap(originals)
 	originalBytes := test.MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	producerAlpha := NewProducer(10)
 	producerBeta := NewProducer(10)
@@ -51,8 +51,8 @@ func TestMultipleMerge(t *testing.T) {
 	originalForID := test.MakePersonForIDMap(originals)
 	originalBytes := test.MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	mergeAlpha := NewMerge(10, "merge-alpha", 2)
 	mergeBeta := NewMerge(10, "merge-beta", 3)

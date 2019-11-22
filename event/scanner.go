@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 )
 
 var msgEndLength int
 
 func init() {
-	msgEndLength = len(configuration.EvntEndBytes)
+	msgEndLength = len(config.EvntEndBytes)
 }
 
 // NewScanner ...
@@ -26,7 +26,7 @@ func splitFn(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		return 0, nil, io.EOF
 	}
 
-	msgEndIndex := bytes.Index(data, configuration.EvntEndBytes)
+	msgEndIndex := bytes.Index(data, config.EvntEndBytes)
 
 	if msgEndIndex == -1 {
 		return 0, nil, nil
@@ -49,5 +49,5 @@ func ScannedBytesCopy(raw []byte) []byte {
 func TerminatedBytesCopy(source []byte) []byte {
 	destination := make([]byte, len(source)+msgEndLength)
 	copy(destination, source)
-	return append(destination, configuration.EvntEndBytes...)
+	return append(destination, config.EvntEndBytes...)
 }

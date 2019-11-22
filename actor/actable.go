@@ -4,4 +4,5 @@ package actor
 type Actable interface {
 	Next(next ...Actable)
 	Receive(message Message)
+	Start()
 }

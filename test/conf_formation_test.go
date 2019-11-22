@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 
 	"github.com/jaqmol/approx/project"
 )
@@ -22,7 +22,7 @@ func TestConfigurationFormation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	confForm, err := configuration.NewFormation(projForm)
+	confForm, err := config.NewFormation(projForm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestConfigurationFormation(t *testing.T) {
 	checkDeclarationOfFlowNode(t, confForm)
 }
 
-func checkDeclarationOfProcessors(t *testing.T, form *configuration.Formation) {
+func checkDeclarationOfProcessors(t *testing.T, form *config.Formation) {
 	var ok bool
 	_, ok = form.Processors["<stdin>"]
 	if !ok {
@@ -59,7 +59,7 @@ func checkDeclarationOfProcessors(t *testing.T, form *configuration.Formation) {
 	}
 }
 
-func checkDeclarationOfFlowNode(t *testing.T, form *configuration.Formation) {
+func checkDeclarationOfFlowNode(t *testing.T, form *config.Formation) {
 	visited := make(map[string]int)
 
 	checkLen := lengthChecker(map[string][]int{
@@ -71,7 +71,7 @@ func checkDeclarationOfFlowNode(t *testing.T, form *configuration.Formation) {
 		"<stdout>":           []int{1, 0},
 	})
 
-	err := form.FlowTree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) error {
+	err := form.FlowTree.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
 		id := curr.Processor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))

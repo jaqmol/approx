@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 )
 
 // TestFlowNodes ...
@@ -28,7 +28,7 @@ func TestFlowNodes(t *testing.T) {
 		mergeNode.Processor().ID(): []int{2, 0},
 	})
 
-	err := forkNode.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) error {
+	err := forkNode.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
 		id := curr.Processor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))
@@ -90,17 +90,17 @@ func errorsToStrings(errs []error) []string {
 }
 
 func createTestFlow() (
-	forkNode *configuration.FlowNode,
-	fneNode *configuration.FlowNode,
-	lneNode *configuration.FlowNode,
-	mergeNode *configuration.FlowNode,
+	forkNode *config.FlowNode,
+	fneNode *config.FlowNode,
+	lneNode *config.FlowNode,
+	mergeNode *config.FlowNode,
 ) {
-	config := makeSimpleSequenceConfig()
+	conf := MakeSimpleSequenceConfig()
 
-	forkNode = configuration.NewFlowNode(&config.fork)
-	fneNode = configuration.NewFlowNode(&config.firstNameExtract)
-	lneNode = configuration.NewFlowNode(&config.lastNameExtract)
-	mergeNode = configuration.NewFlowNode(&config.merge)
+	forkNode = config.NewFlowNode(&conf.Fork)
+	fneNode = config.NewFlowNode(&conf.FirstNameExtract)
+	lneNode = config.NewFlowNode(&conf.LastNameExtract)
+	mergeNode = config.NewFlowNode(&conf.Merge)
 
 	forkNode.AppendNext(fneNode, lneNode)
 	fneNode.AppendPrevious(forkNode)
@@ -112,18 +112,18 @@ func createTestFlow() (
 	return
 }
 
-func nodesEqual(a *configuration.FlowNode, b *configuration.FlowNode) bool {
+func nodesEqual(a *config.FlowNode, b *config.FlowNode) bool {
 	return a.Processor().ID() == b.Processor().ID()
 }
 
-func checkNodePreviousCount(t *testing.T, node *configuration.FlowNode, count int, name string) {
+func checkNodePreviousCount(t *testing.T, node *config.FlowNode, count int, name string) {
 	length := len(node.Previous())
 	if length != count {
 		t.Fatalf("Expected %v to have %v predecessors, but found: %v", name, count, length)
 	}
 }
 
-func checkNodeNextCount(t *testing.T, node *configuration.FlowNode, count int, name string) {
+func checkNodeNextCount(t *testing.T, node *config.FlowNode, count int, name string) {
 	length := len(node.Next())
 	if length != count {
 		t.Fatalf("Expected %v to have %v successors, but found: %v", name, count, length)

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/event"
 )
 
@@ -15,8 +15,8 @@ func TestScanner(t *testing.T) {
 	originalForID := MakePersonForIDMap(originals)
 	originalBytes := MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 	reader := bytes.NewReader(originalCombined)
 
 	scanner := event.NewScanner(reader)

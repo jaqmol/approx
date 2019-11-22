@@ -11,8 +11,8 @@ func TestSimpleProcessorFormation(t *testing.T) {
 	// originals := LoadTestData()[:10]
 	// originalForID := MakePersonForIDMap(originals)
 	// originalBytes := MarshalPeople(originals)
-	// originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	// originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	// originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	// originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	// inputReader := bytes.NewReader(originalCombined)
 	// stdin := processor.NewStdin()
@@ -65,8 +65,8 @@ func TestSimpleProcessorFormation(t *testing.T) {
 // 	originals := LoadTestData()[:10]
 // 	originalForID := MakePersonForIDMap(originals)
 // 	originalBytes := MarshalPeople(originals)
-// 	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-// 	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+// 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+// 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 // 	inputReader := bytes.NewReader(originalCombined)
 // 	stdin := processor.NewStdin()

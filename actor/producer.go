@@ -3,17 +3,35 @@ package actor
 import (
 	"io"
 	"log"
+	"time"
 )
 
 // Producer ...
 type Producer struct {
-	next []Actable
+	next         []Actable
+	performSleep func()
 }
 
 // NewProducer ...
 func NewProducer(inboxSize int) *Producer {
+	return NewThrottledProducer(inboxSize, 0)
+}
+
+// NewThrottledProducer ...
+func NewThrottledProducer(inboxSize, messagesPerSecond int) *Producer {
+	var performSleep func()
+	if messagesPerSecond > 0 {
+		duration := time.Second / time.Duration(messagesPerSecond)
+		performSleep = func() {
+			time.Sleep(duration)
+		}
+	} else {
+		performSleep = func() {}
+	}
+	// log.Println("Sleep duration:", duration)
 	return &Producer{
-		next: make([]Actable, 0),
+		next:         make([]Actable, 0),
+		performSleep: performSleep,
 	}
 }
 
@@ -26,11 +44,15 @@ func (p *Producer) Produce(produce func() ([]byte, error)) error {
 		if err != nil {
 			break
 		}
+
 		msg := NewDataMessage(data)
 		for _, na := range p.next {
 			na.Receive(msg)
 		}
+
+		p.performSleep()
 	}
+
 	p.sendCloseMessage()
 	if err == io.EOF {
 		return nil
@@ -48,7 +70,7 @@ func (p *Producer) Next(next ...Actable) {
 }
 
 // Receive ...
-func (p *Producer) Receive(message []byte) {
+func (p *Producer) Receive(message Message) {
 	log.Fatalln("Producer cannot receive messages")
 }
 
@@ -57,3 +79,6 @@ func (p *Producer) sendCloseMessage() {
 		na.Receive(NewCloseMessage())
 	}
 }
+
+// Start ...
+func (p *Producer) Start() {}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
 
@@ -17,8 +17,8 @@ func TestMultipleCollectors(t *testing.T) {
 	originalForID := test.MakePersonForIDMap(originals)
 	originalBytes := test.MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	producer := NewProducer(10)
 	collectorAlpha := NewCollector(10)

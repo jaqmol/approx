@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
 
@@ -13,8 +13,8 @@ func TestSimpleFork(t *testing.T) {
 	originalForID := test.MakePersonForIDMap(originals)
 	originalBytes := test.MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	fork := NewFork(10, "fork", 2)
 	producer := NewProducer(10)
@@ -61,8 +61,8 @@ func TestMultipleFork(t *testing.T) {
 	originalForID := test.MakePersonForIDMap(originals)
 	originalBytes := test.MarshalPeople(originals)
 
-	originalCombined := bytes.Join(originalBytes, configuration.EvntEndBytes)
-	originalCombined = append(originalCombined, configuration.EvntEndBytes...)
+	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
+	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	forkAlpha := NewFork(10, "fork-alpha", 2)
 	forkBeta := NewFork(10, "fork-beta", 3)

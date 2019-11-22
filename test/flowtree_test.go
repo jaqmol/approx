@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jaqmol/approx/configuration"
+	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/project"
 )
 
@@ -21,14 +21,14 @@ func TestFlowTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config := makeSimpleSequenceConfig()
-	procs := map[string]configuration.Processor{
-		config.fork.Ident:             &config.fork,
-		config.firstNameExtract.Ident: &config.firstNameExtract,
-		config.lastNameExtract.Ident:  &config.lastNameExtract,
-		config.merge.Ident:            &config.merge,
+	conf := MakeSimpleSequenceConfig()
+	procs := map[string]config.Processor{
+		conf.Fork.Ident:             &conf.Fork,
+		conf.FirstNameExtract.Ident: &conf.FirstNameExtract,
+		conf.LastNameExtract.Ident:  &conf.LastNameExtract,
+		conf.Merge.Ident:            &conf.Merge,
 	}
-	tree, err := configuration.NewFlowTree(flows, procs)
+	tree, err := config.NewFlowTree(flows, procs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,13 +36,13 @@ func TestFlowTree(t *testing.T) {
 	visited := make(map[string]int)
 
 	checkLen := lengthChecker(map[string][]int{
-		config.fork.ID():             []int{0, 2},
-		config.firstNameExtract.ID(): []int{1, 1},
-		config.lastNameExtract.ID():  []int{1, 1},
-		config.merge.ID():            []int{2, 0},
+		conf.Fork.ID():             []int{0, 2},
+		conf.FirstNameExtract.ID(): []int{1, 1},
+		conf.LastNameExtract.ID():  []int{1, 1},
+		conf.Merge.ID():            []int{2, 0},
 	})
 
-	err = tree.Iterate(func(prev []*configuration.FlowNode, curr *configuration.FlowNode, next []*configuration.FlowNode) error {
+	err = tree.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
 		id := curr.Processor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))
@@ -57,10 +57,10 @@ func TestFlowTree(t *testing.T) {
 	errs := checkContainsAllTimes(
 		visited,
 		map[string]int{
-			config.fork.ID():             1,
-			config.firstNameExtract.ID(): 1,
-			config.lastNameExtract.ID():  1,
-			config.merge.ID():            1,
+			conf.Fork.ID():             1,
+			conf.FirstNameExtract.ID(): 1,
+			conf.LastNameExtract.ID():  1,
+			conf.Merge.ID():            1,
 		},
 	)
 	if len(errs) > 0 {

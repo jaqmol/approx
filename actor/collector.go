@@ -44,3 +44,6 @@ func (c *Collector) Collect(collect func([]byte) error) error {
 	}
 	return nil
 }
+
+// Start ...
+func (c *Collector) Start() {}
