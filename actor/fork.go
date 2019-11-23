@@ -2,6 +2,8 @@ package actor
 
 import (
 	"log"
+
+	"github.com/jaqmol/approx/config"
 )
 
 // Fork ...
@@ -19,6 +21,11 @@ func NewFork(inboxSize int, ident string, receiversCount int) *Fork {
 	}
 	f.init(inboxSize)
 	return f
+}
+
+// NewForkFromConf ...
+func NewForkFromConf(inboxSize int, conf *config.Fork) *Fork {
+	return NewFork(inboxSize, conf.Ident, conf.Count)
 }
 
 // Start ...

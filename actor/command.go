@@ -15,11 +15,8 @@ import (
 // Command ...
 type Command struct {
 	Actor
-	ident string
-	cmd   *exec.Cmd
-	// input   io.WriteCloser
-	// logging io.ReadCloser
-	// output  io.ReadCloser
+	ident   string
+	cmd     *exec.Cmd
 	input   *io.PipeWriter
 	logging *io.PipeReader
 	output  *io.PipeReader
@@ -54,7 +51,6 @@ func NewCommand(inboxSize int, ident string, cmd string, args ...string) *Comman
 // NewCommandFromConf ...
 func NewCommandFromConf(inboxSize int, conf *config.Command) (*Command, error) {
 	cmdAndArgs := strings.Split(conf.Cmd, " ")
-	// TODO: actor.Command ENV support missing
 	var c *Command
 	if len(cmdAndArgs) == 1 {
 		c = NewCommand(inboxSize, conf.Ident, cmdAndArgs[0])
@@ -63,6 +59,7 @@ func NewCommandFromConf(inboxSize int, conf *config.Command) (*Command, error) {
 	} else {
 		return nil, fmt.Errorf("Command definition of \"%v\" is wrong: \"%v\"", conf.Ident, conf.Cmd)
 	}
+	c.Environment(conf.Env)
 	return c, nil
 }
 
@@ -78,6 +75,17 @@ func (c *Command) Logging() io.Reader {
 		}
 	}
 	return c.logging
+}
+
+// Environment ...
+func (c *Command) Environment(env []string) {
+	if c.logging == nil {
+		if c.running {
+			log.Fatalf("Command \"%v\" cannot attach environment variables while running", c.ident)
+		} else {
+			c.cmd.Env = append(os.Environ(), env...)
+		}
+	}
 }
 
 // Directory ...

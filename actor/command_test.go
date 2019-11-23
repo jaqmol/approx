@@ -14,21 +14,25 @@ import (
 
 // TestCommandWithBufferProcessing ...
 func TestCommandWithBufferProcessing(t *testing.T) {
+	// t.SkipNow()
 	performTestWithIdentCmdAndArgs(t, "buffer-cmd", "node", "node-procs/test-buffer-processing.js")
 }
 
 // TestCommandWithJSONProcessing ...
 func TestCommandWithJSONProcessing(t *testing.T) {
+	// t.SkipNow()
 	performTestWithIdentCmdAndArgs(t, "json-cmd", "node", "node-procs/test-json-processing.js")
 }
 
 // TestCommandWithBufferProcessingWithLogging ...
 func TestCommandWithBufferProcessingWithLogging(t *testing.T) {
+	// t.SkipNow()
 	performTestWithIdentCmdAndArgsAndLogging(t, "buffer-cmd", "node", "node-procs/test-buffer-processing.js")
 }
 
 // TestCommandWithJSONProcessingWithLogging ...
 func TestCommandWithJSONProcessingWithLogging(t *testing.T) {
+	// t.SkipNow()
 	performTestWithIdentCmdAndArgsAndLogging(t, "json-cmd", "node", "node-procs/test-json-processing.js")
 }
 
@@ -130,19 +134,7 @@ func performTestWithIdentCmdAndArgsAndLogging(t *testing.T, ident, cmd, arg stri
 			test.CheckUpperFirstAndLastNames(t, &original, parsed)
 			counter++
 		} else if unimsg.messageType == unifiedMsgLogType {
-			msg, err := event.UnmarshalLogMsg(unimsg.data)
-			logMsg, cmdErr, err := msg.PayloadOrError()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if logMsg != nil {
-				if !strings.HasPrefix(*logMsg, "Did process:") {
-					t.Fatalf("Unexpected command log message: %v", *logMsg)
-				}
-			}
-			if cmdErr != nil {
-				t.Fatal(cmdErr.Error())
-			}
+			checkCommandLogMsg(t, "Did process:", unimsg.data)
 		}
 	}
 
@@ -221,4 +213,20 @@ func dumpByteChannelEvents(channel <-chan []byte) {
 			_, ok = <-channel
 		}
 	}()
+}
+
+func checkCommandLogMsg(t *testing.T, expectedPrefix string, data []byte) {
+	msg, err := event.UnmarshalLogMsg(data)
+	logMsg, cmdErr, err := msg.PayloadOrError()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if logMsg != nil {
+		if !strings.HasPrefix(*logMsg, expectedPrefix) {
+			t.Fatalf("Unexpected command log message: %v", *logMsg)
+		}
+	}
+	if cmdErr != nil {
+		t.Fatal(cmdErr.Error())
+	}
 }

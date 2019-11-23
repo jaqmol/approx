@@ -2,6 +2,8 @@ package actor
 
 import (
 	"log"
+
+	"github.com/jaqmol/approx/config"
 )
 
 // Merge ...
@@ -21,6 +23,11 @@ func NewMerge(inboxSize int, ident string, sendersCount int) *Merge {
 	}
 	m.init(inboxSize)
 	return m
+}
+
+// NewMergeFromConf ...
+func NewMergeFromConf(inboxSize int, conf *config.Merge) *Merge {
+	return NewMerge(inboxSize, conf.Ident, conf.Count)
 }
 
 // Start ...
