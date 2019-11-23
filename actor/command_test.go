@@ -2,11 +2,12 @@ package actor
 
 import (
 	"bytes"
-	"log"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jaqmol/approx/config"
+	"github.com/jaqmol/approx/event"
 	"github.com/jaqmol/approx/logging"
 	"github.com/jaqmol/approx/test"
 )
@@ -23,8 +24,12 @@ func TestCommandWithJSONProcessing(t *testing.T) {
 
 // TestCommandWithBufferProcessingWithLogging ...
 func TestCommandWithBufferProcessingWithLogging(t *testing.T) {
-	// t.SkipNow()
 	performTestWithIdentCmdAndArgsAndLogging(t, "buffer-cmd", "node", "node-procs/test-buffer-processing.js")
+}
+
+// TestCommandWithJSONProcessingWithLogging ...
+func TestCommandWithJSONProcessingWithLogging(t *testing.T) {
+	performTestWithIdentCmdAndArgsAndLogging(t, "json-cmd", "node", "node-procs/test-json-processing.js")
 }
 
 func performTestWithIdentCmdAndArgs(t *testing.T, ident, cmd, arg string) {
@@ -121,13 +126,23 @@ func performTestWithIdentCmdAndArgsAndLogging(t *testing.T, ident, cmd, arg stri
 			if err != nil {
 				t.Fatal(err)
 			}
-
 			original := originalForID[parsed.ID]
-
 			test.CheckUpperFirstAndLastNames(t, &original, parsed)
 			counter++
 		} else if unimsg.messageType == unifiedMsgLogType {
-			log.Println(string(unimsg.data))
+			msg, err := event.UnmarshalLogMsg(unimsg.data)
+			logMsg, cmdErr, err := msg.PayloadOrError()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if logMsg != nil {
+				if !strings.HasPrefix(*logMsg, "Did process:") {
+					t.Fatalf("Unexpected command log message: %v", *logMsg)
+				}
+			}
+			if cmdErr != nil {
+				t.Fatal(cmdErr.Error())
+			}
 		}
 	}
 
