@@ -24,8 +24,8 @@ func (l *Log) Start() {
 }
 
 // Add ...
-func (l *Log) Add(r io.Reader) {
-	go l.readFrom(r)
+func (l *Log) Add(reader io.Reader) {
+	go l.readFrom(reader)
 	l.readersCount++
 }
 

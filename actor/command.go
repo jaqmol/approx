@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -22,39 +23,29 @@ type Command struct {
 	input   *io.PipeWriter
 	logging *io.PipeReader
 	output  *io.PipeReader
+	running bool
 }
 
 // NewCommand ...
 func NewCommand(inboxSize int, ident string, cmd string, args ...string) *Command {
 	c := &Command{
-		ident: ident,
-		cmd:   exec.Command(cmd, args...),
+		ident:   ident,
+		cmd:     exec.Command(cmd, args...),
+		input:   nil,
+		logging: nil,
+		output:  nil,
+		running: false,
 	}
-	// c.cmd.Stderr = os.Stderr
 
 	inputReader, inputWriter := io.Pipe()
-	// loggingReader, loggingWriter := io.Pipe()
 	outputReader, outputWriter := io.Pipe()
 
 	c.cmd.Stdin = inputReader
-	// c.cmd.Stderr = loggingWriter
+	c.cmd.Stderr = os.Stderr // Standard Logging
 	c.cmd.Stdout = outputWriter
 
 	c.input = inputWriter
-	// c.logging = loggingReader
 	c.output = outputReader
-
-	// logging, err := c.cmd.StderrPipe()
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// output, err := c.cmd.StdoutPipe()
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// c.input = input
-	// c.logging = logging
-	// c.output = output
 
 	c.init(inboxSize)
 	return c
@@ -77,6 +68,15 @@ func NewCommandFromConf(inboxSize int, conf *config.Command) (*Command, error) {
 
 // Logging ...
 func (c *Command) Logging() io.Reader {
+	if c.logging == nil {
+		if c.running {
+			log.Fatalf("Command \"%v\" cannot attach custom logger while running", c.ident)
+		} else {
+			loggingReader, loggingWriter := io.Pipe() // Logging
+			c.cmd.Stderr = loggingWriter              // Logging
+			c.logging = loggingReader                 // Logging
+		}
+	}
 	return c.logging
 }
 
@@ -87,6 +87,10 @@ func (c *Command) Directory(dir string) {
 
 // Start ...
 func (c *Command) Start() {
+	if c.running {
+		return
+	}
+
 	if len(c.next) != 1 {
 		log.Fatalf(
 			"Command \"%v\" is connected to %v next, 1 expected\n",
@@ -98,6 +102,8 @@ func (c *Command) Start() {
 	go c.startDispatchingInboxToCmd()
 	go c.startReceivingCmdOutput()
 	go c.startCommand()
+
+	c.running = true
 }
 
 func (c *Command) startDispatchingInboxToCmd() {
