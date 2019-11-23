@@ -1,9 +1,10 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
@@ -16,10 +17,10 @@ func TestSimpleFork(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	fork := NewFork(10, "fork", 2)
-	producer := NewProducer(10)
-	collectorAlpha := NewCollector(10)
-	collectorBeta := NewCollector(10)
+	fork := actor.NewFork(10, "fork", 2)
+	producer := actor.NewProducer(10)
+	collectorAlpha := actor.NewCollector(10)
+	collectorBeta := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producer.Next(fork)
@@ -64,16 +65,16 @@ func TestMultipleFork(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	forkAlpha := NewFork(10, "fork-alpha", 2)
-	forkBeta := NewFork(10, "fork-beta", 3)
-	forkGamma := NewFork(10, "fork-gamma", 2)
+	forkAlpha := actor.NewFork(10, "fork-alpha", 2)
+	forkBeta := actor.NewFork(10, "fork-beta", 3)
+	forkGamma := actor.NewFork(10, "fork-gamma", 2)
 
-	producer := NewProducer(10)
-	collectorAlpha := NewCollector(10)
-	collectorBeta := NewCollector(10)
-	collectorGamma := NewCollector(10)
-	collectorDelta := NewCollector(10)
-	collectorEpsilon := NewCollector(10)
+	producer := actor.NewProducer(10)
+	collectorAlpha := actor.NewCollector(10)
+	collectorBeta := actor.NewCollector(10)
+	collectorGamma := actor.NewCollector(10)
+	collectorDelta := actor.NewCollector(10)
+	collectorEpsilon := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producer.Next(forkAlpha)

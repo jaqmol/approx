@@ -1,10 +1,11 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
 	"io"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/event"
 	"github.com/jaqmol/approx/test"
@@ -18,8 +19,8 @@ func TestSingleProducer(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	producer := NewProducer(10)
-	collector := NewCollector(10)
+	producer := actor.NewProducer(10)
+	collector := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producer.Next(collector)
@@ -41,7 +42,7 @@ func TestSingleProducer(t *testing.T) {
 	}
 }
 
-func startProducingTestMessages(t *testing.T, producer *Producer, sourceData []byte) {
+func startProducingTestMessages(t *testing.T, producer *actor.Producer, sourceData []byte) {
 	go func() {
 		reader := bytes.NewReader(sourceData)
 		scanner := event.NewScanner(reader)

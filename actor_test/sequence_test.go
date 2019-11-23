@@ -1,4 +1,4 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/logging"
 	"github.com/jaqmol/approx/test"
@@ -22,14 +23,14 @@ func TestSimpleCommandSequence(t *testing.T) {
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
 	conf := test.MakeSimpleSequenceConfig()
-	producer := NewThrottledProducer(10, 5000)
+	producer := actor.NewThrottledProducer(10, 5000)
 
-	fork := NewForkFromConf(10, &conf.Fork)
+	fork := actor.NewForkFromConf(10, &conf.Fork)
 	producer.Next(fork)
 
-	firstNameExtractCmd, err := NewCommandFromConf(10, &conf.FirstNameExtract)
+	firstNameExtractCmd, err := actor.NewCommandFromConf(10, &conf.FirstNameExtract)
 	catchToFatal(t, err)
-	lastNameExtractCmd, err := NewCommandFromConf(10, &conf.LastNameExtract)
+	lastNameExtractCmd, err := actor.NewCommandFromConf(10, &conf.LastNameExtract)
 	catchToFatal(t, err)
 
 	receiver := make(chan unifiedMessage, 10)
@@ -44,11 +45,11 @@ func TestSimpleCommandSequence(t *testing.T) {
 
 	fork.Next(firstNameExtractCmd, lastNameExtractCmd)
 
-	merge := NewMergeFromConf(10, &conf.Merge)
+	merge := actor.NewMergeFromConf(10, &conf.Merge)
 	firstNameExtractCmd.Next(merge)
 	lastNameExtractCmd.Next(merge)
 
-	collector := NewCollector(10)
+	collector := actor.NewCollector(10)
 	merge.Next(collector)
 
 	startCollectingUnifiedDataMessages(t, collector, receiver, func() {

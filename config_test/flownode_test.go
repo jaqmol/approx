@@ -1,4 +1,4 @@
-package test
+package config_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/jaqmol/approx/config"
+	"github.com/jaqmol/approx/test"
 )
 
 // TestFlowNodes ...
@@ -95,7 +96,7 @@ func createTestFlow() (
 	lneNode *config.FlowNode,
 	mergeNode *config.FlowNode,
 ) {
-	conf := MakeSimpleSequenceConfig()
+	conf := test.MakeSimpleSequenceConfig()
 
 	forkNode = config.NewFlowNode(&conf.Fork)
 	fneNode = config.NewFlowNode(&conf.FirstNameExtract)

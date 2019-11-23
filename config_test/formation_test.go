@@ -1,4 +1,4 @@
-package test
+package config_test
 
 import (
 	"fmt"
@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"github.com/jaqmol/approx/config"
-
 	"github.com/jaqmol/approx/project"
 )
 
 // TeTestConfigurationFormation ...
 func TestConfigurationFormation(t *testing.T) {
-	projDir, err := filepath.Abs("beta-test-proj") // /formation.yaml
+	projDir, err := filepath.Abs("../test/beta-test-proj") // /formation.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

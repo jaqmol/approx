@@ -1,4 +1,4 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/event"
 	"github.com/jaqmol/approx/logging"
@@ -44,8 +45,8 @@ func performTestWithIdentCmdAndArgs(t *testing.T, ident, cmd, arg string) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	producer := NewThrottledProducer(10, 5000)
-	command := NewCommand(10, ident, cmd, arg)
+	producer := actor.NewThrottledProducer(10, 5000)
+	command := actor.NewCommand(10, ident, cmd, arg)
 
 	testDir, err := filepath.Abs("../test")
 	if err != nil {
@@ -54,7 +55,7 @@ func performTestWithIdentCmdAndArgs(t *testing.T, ident, cmd, arg string) {
 	command.Directory(testDir)
 
 	receiver := make(chan unifiedMessage, 10)
-	collector := NewCollector(10)
+	collector := actor.NewCollector(10)
 
 	producer.Next(command)
 	command.Next(collector)
@@ -94,8 +95,8 @@ func performTestWithIdentCmdAndArgsAndLogging(t *testing.T, ident, cmd, arg stri
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	producer := NewThrottledProducer(10, 5000)
-	command := NewCommand(10, ident, cmd, arg)
+	producer := actor.NewThrottledProducer(10, 5000)
+	command := actor.NewCommand(10, ident, cmd, arg)
 
 	testDir, err := filepath.Abs("../test")
 	if err != nil {
@@ -104,7 +105,7 @@ func performTestWithIdentCmdAndArgsAndLogging(t *testing.T, ident, cmd, arg stri
 	command.Directory(testDir)
 
 	receiver := make(chan unifiedMessage, 10)
-	collector := NewCollector(10)
+	collector := actor.NewCollector(10)
 
 	producer.Next(command)
 	command.Next(collector)
@@ -153,7 +154,7 @@ type unifiedMessage struct {
 
 func startCollectingUnifiedDataMessages(
 	t *testing.T,
-	collector *Collector,
+	collector *actor.Collector,
 	receiver chan<- unifiedMessage,
 	finished func(),
 ) {
@@ -186,7 +187,7 @@ func funnelIntoUnifiedLogMessages(
 	}()
 }
 
-func dumpLogMessagesOfCommand(c *Command) {
+func dumpLogMessagesOfCommand(c *actor.Command) {
 	rec := make(chan []byte, 10)
 	l := logging.NewChannelLog(rec)
 	l.Add(c.Logging())
@@ -198,7 +199,7 @@ func dumpLogMessagesOfCommand(c *Command) {
 	go l.Start()
 }
 
-func dumpCommandLogMessages(cmd *Command) {
+func dumpCommandLogMessages(cmd *actor.Command) {
 	logReceiver := make(chan []byte, 10)
 	logger := logging.NewChannelLog(logReceiver)
 	dumpByteChannelEvents(logReceiver)

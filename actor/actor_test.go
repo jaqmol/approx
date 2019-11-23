@@ -1,6 +1,8 @@
 package actor
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestActor(t *testing.T) {
 	a1 := NewActor(10)

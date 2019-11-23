@@ -1,9 +1,10 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
@@ -16,10 +17,10 @@ func TestSimpleMerge(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	producerAlpha := NewProducer(10)
-	producerBeta := NewProducer(10)
-	merge := NewMerge(10, "merge", 2)
-	collector := NewCollector(10)
+	producerAlpha := actor.NewProducer(10)
+	producerBeta := actor.NewProducer(10)
+	merge := actor.NewMerge(10, "merge", 2)
+	collector := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producerAlpha.Next(merge)
@@ -54,15 +55,15 @@ func TestMultipleMerge(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	mergeAlpha := NewMerge(10, "merge-alpha", 2)
-	mergeBeta := NewMerge(10, "merge-beta", 3)
-	mergeGamma := NewMerge(10, "merge-gamma", 2)
-	producerAlpha := NewProducer(10)
-	producerBeta := NewProducer(10)
-	producerGamma := NewProducer(10)
-	producerDelta := NewProducer(10)
-	producerEpsilon := NewProducer(10)
-	collector := NewCollector(10)
+	mergeAlpha := actor.NewMerge(10, "merge-alpha", 2)
+	mergeBeta := actor.NewMerge(10, "merge-beta", 3)
+	mergeGamma := actor.NewMerge(10, "merge-gamma", 2)
+	producerAlpha := actor.NewProducer(10)
+	producerBeta := actor.NewProducer(10)
+	producerGamma := actor.NewProducer(10)
+	producerDelta := actor.NewProducer(10)
+	producerEpsilon := actor.NewProducer(10)
+	collector := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producerAlpha.Next(mergeAlpha)

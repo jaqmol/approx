@@ -1,4 +1,4 @@
-package test
+package config_test
 
 import (
 	"fmt"
@@ -8,11 +8,12 @@ import (
 
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/project"
+	"github.com/jaqmol/approx/test"
 )
 
 // TestFlowTree ...
 func TestFlowTree(t *testing.T) {
-	projDir, err := filepath.Abs("alpha-test-proj") // /flow.yaml
+	projDir, err := filepath.Abs("../test/alpha-test-proj") // /flow.yaml
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -21,7 +22,7 @@ func TestFlowTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conf := MakeSimpleSequenceConfig()
+	conf := test.MakeSimpleSequenceConfig()
 	procs := map[string]config.Processor{
 		conf.Fork.Ident:             &conf.Fork,
 		conf.FirstNameExtract.Ident: &conf.FirstNameExtract,

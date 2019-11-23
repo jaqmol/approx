@@ -1,4 +1,4 @@
-package test
+package project_test
 
 import (
 	"path/filepath"
@@ -9,8 +9,8 @@ import (
 
 // TestComplexProjectFormation ...
 func TestComplexProjectFormation(t *testing.T) {
-	t.SkipNow()                                    // TODO CONTINUE
-	projDir, err := filepath.Abs("beta-test-proj") // /formation.yaml
+	// t.SkipNow()                                            // TODO CONTINUE
+	projDir, err := filepath.Abs("../test/beta-test-proj") // /formation.yaml
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,8 +25,8 @@ func TestComplexProjectFormation(t *testing.T) {
 
 // TestSimpleProjectFormation ...
 func TestSimpleProjectFormation(t *testing.T) {
-	t.SkipNow()                                     // TODO CONTINUE
-	projDir, err := filepath.Abs("alpha-test-proj") // /definition.yaml /flow.yaml
+	// t.SkipNow()                                     // TODO CONTINUE
+	projDir, err := filepath.Abs("../test/alpha-test-proj") // /definition.yaml /flow.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

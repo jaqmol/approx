@@ -1,30 +1,30 @@
-package test
+package event
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/jaqmol/approx/config"
-	"github.com/jaqmol/approx/event"
+	"github.com/jaqmol/approx/test"
 )
 
 // TestScanner ...
 func TestScanner(t *testing.T) {
 	// t.SkipNow()
-	originals := LoadTestData() // [:10]
-	originalForID := MakePersonForIDMap(originals)
-	originalBytes := MarshalPeople(originals)
+	originals := test.LoadTestData() // [:10]
+	originalForID := test.MakePersonForIDMap(originals)
+	originalBytes := test.MarshalPeople(originals)
 
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 	reader := bytes.NewReader(originalCombined)
 
-	scanner := event.NewScanner(reader)
+	scanner := NewScanner(reader)
 	count := 0
 
 	for scanner.Scan() {
 		b := scanner.Bytes()
-		CheckTestSet(t, originalForID, b)
+		test.CheckTestSet(t, originalForID, b)
 		count++
 	}
 

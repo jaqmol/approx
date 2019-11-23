@@ -1,4 +1,4 @@
-package test
+package project_test
 
 import (
 	"path/filepath"
@@ -10,7 +10,7 @@ import (
 // TestProjectFlow ...
 func TestProjectFlow(t *testing.T) {
 	// t.SkipNow()
-	projDir, err := filepath.Abs("alpha-test-proj") // /flow.yaml
+	projDir, err := filepath.Abs("../test/alpha-test-proj") // /flow.yaml
 	if err != nil {
 		t.Fatal(err)
 	}

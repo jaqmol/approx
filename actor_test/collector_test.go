@@ -1,9 +1,10 @@
-package actor
+package actor_test
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
 	"github.com/jaqmol/approx/test"
 )
@@ -20,9 +21,9 @@ func TestMultipleCollectors(t *testing.T) {
 	originalCombined := bytes.Join(originalBytes, config.EvntEndBytes)
 	originalCombined = append(originalCombined, config.EvntEndBytes...)
 
-	producer := NewProducer(10)
-	collectorAlpha := NewCollector(10)
-	collectorBeta := NewCollector(10)
+	producer := actor.NewProducer(10)
+	collectorAlpha := actor.NewCollector(10)
+	collectorBeta := actor.NewCollector(10)
 	receiver := make(chan []byte, 10)
 
 	producer.Next(collectorAlpha, collectorBeta)
@@ -49,7 +50,7 @@ func TestMultipleCollectors(t *testing.T) {
 
 func startCollectingTestMessages(
 	t *testing.T,
-	collector *Collector,
+	collector *actor.Collector,
 	receiver chan<- []byte,
 	finished func(),
 ) {
