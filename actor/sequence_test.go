@@ -117,29 +117,3 @@ func checkExtractedPerson(original test.Person, extraction map[string]string) (e
 	}
 	return
 }
-
-// func checkErrorEvent(eb []byte) (counter int, err error) {
-// 	msg, err := event.UnmarshalLogMsg(eb)
-// 	if err != nil {
-// 		return
-// 	}
-// 	logMsgPntr, cmdErr, err := msg.PayloadOrError()
-// 	if err != nil {
-// 		return
-// 	}
-//
-// 	if logMsgPntr != nil {
-// 		logMsg := *logMsgPntr
-// 		if strings.HasPrefix(logMsg, "Did extract \"first_name\"") {
-// 			counter++
-// 		} else if strings.HasPrefix(logMsg, "Did extract \"last_name\"") {
-// 			counter++
-// 		} else {
-// 			log.Println("Unexpected log message:", logMsg)
-// 		}
-// 	}
-// 	if cmdErr != nil {
-// 		err = cmdErr
-// 	}
-// 	return
-// }
