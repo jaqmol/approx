@@ -2,7 +2,7 @@ package config
 
 // Stdinout ...
 type Stdinout struct {
-	defType ProcessorType
+	defType ActorType
 	ident   string
 }
 
@@ -22,7 +22,7 @@ func init() {
 }
 
 // Type ...
-func (sio *Stdinout) Type() ProcessorType {
+func (sio *Stdinout) Type() ActorType {
 	return sio.defType
 }
 

@@ -18,33 +18,33 @@ Approx allows for connecting small, reactive processes to form applications.
 
 ### Approx executable
 
-Reads a formation and spins up a flow-graph of processors.
+Reads a formation and spins up a flow-graph of actors.
 
-### Processor
+### Actor
 
 A process classified by:
 
 - Parametrized by environments variables
-- Listens for events from one or many input-streams
+- Listens for events from an input-streams
 - Processes events and data
-- Writes events to one or many output-streams
+- Writes events to an output-streams
 - As low complexity as possible
 - Listen for events until it receives SIGINT
 
 ### Input, Output
 
-Events flow through a processor via `stdin` and `stdout`. The builtin processors "fork" and "merge" are used to splice the event stream.
+Events flow through an actor via `stdin` and `stdout`. The builtin actors "fork" and "merge" are used to splice the event stream.
 
 ## Why
 
-- To allow for designing applications as a flow-graph of stream processors.
+- To allow for designing applications as a flow-graph of stream actors.
 - To design each of them as a low complexity stream process, that transforms input into output.
 - To build multi-process-applications easily and with every programming language that can read/write to stdin/-out.
 - To mix and match programming languages as comes handy.
 - To choose the best library (or programming language) for a single problem.
 - Not to be forced into compromises.
 
-A flow-graph of stream processors is an event driven architecture. Listening for messages / or IPC via reading from `stdin` is among the most basic of tasks in the very most of programming languages. Also:
+A flow-graph of stream actors is an event driven architecture. Listening for messages / or IPC via reading from `stdin` is among the most basic of tasks in the very most of programming languages. Also:
 - Very good performance.
 - Very good documentation.
 - Maximum operating system support.
@@ -56,5 +56,5 @@ Sockets don't perform better than pipes.
 
 ### Why not http, websockets, long polling, ...?
 
-Request-response-based network communication protocols are not a natural or effective choice for event driven architectures.
-Communication of processes via network interface is not as ressource efficient as pipes and named pipes.
+Request-response-based network communication protocols are not a natural or effective choice for event driven architectures. Especially not of used on the same machine.
+Communicating processes via network interface is not as ressource efficient as pipes.

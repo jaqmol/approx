@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jaqmol/approx/logging"
+
 	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
-	"github.com/jaqmol/approx/logger"
 	"github.com/jaqmol/approx/project"
 )
 
@@ -20,7 +21,7 @@ type Formation struct {
 	Actables map[string]actor.Actable
 	Stdin    io.ReadCloser
 	Stdout   io.WriteCloser
-	Logger   *logger.Logger
+	Logger   *logging.WriterLog
 }
 
 // NewFormation ...
@@ -41,7 +42,7 @@ func NewFormation(
 	f := Formation{
 		conf:     confForm,
 		Actables: make(map[string]actor.Actable),
-		Logger:   logger.NewLogger(stderr),
+		Logger:   logging.NewWriterLog(stderr),
 	}
 
 	err = f.createActables()
@@ -86,24 +87,23 @@ func (f *Formation) createActables() error {
 		curr *config.FlowNode,
 		_ []*config.FlowNode,
 	) error {
-		// TODO: Rename FlowNode.Processor() -> FlowNode.Actor
 		var err error
-		switch curr.Processor().Type() {
+		switch curr.Actor().Type() {
 		case config.StdinType:
 			fallthrough
 		case config.MergeType:
-			_, err = f.getCreateActable(curr.Processor())
+			_, err = f.getCreateActable(curr.Actor())
 		default:
 			if len(prev) != 1 {
-				return fmt.Errorf("Expected precisely 1 input for type of processor \"%v\"", curr.Processor().ID())
+				return fmt.Errorf("Expected precisely 1 input for type of processor \"%v\"", curr.Actor().ID())
 			}
-			_, err = f.getCreateActable(curr.Processor())
+			_, err = f.getCreateActable(curr.Actor())
 		}
 		return err
 	})
 }
 
-func (f *Formation) getCreateActable(currConfProc config.Processor) (actor.Actable, error) {
+func (f *Formation) getCreateActable(currConfProc config.Actor) (actor.Actable, error) {
 	id := currConfProc.ID()
 	actbl, ok := f.Actables[id]
 	var err error
@@ -130,9 +130,7 @@ func (f *Formation) newCommandActor(conf *config.Command) (*actor.Command, error
 	if err != nil {
 		return nil, err
 	}
-	logReader, logWriter := io.Pipe()
-	f.Logger.Add(logReader)
-	c.Logging(logWriter)
+	f.Logger.Add(c.Logging())
 	return c, nil
 }
 
@@ -154,10 +152,10 @@ func (f *Formation) connectActables() error {
 		if err != nil {
 			return err
 		}
-		currID := curr.Processor().ID() // TODO: Rename Processor
+		currID := curr.Actor().ID()
 		currActbl, ok := f.Actables[currID]
 		if !ok {
-			return fmt.Errorf("Processor to connect to not found: %v", currID)
+			return fmt.Errorf("Actor to connect to not found: %v", currID)
 		}
 
 		if len(nextActables) > 0 {
@@ -170,7 +168,7 @@ func (f *Formation) connectActables() error {
 func getNodeIDs(nodes []*config.FlowNode) []string {
 	acc := make([]string, len(nodes))
 	for i, n := range nodes {
-		acc[i] = n.Processor().ID()
+		acc[i] = n.Actor().ID()
 	}
 	return acc
 }

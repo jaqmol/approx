@@ -8,7 +8,7 @@ type Command struct {
 }
 
 // Type ...
-func (c *Command) Type() ProcessorType {
+func (c *Command) Type() ActorType {
 	return CommandType
 }
 

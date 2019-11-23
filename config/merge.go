@@ -7,7 +7,7 @@ type Merge struct {
 }
 
 // Type ...
-func (m *Merge) Type() ProcessorType {
+func (m *Merge) Type() ActorType {
 	return MergeType
 }
 

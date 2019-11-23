@@ -2,17 +2,17 @@ package config
 
 // FlowNode ...
 type FlowNode struct {
-	previous  []*FlowNode
-	next      []*FlowNode
-	processor Processor
+	previous []*FlowNode
+	next     []*FlowNode
+	actor    Actor
 }
 
 // NewFlowNode ...
-func NewFlowNode(proc Processor) *FlowNode {
+func NewFlowNode(act Actor) *FlowNode {
 	return &FlowNode{
-		previous:  make([]*FlowNode, 0),
-		next:      make([]*FlowNode, 0),
-		processor: proc,
+		previous: make([]*FlowNode, 0),
+		next:     make([]*FlowNode, 0),
+		actor:    act,
 	}
 }
 
@@ -36,9 +36,9 @@ func (fn *FlowNode) AppendNext(next ...*FlowNode) {
 	fn.next = append(fn.next, next...)
 }
 
-// Processor ...
-func (fn *FlowNode) Processor() Processor {
-	return fn.processor
+// Actor ...
+func (fn *FlowNode) Actor() Actor {
+	return fn.actor
 }
 
 // Iterate ...

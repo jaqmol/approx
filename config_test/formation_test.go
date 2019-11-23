@@ -26,33 +26,33 @@ func TestConfigurationFormation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkDeclarationOfProcessors(t, confForm)
+	checkDeclarationOfActors(t, confForm)
 	checkDeclarationOfFlowNode(t, confForm)
 }
 
-func checkDeclarationOfProcessors(t *testing.T, form *config.Formation) {
+func checkDeclarationOfActors(t *testing.T, form *config.Formation) {
 	var ok bool
-	_, ok = form.Processors["<stdin>"]
+	_, ok = form.Actors["<stdin>"]
 	if !ok {
 		t.Fatal("Expected <stdin> configuration, but none found")
 	}
-	_, ok = form.Processors["fork"]
+	_, ok = form.Actors["fork"]
 	if !ok {
 		t.Fatal("Expected fork configuration, but none found")
 	}
-	_, ok = form.Processors["extract-first-name"]
+	_, ok = form.Actors["extract-first-name"]
 	if !ok {
 		t.Fatal("Expected extract-first-name configuration, but none found")
 	}
-	_, ok = form.Processors["extract-last-name"]
+	_, ok = form.Actors["extract-last-name"]
 	if !ok {
 		t.Fatal("Expected extract-last-name configuration, but none found")
 	}
-	_, ok = form.Processors["merge"]
+	_, ok = form.Actors["merge"]
 	if !ok {
 		t.Fatal("Expected merge configuration, but none found")
 	}
-	_, ok = form.Processors["<stdout>"]
+	_, ok = form.Actors["<stdout>"]
 	if !ok {
 		t.Fatal("Expected <stdout> configuration, but none found")
 	}
@@ -71,7 +71,7 @@ func checkDeclarationOfFlowNode(t *testing.T, form *config.Formation) {
 	})
 
 	err := form.FlowTree.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
-		id := curr.Processor().ID()
+		id := curr.Actor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))
 	})
@@ -105,10 +105,10 @@ func checkDeclarationOfFlowNode(t *testing.T, form *config.Formation) {
 		t.Fatal("Expected node tree to have an output node")
 	}
 
-	if form.FlowTree.Input.Processor().ID() != "<stdin>" {
-		t.Fatalf("Expected node tree input to be <stdin>, but found: %v", form.FlowTree.Input.Processor().ID())
+	if form.FlowTree.Input.Actor().ID() != "<stdin>" {
+		t.Fatalf("Expected node tree input to be <stdin>, but found: %v", form.FlowTree.Input.Actor().ID())
 	}
-	if form.FlowTree.Output.Processor().ID() != "<stdout>" {
-		t.Fatalf("Expected node tree output to be <stdout>, but found: %v", form.FlowTree.Output.Processor().ID())
+	if form.FlowTree.Output.Actor().ID() != "<stdout>" {
+		t.Fatalf("Expected node tree output to be <stdout>, but found: %v", form.FlowTree.Output.Actor().ID())
 	}
 }

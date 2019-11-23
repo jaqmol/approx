@@ -23,7 +23,7 @@ func TestFlowTree(t *testing.T) {
 	}
 
 	conf := test.MakeSimpleSequenceConfig()
-	procs := map[string]config.Processor{
+	procs := map[string]config.Actor{
 		conf.Fork.Ident:             &conf.Fork,
 		conf.FirstNameExtract.Ident: &conf.FirstNameExtract,
 		conf.LastNameExtract.Ident:  &conf.LastNameExtract,
@@ -44,7 +44,7 @@ func TestFlowTree(t *testing.T) {
 	})
 
 	err = tree.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
-		id := curr.Processor().ID()
+		id := curr.Actor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))
 	})

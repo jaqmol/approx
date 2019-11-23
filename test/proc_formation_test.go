@@ -6,8 +6,8 @@ import (
 
 // TODO: NONE OF THIS TESTS IS SUCCEEDING
 
-// TestSimpleProcessorFormation ...
-func TestSimpleProcessorFormation(t *testing.T) {
+// TestSimpleActorFormation ...
+func TestSimpleActorFormation(t *testing.T) {
 	// originals := LoadTestData()[:10]
 	// originalForID := MakePersonForIDMap(originals)
 	// originalBytes := MarshalPeople(originals)
@@ -59,8 +59,8 @@ func TestSimpleProcessorFormation(t *testing.T) {
 	// }
 }
 
-// TestComplexProcessorFormation ...
-// func TestComplexProcessorFormation(t *testing.T) {
+// TestComplexActorFormation ...
+// func TestComplexActorFormation(t *testing.T) {
 // 	t.SkipNow()
 // 	originals := LoadTestData()[:10]
 // 	originalForID := MakePersonForIDMap(originals)

@@ -8,51 +8,51 @@ import (
 
 // Formation ...
 type Formation struct {
-	Processors map[string]Processor
-	FlowTree   *FlowTree
+	Actors   map[string]Actor
+	FlowTree *FlowTree
 }
 
 // NewFormation ...
 func NewFormation(projForm *project.Formation) (*Formation, error) {
-	procs := make(map[string]Processor, len(projForm.Definitions))
+	actrs := make(map[string]Actor, len(projForm.Definitions))
 	for name, def := range projForm.Definitions {
 		switch def.Type() {
 		case project.StdinType:
-			procs[name] = Stdin
+			actrs[name] = Stdin
 		case project.CommandType:
 			prCmd := def.(*project.Command)
-			procs[name] = &Command{
+			actrs[name] = &Command{
 				Ident: prCmd.Ident(),
 				Cmd:   prCmd.Cmd(),
 				Env:   joinKeyValues(prCmd.Env()),
 			}
 		case project.ForkType:
-			procs[name] = &Fork{
+			actrs[name] = &Fork{
 				Ident: def.Ident(),
 			}
 		case project.MergeType:
-			procs[name] = &Merge{
+			actrs[name] = &Merge{
 				Ident: def.Ident(),
 			}
 		case project.StdoutType:
-			procs[name] = Stdout
+			actrs[name] = Stdout
 		}
 	}
-	tree, err := NewFlowTree(projForm.Flows, procs)
+	tree, err := NewFlowTree(projForm.Flows, actrs)
 	if err != nil {
 		return nil, err
 	}
 	tree.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error {
-		if curr.Processor().Type() == ForkType {
-			fork := curr.Processor().(*Fork)
+		if curr.Actor().Type() == ForkType {
+			fork := curr.Actor().(*Fork)
 			fork.Count = len(next)
-		} else if curr.Processor().Type() == MergeType {
-			merge := curr.Processor().(*Merge)
+		} else if curr.Actor().Type() == MergeType {
+			merge := curr.Actor().(*Merge)
 			merge.Count = len(prev)
 		}
 		return nil
 	})
-	return &Formation{procs, tree}, nil
+	return &Formation{actrs, tree}, nil
 }
 
 func joinKeyValues(mapping map[string]string) []string {

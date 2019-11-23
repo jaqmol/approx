@@ -16,21 +16,21 @@ type FlowTree struct {
 
 // TODO:
 // Loopback-applications like a web-server don't connect to stdin and stdout.
-// In this case the definition of one command processor must specify as root.
+// In this case the definition of one command actor must specify as root.
 
 // NewFlowTree ...
-func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, error) {
+func NewFlowTree(flows []project.Flow, actrs map[string]Actor) (*FlowTree, error) {
 	nodeForName := make(map[string]*FlowNode)
 	for _, line := range flows {
 		for j, toName := range line {
 			if j > 0 {
 				fromName := line[j-1]
-				fromNode := getCreateNode(fromName, procs[fromName], nodeForName)
-				toNode := getCreateNode(toName, procs[toName], nodeForName)
+				fromNode := getCreateNode(fromName, actrs[fromName], nodeForName)
+				toNode := getCreateNode(toName, actrs[toName], nodeForName)
 				fromNode.AppendNext(toNode)
 				toNode.AppendPrevious(fromNode)
 			} else {
-				getCreateNode(toName, procs[toName], nodeForName)
+				getCreateNode(toName, actrs[toName], nodeForName)
 			}
 		}
 	}
@@ -56,7 +56,7 @@ func NewFlowTree(flows []project.Flow, procs map[string]Processor) (*FlowTree, e
 func (ft *FlowTree) Iterate(callback func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error) error {
 	wasVisitedForID := make(map[string]bool)
 	return ft.Root.Iterate(func(prev []*FlowNode, curr *FlowNode, next []*FlowNode) error {
-		id := curr.processor.ID()
+		id := curr.actor.ID()
 		_, ok := wasVisitedForID[id]
 		if !ok {
 			wasVisitedForID[id] = true
@@ -106,10 +106,10 @@ func findNoPredecessorAndNoSuccessorNodes(nodeForName map[string]*FlowNode) (
 	return nil, nil, err
 }
 
-func getCreateNode(name string, proc Processor, acc map[string]*FlowNode) *FlowNode {
+func getCreateNode(name string, act Actor, acc map[string]*FlowNode) *FlowNode {
 	node, ok := acc[name]
 	if !ok {
-		node = NewFlowNode(proc)
+		node = NewFlowNode(act)
 		acc[name] = node
 	}
 	return node
@@ -119,7 +119,7 @@ func makeUniqueSet(input []*FlowNode) []*FlowNode {
 	output := make([]*FlowNode, 0)
 	isContainedForID := make(map[string]bool)
 	for _, node := range input {
-		id := node.processor.ID()
+		id := node.actor.ID()
 		_, isOk := isContainedForID[id]
 		if !isOk {
 			isContainedForID[id] = true
@@ -132,7 +132,7 @@ func makeUniqueSet(input []*FlowNode) []*FlowNode {
 func collectIDs(nodes []*FlowNode) []string {
 	ids := make([]string, len(nodes))
 	for i, n := range nodes {
-		ids[i] = n.processor.ID()
+		ids[i] = n.actor.ID()
 	}
 	return ids
 }

@@ -23,14 +23,14 @@ func TestFlowNodes(t *testing.T) {
 	visited := make(map[string]int)
 
 	checkLen := lengthChecker(map[string][]int{
-		forkNode.Processor().ID():  []int{0, 2},
-		fneNode.Processor().ID():   []int{1, 1},
-		lneNode.Processor().ID():   []int{1, 1},
-		mergeNode.Processor().ID(): []int{2, 0},
+		forkNode.Actor().ID():  []int{0, 2},
+		fneNode.Actor().ID():   []int{1, 1},
+		lneNode.Actor().ID():   []int{1, 1},
+		mergeNode.Actor().ID(): []int{2, 0},
 	})
 
 	err := forkNode.Iterate(func(prev []*config.FlowNode, curr *config.FlowNode, next []*config.FlowNode) error {
-		id := curr.Processor().ID()
+		id := curr.Actor().ID()
 		visited[id]++
 		return checkLen(id, len(prev), len(next))
 	})
@@ -44,10 +44,10 @@ func TestFlowNodes(t *testing.T) {
 	errs := checkContainsAllTimes(
 		visited,
 		map[string]int{
-			forkNode.Processor().ID():  1,
-			fneNode.Processor().ID():   1,
-			lneNode.Processor().ID():   1,
-			mergeNode.Processor().ID(): 2,
+			forkNode.Actor().ID():  1,
+			fneNode.Actor().ID():   1,
+			lneNode.Actor().ID():   1,
+			mergeNode.Actor().ID(): 2,
 		},
 	)
 	if len(errs) > 0 {
@@ -114,7 +114,7 @@ func createTestFlow() (
 }
 
 func nodesEqual(a *config.FlowNode, b *config.FlowNode) bool {
-	return a.Processor().ID() == b.Processor().ID()
+	return a.Actor().ID() == b.Actor().ID()
 }
 
 func checkNodePreviousCount(t *testing.T, node *config.FlowNode, count int, name string) {

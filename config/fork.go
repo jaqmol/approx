@@ -7,7 +7,7 @@ type Fork struct {
 }
 
 // Type ...
-func (f *Fork) Type() ProcessorType {
+func (f *Fork) Type() ActorType {
 	return ForkType
 }
 
