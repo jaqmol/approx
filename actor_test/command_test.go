@@ -3,12 +3,10 @@ package actor_test
 import (
 	"bytes"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/jaqmol/approx/actor"
 	"github.com/jaqmol/approx/config"
-	"github.com/jaqmol/approx/event"
 	"github.com/jaqmol/approx/logging"
 	"github.com/jaqmol/approx/test"
 )
@@ -135,7 +133,7 @@ func performTestWithIdentCmdAndArgsAndLogging(t *testing.T, ident, cmd, arg stri
 			test.CheckUpperFirstAndLastNames(t, &original, parsed)
 			counter++
 		} else if unimsg.messageType == unifiedMsgLogType {
-			checkCommandLogMsg(t, "Did process:", unimsg.data)
+			test.CheckCmdLogMsg(t, "Did process:", unimsg.data)
 		}
 	}
 
@@ -216,18 +214,18 @@ func dumpByteChannelEvents(channel <-chan []byte) {
 	}()
 }
 
-func checkCommandLogMsg(t *testing.T, expectedPrefix string, data []byte) {
-	msg, err := event.UnmarshalLogMsg(data)
-	logMsg, cmdErr, err := msg.PayloadOrError()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if logMsg != nil {
-		if !strings.HasPrefix(*logMsg, expectedPrefix) {
-			t.Fatalf("Unexpected command log message: %v", *logMsg)
-		}
-	}
-	if cmdErr != nil {
-		t.Fatal(cmdErr.Error())
-	}
-}
+// func checkCommandLogMsg(t *testing.T, expectedPrefix string, data []byte) {
+// 	msg, err := event.UnmarshalLogMsg(data)
+// 	logMsg, cmdErr, err := msg.PayloadOrError()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if logMsg != nil {
+// 		if !strings.HasPrefix(*logMsg, expectedPrefix) {
+// 			t.Fatalf("Unexpected command log message: %v", *logMsg)
+// 		}
+// 	}
+// 	if cmdErr != nil {
+// 		t.Fatal(cmdErr.Error())
+// 	}
+// }

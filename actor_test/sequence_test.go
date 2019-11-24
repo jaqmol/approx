@@ -2,9 +2,6 @@ package actor_test
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/jaqmol/approx/actor"
@@ -67,11 +64,11 @@ func TestSimpleCommandSequence(t *testing.T) {
 	counter := 0
 	for message := range receiver {
 		if message.messageType == unifiedMsgDataType {
-			err = checkOutEvent(message.data, originalForID)
+			err = test.CheckUpperExtraction(message.data, originalForID)
 			catchToFatal(t, err)
 			counter++
 		} else if message.messageType == unifiedMsgLogType {
-			checkCommandLogMsg(t, "Did extract", message.data)
+			test.CheckCmdLogMsg(t, "Did extract", message.data)
 		}
 	}
 
@@ -81,40 +78,8 @@ func TestSimpleCommandSequence(t *testing.T) {
 	}
 }
 
-func checkOutEvent(ob []byte, originalForID map[string]test.Person) error {
-	var extraction map[string]string
-	err := json.Unmarshal(ob, &extraction)
-	if err != nil {
-		return fmt.Errorf("Couldn't unmarshall person from: \"%v\" -> %v", string(ob), err.Error())
-	}
-
-	original := originalForID[extraction["id"]]
-	return checkExtractedPerson(original, extraction)
-}
-
 func catchToFatal(t *testing.T, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func checkExtractedPerson(original test.Person, extraction map[string]string) (err error) {
-	extractedValue, ok := extraction["first_name"]
-	if ok {
-		upperValue := strings.ToUpper(original.FirstName)
-		if upperValue != extractedValue {
-			err = fmt.Errorf("Extracted value %v not as expected: %v", extractedValue, upperValue)
-		}
-	} else {
-		extractedValue, ok = extraction["last_name"]
-		if ok {
-			upperValue := strings.ToUpper(original.LastName)
-			if upperValue != extractedValue {
-				err = fmt.Errorf("Extracted value %v not as expected: %v", extractedValue, upperValue)
-			}
-		} else {
-			err = fmt.Errorf("Extraction not as expected: %v", extraction)
-		}
-	}
-	return
 }

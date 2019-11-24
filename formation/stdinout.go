@@ -23,15 +23,6 @@ func newStdinActor(reader io.Reader) *actor.Producer {
 		if err != nil {
 			log.Fatalln("Error processing <stdin> events:", err)
 		}
-		// The scanner stosp scanning if the reader closed
-		// so at this point closing it is not necessary anymore
-		//
-		// else {
-		// 	err = reader.Close()
-		// 	if err != nil {
-		// 		log.Fatalln("Error closing <stdin>:", err)
-		// 	}
-		// }
 	}()
 	return producer
 }
@@ -53,10 +44,6 @@ func newStdoutActor(writer io.Writer, finished chan<- bool) *actor.Collector {
 			log.Fatalln("Error processing <stdout> events:", err)
 		} else if err == nil {
 			finished <- true
-			// err = writer.Close()
-			// if err != nil {
-			// 	log.Fatalln("Error closing <stdout>:", err)
-			// }
 		}
 	}()
 	return collector
