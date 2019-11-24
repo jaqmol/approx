@@ -19,6 +19,12 @@ func NewProducer(inboxSize int) *Producer {
 
 // NewThrottledProducer ...
 func NewThrottledProducer(inboxSize, messagesPerSecond int) *Producer {
+	p := &Producer{}
+	p.init(inboxSize, messagesPerSecond)
+	return p
+}
+
+func (p *Producer) init(inboxSize, messagesPerSecond int) {
 	var performSleep func()
 	if messagesPerSecond > 0 {
 		duration := time.Second / time.Duration(messagesPerSecond)
@@ -28,11 +34,8 @@ func NewThrottledProducer(inboxSize, messagesPerSecond int) *Producer {
 	} else {
 		performSleep = func() {}
 	}
-	// log.Println("Sleep duration:", duration)
-	return &Producer{
-		next:         make([]Actable, 0),
-		performSleep: performSleep,
-	}
+	p.next = make([]Actable, 0)
+	p.performSleep = performSleep
 }
 
 // Produce ...

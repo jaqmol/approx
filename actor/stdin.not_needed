@@ -1,0 +1,44 @@
+package actor
+
+import (
+	"io"
+	"log"
+
+	"github.com/jaqmol/approx/event"
+)
+
+// Stdin ...
+type Stdin struct {
+	Producer
+	ident string
+	input io.Reader
+}
+
+// NewStdin ...
+func NewStdin(ident string, input io.Reader) *Stdin {
+	return NewThrottledStdin(ident, input, 0)
+}
+
+// NewThrottledStdin ...
+func NewThrottledStdin(ident string, input io.Reader, messagesPerSecond int) *Stdin {
+	i := &Stdin{ident: ident, input: input}
+	i.init(10, messagesPerSecond)
+	return i
+}
+
+// Start ...
+func (i *Stdin) Start() {
+	go func() {
+		scanner := event.NewScanner(i.input)
+		err := i.Produce(func() ([]byte, error) {
+			if scanner.Scan() {
+				raw := scanner.Bytes()
+				return event.ScannedBytesCopy(raw), nil
+			}
+			return nil, io.EOF
+		})
+		if err != nil {
+			log.Fatalf("Stdin \"%v\" error processing input: %v\n", i.ident, err)
+		}
+	}()
+}

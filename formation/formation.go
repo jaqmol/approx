@@ -17,32 +17,44 @@ const actorInboxSize = 10
 
 // Formation ...
 type Formation struct {
+	projPath string
 	conf     *config.Formation
-	Actables map[string]actor.Actable
-	Stdin    io.ReadCloser
-	Stdout   io.WriteCloser
-	Logger   *logging.WriterLog
+	finished chan bool
+	actables map[string]actor.Actable
+	stdin    io.Reader
+	stdout   io.Writer
+	logger   logging.Logger
 }
 
 // NewFormation ...
 func NewFormation(
-	stdin io.ReadCloser,
-	stderr io.Writer,
-	stdout io.WriteCloser,
+	stdin io.Reader,
+	stdout io.Writer,
+	logger logging.Logger,
 ) (*Formation, error) {
-	projForm, err := loadProjectFormation()
+	projPath, err := figureProjectPath()
 	if err != nil {
 		return nil, err
 	}
+
+	projForm, err := project.LoadFormation(projPath)
+	if err != nil {
+		return nil, err
+	}
+
 	confForm, err := config.NewFormation(projForm)
 	if err != nil {
 		return nil, err
 	}
 
 	f := Formation{
+		projPath: projPath,
 		conf:     confForm,
-		Actables: make(map[string]actor.Actable),
-		Logger:   logging.NewWriterLog(stderr),
+		finished: make(chan bool),
+		actables: make(map[string]actor.Actable),
+		stdin:    stdin,
+		stdout:   stdout,
+		logger:   logger,
 	}
 
 	err = f.createActables()
@@ -57,7 +69,7 @@ func NewFormation(
 	return &f, nil
 }
 
-func loadProjectFormation() (*project.Formation, error) {
+func figureProjectPath() (string, error) {
 	var projPath string
 	var err error
 	if len(os.Args) == 2 {
@@ -65,21 +77,26 @@ func loadProjectFormation() (*project.Formation, error) {
 	} else {
 		projPath, err = os.Getwd()
 	}
-
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+
 	projPath, err = filepath.Abs(projPath)
 	if err != nil {
-		return nil, err
-	}
-	projForm, err := project.LoadFormation(projPath)
-	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return projForm, nil
+	return projPath, nil
 }
+
+// func loadProjectFormation(projPath string) (*project.Formation, error) {
+// 	projForm, err := project.LoadFormation(projPath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return projForm, nil
+// }
 
 func (f *Formation) createActables() error {
 	return f.conf.FlowTree.Iterate(func(
@@ -105,12 +122,12 @@ func (f *Formation) createActables() error {
 
 func (f *Formation) getCreateActable(currConfProc config.Actor) (actor.Actable, error) {
 	id := currConfProc.ID()
-	actbl, ok := f.Actables[id]
+	actbl, ok := f.actables[id]
 	var err error
 	if !ok {
 		switch currConfProc.Type() {
 		case config.StdinType:
-			actbl = newStdinActor(f.Stdin)
+			actbl = newStdinActor(f.stdin)
 		case config.CommandType:
 			actbl, err = f.newCommandActor(currConfProc.(*config.Command))
 		case config.ForkType:
@@ -118,9 +135,9 @@ func (f *Formation) getCreateActable(currConfProc config.Actor) (actor.Actable, 
 		case config.MergeType:
 			actbl = f.newMergeActor(currConfProc.(*config.Merge))
 		case config.StdoutType:
-			actbl = newStdoutActor(f.Stdout)
+			actbl = newStdoutActor(f.stdout, f.finished)
 		}
-		f.Actables[id] = actbl
+		f.actables[id] = actbl
 	}
 	return actbl, err
 }
@@ -130,7 +147,10 @@ func (f *Formation) newCommandActor(conf *config.Command) (*actor.Command, error
 	if err != nil {
 		return nil, err
 	}
-	f.Logger.Add(c.Logging())
+	if f.projPath != "" {
+		c.Directory(f.projPath)
+	}
+	f.logger.Add(c.Logging())
 	return c, nil
 }
 
@@ -153,7 +173,7 @@ func (f *Formation) connectActables() error {
 			return err
 		}
 		currID := curr.Actor().ID()
-		currActbl, ok := f.Actables[currID]
+		currActbl, ok := f.actables[currID]
 		if !ok {
 			return fmt.Errorf("Actor to connect to not found: %v", currID)
 		}
@@ -176,7 +196,7 @@ func getNodeIDs(nodes []*config.FlowNode) []string {
 func (f *Formation) getActables(ids []string) ([]actor.Actable, error) {
 	acc := make([]actor.Actable, len(ids))
 	for i, id := range ids {
-		actbl, ok := f.Actables[id]
+		actbl, ok := f.actables[id]
 		if !ok {
 			return nil, fmt.Errorf("Could not find \"%v\"", id)
 		}
@@ -186,9 +206,10 @@ func (f *Formation) getActables(ids []string) ([]actor.Actable, error) {
 }
 
 // Start ...
-func (f *Formation) Start() {
-	for _, actbl := range f.Actables {
+func (f *Formation) Start() <-chan bool {
+	go f.logger.Start()
+	for _, actbl := range f.actables {
 		actbl.Start()
 	}
-	go f.Logger.Start()
+	return f.finished
 }

@@ -9,9 +9,13 @@ type Collector struct {
 
 // NewCollector ...
 func NewCollector(inboxSize int) *Collector {
-	return &Collector{
-		inbox: make(chan Message, inboxSize),
-	}
+	c := &Collector{}
+	c.init(inboxSize)
+	return c
+}
+
+func (c *Collector) init(inboxSize int) {
+	c.inbox = make(chan Message, inboxSize)
 }
 
 // Next ...
