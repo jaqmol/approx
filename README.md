@@ -1,60 +1,134 @@
-# APPROX
+# UNIX Sockets based Approach
 
-1. Small is beautiful.
-2. Make each program do one thing well.
-3. Build a prototype as soon as possible.
-4. Choose portability over efficiency.
-5. Store data in flat text files.
-6. Use software leverage to your advantage.
-7. Use shell scripts to increase leverage and portability.
-8. Avoid captive user interfaces.
-9. Make every program a filter.
+This branch is to test a new idea to base the whole concepts on top of UNIX sockets.
 
-*Mike Gancarz: The UNIX Philosoph*
+## Concept
 
-Approx allows for connecting small, reactive processes to form applications.
+1. All events are routed via buses
+2. A bus is a unix sockets bound to a file
+3. The binding location can be everywhere
+4. Approx could therefore be used completely without a YAML file
+   - Start buses ate specific locations
+   - Pipe processes in and out those buses
 
-## Nomenclature
+## Code Quickstart
 
-### Approx executable
+Use the following client server example as a quick start:
 
-Reads a formation and spins up a flow-graph of actors.
+```go
+// Server
 
-### Actor
+package main
 
-A process classified by:
+import (
+    "log"
+    "net"
+)
 
-- Parametrized by environments variables
-- Listens for events from an input-streams
-- Processes events and data
-- Writes events to an output-streams
-- As low complexity as possible
-- Listen for events until it receives SIGINT
+func echoServer(c net.Conn) {
+    for {
+        buf := make([]byte, 512)
+        nr, err := c.Read(buf)
+        if err != nil {
+            return
+        }
 
-### Input, Output
+        data := buf[0:nr]
+        println("Server got:", string(data))
+        _, err = c.Write(data)
+        if err != nil {
+            log.Fatal("Write: ", err)
+        }
+    }
+}
 
-Events flow through an actor via `stdin` and `stdout`. The builtin actors "fork" and "merge" are used to splice the event stream.
+func main() {
+    l, err := net.Listen("unix", "/tmp/echo.sock")
+    if err != nil {
+        log.Fatal("listen error:", err)
+    }
 
-## Why
+    for {
+        fd, err := l.Accept()
+        if err != nil {
+            log.Fatal("accept error:", err)
+        }
 
-- To allow for designing applications as a flow-graph of stream actors.
-- To design each of them as a low complexity stream process, that transforms input into output.
-- To build multi-process-applications easily and with every programming language that can read/write to stdin/-out.
-- To mix and match programming languages as comes handy.
-- To choose the best library (or programming language) for a single problem.
-- Not to be forced into compromises.
+        go echoServer(fd)
+    }
+}
+```
 
-A flow-graph of stream actors is an event driven architecture. Listening for messages / or IPC via reading from `stdin` is among the most basic of tasks in the very most of programming languages. Also:
-- Very good performance.
-- Very good documentation.
-- Maximum operating system support.
+```go
+// Client
 
-### Why not unix sockets?
+package main
 
-Too difficult to reach in most programming languages. Too complex to use.
-Sockets don't perform better than pipes.
+import (
+    "io"
+    "log"
+    "net"
+    "time"
+)
 
-### Why not http, websockets, long polling, ...?
+func reader(r io.Reader) {
+    buf := make([]byte, 1024)
+    for {
+        n, err := r.Read(buf[:])
+        if err != nil {
+            return
+        }
+        println("Client got:", string(buf[0:n]))
+    }
+}
 
-Request-response-based network communication protocols are not a natural or effective choice for event driven architectures. Especially not of used on the same machine.
-Communicating processes via network interface is not as ressource efficient as pipes.
+func main() {
+    c, err := net.Dial("unix", "/tmp/echo.sock")
+    if err != nil {
+        panic(err)
+    }
+    defer c.Close()
+
+    go reader(c)
+    for {
+        _, err := c.Write([]byte("hi"))
+        if err != nil {
+            log.Fatal("write error:", err)
+            break
+        }
+        time.Sleep(1e9)
+    }
+}
+```
+
+## Message Frames
+
+Reliable message frames must be ensured, so that the receiver knows when it's save to attempt parsing a message. Unfortunately in many script languages a message from stdin is chunked arbitrarily by some byte size set by the used library. Several solutions are possible:
+
+### A: Process restart for each message
+
+Message handler is easy to implement. Performance goes down due to constant restarts of the processes.
+
+### B: Base64 as wire-format with separator
+
+Support in all possible scripting languages, though some implementation overhead, still easy to do.
+Choose a suitable message separator string like "\n---\n" -> easy to parse, pretty-print newlines will be ignored by every base64 parser.
+
+### B: Length-prefixed base64 wire-format
+
+Support in all possible scripting languages, though some implementation overhead, still easy to do.
+Very effective to implement with a state machine.
+
+### Unsafe solution: Usage of Unix Process Signals
+
+Instead of sending event-splitter via the bus, signals could be used to mark the divider between messages:
+[Signals default actions](https://en.wikipedia.org/wiki/Signal_(IPC)#Default_action).
+
+#### Possible signals:
+
+- SIGURG
+- SIGUSR2
+
+#### Side effects
+
+Signals are asynchronous, so that the actual end of message might be very hard to detect.
