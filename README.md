@@ -117,7 +117,7 @@ Choose a suitable message separator string like "\n---\n" -> easy to parse, pret
 ### B: Length-prefixed base64 wire-format
 
 Support in all possible scripting languages, though some implementation overhead, still easy to do.
-Very effective to implement with a state machine.
+Very effective to implement with a state machine. Not so good when it comes to streaming of big data.
 
 ### Unsafe solution: Usage of Unix Process Signals
 
