@@ -17,12 +17,12 @@ func main() {
 	}
 
 	switch args[0] {
-	case "tap":
+	case "pipe":
 		if argsLen < 2 {
-			fmt.Println("Not enough arguments for tap:")
-			printTapHelp()
+			fmt.Println("Not enough arguments for pipe:")
+			printPipeHelp()
 		} else {
-			startTap(args[1])
+			startPipe(args[1])
 		}
 	case "fork":
 		if argsLen < 4 {
@@ -65,14 +65,14 @@ func printHeader() {
 }
 
 func printHelp() {
-	printTapHelp()
+	printPipeHelp()
 	printForkHelp()
 	printMergeHelp()
 	printCleanupHelp()
 }
-func printTapHelp() {
-	fmt.Println("tap <name>")
-	fmt.Println("  Tap into message stream from <name>.wr to <name>.rd")
+func printPipeHelp() {
+	fmt.Println("pipe <name>")
+	fmt.Println("  Pipe message stream from <name>.wr to <name>.rd")
 }
 func printForkHelp() {
 	fmt.Println("fork <wr-name> <rd-name-1> <rd-name-2> <...>")

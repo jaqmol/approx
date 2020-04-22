@@ -18,13 +18,13 @@ read-file.js     find-media-type.js     |
                V                        |
         merge-response.js --------------o
 
+./hub pipe response-pipe &
 ./hub fork web-server-out read-file-in find-media-type-in &
 ./hub merge read-file-out find-media-type-out merge-response-in &
-mkfifo response-pipe.rdwr
 
-cat response-pipe.rdwr | ./web-server.js > web-server-out.wr
-cat read-file-in.rd | ./read-file.js > read-file-out.wr
-cat find-media-type-in.rd | ./find-media-type.js > find-media-type-out.wr
-cat merge-response-in.rd | ./merge-response.js > response-pipe.rdwr
+cat response-pipe.rd | ./web-server.js > web-server-out.wr &
+cat read-file-in.rd | ./read-file.js > read-file-out.wr &
+cat find-media-type-in.rd | ./find-media-type.js > find-media-type-out.wr &
+cat merge-response-in.rd | ./merge-response.js > response-pipe.wr &
 
 ./hub cleanup

@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func startTap(name string) {
+func startPipe(name string) {
 	usrWrFilepath := fmt.Sprintf("%s.wr", name)
 	usrRdFilepath := fmt.Sprintf("%s.rd", name)
 
@@ -24,14 +24,14 @@ func startTap(name string) {
 		log.Fatal("Error making/opening named pipe for reading: ", err)
 	}
 
-	log.Printf("Running tap from %s to %s\n", usrWrFilepath, usrRdFilepath)
-	err = runTap(usrWrFile, usrRdFile)
+	log.Printf("Running pipe from %s to %s\n", usrWrFilepath, usrRdFilepath)
+	err = runPipe(usrWrFile, usrRdFile)
 	if err != nil {
-		log.Fatalln("Error operating tap loop:", err)
+		log.Fatalln("Error operating pipe loop:", err)
 	}
 }
 
-func runTap(usrWrFile io.Reader, usrRdFile io.Writer) error {
+func runPipe(usrWrFile io.Reader, usrRdFile io.Writer) error {
 	scanner := bufio.NewScanner(usrWrFile)
 	scanner.Split(scanMessages)
 
@@ -43,7 +43,7 @@ func runTap(usrWrFile io.Reader, usrRdFile io.Writer) error {
 		if err != nil {
 			log.Printf("Error decoding message: %s\n", err)
 		}
-		log.Printf("TAPPING: %s\n", msg)
+		log.Printf("PIPING: %s\n", msg)
 
 		msgWithDelim := append(msgB64, delim...)
 		usrRdFile.Write(msgWithDelim)

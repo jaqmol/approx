@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const {ParseMessage, MakeMessage} = require('./hub-messaging');
+const {ParseMessage, MessageWriter} = require('./hub-messaging');
+const write = MessageWriter(process.stdout);
 const pending = {};
 
 process.stdin.on('data', ParseMessage(({
@@ -11,30 +12,35 @@ process.stdin.on('data', ParseMessage(({
   payload,
   error,
 }) => {
-  const resp = pending[id] || {id, cmd: 'RESPOND'};
-  if (cmd === 'PROCESS_MEDIA_TYPE') {
-    resp.contentType = mediaType;
-  } else if (cmd === 'PROCESS_FILE') {
-    resp.encoding = encoding;
-    resp.payload = payload;
-  } else if (cmd === 'PROCESS_FILE_ERROR') {
-    resp.cmd = 'FAIL';
-    resp.error = error;
+  console.error('TRYING TO MERGE:', cmd);
+  if (cmd === 'FAIL_WITH_NOT_FOUND') {
+    respondWithNotFound(cmd, id, error);
+  } else {
+    const resp = pending[id] || {id, cmd: 'RESPOND'};
+    if (cmd === 'PROCESS_MEDIA_TYPE') {
+      resp.contentType = mediaType;
+    } else if (cmd === 'PROCESS_FILE') {
+      resp.encoding = encoding;
+      resp.payload = payload;
+    }
+    pending[id] = resp;
+    respondIfComplete(id);
   }
-  pending[id] = resp;
-  respondIfComplete(id);
 }));
 
 function respondIfComplete(id) {
   const resp = pending[id];
-  if (resp.cmd === 'FAIL') {
-    process.stdout.write(MakeMessage(resp));
+  const hasContentType = typeof resp.contentType !== 'undefined';
+  if (hasContentType && resp.encoding && resp.payload) {
+    console.error('MERGE COMPLETE:', JSON.stringify(resp));
+    write(resp);
     delete pending[id];
   } else {
-    const hastMediaType = typeof resp.mediaType !== 'undefined';
-    if (hastMediaType && resp.encoding && resp.payload) {
-      process.stdout.write(MakeMessage(resp));
-      delete pending[id];
-    }
+    console.error('MERGE INCOMPLETE:', JSON.stringify(resp));
   }
+}
+
+function respondWithNotFound(cmd, id, error) {
+  write({id, cmd, error});
+  delete pending[id];
 }

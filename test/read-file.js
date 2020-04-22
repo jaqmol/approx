@@ -2,7 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const {ParseMessage, MakeMessage} = require('./hub-messaging');
+const {ParseMessage, MessageWriter} = require('./hub-messaging');
+const write = MessageWriter(process.stdout);
 
 // THIS IS NOT YET A STREAMING FILE READER
 
@@ -17,19 +18,20 @@ process.stdin.on('data', ParseMessage(({
       : url;
     readFile(filePath, (err, data) => {
       if (err) {
-        process.stdout.write(MakeMessage({
+        console.error('ERROR READING:', filePath);
+        write({
           id,
-          cmd: 'PROCESS_FILE_ERROR',
+          cmd: 'FAIL_WITH_NOT_FOUND',
           error: err.message,
-        }));
+        });
       } else {
-        console.error('DID READ:', url, 'WITH DATA LENGTH:', data.length);
-        process.stdout.write(MakeMessage({
+        console.error('SUCCESS READING:', filePath, 'WITH DATA LENGTH:', data.length);
+        write({
           id,
           cmd: 'PROCESS_FILE',
           encoding: 'base64',
           payload: data.toString('base64'),
-        }));
+        });
       }
     });
   }
