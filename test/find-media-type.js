@@ -1,52 +1,37 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
-const { inform, exit } = require('./log');
+const {ParseMessage, MakeMessage} = require('./hub-messaging');
 
-// TODO: Implement new approach
-
-readMediaTypes((err, mediaTypeForExt) => {
+loadMediaTypes((err, mediaTypeForExt) => {
   if (err) {
-    exit(null, err.toString());
+    console.error('Cannot load media types file:', err);
   } else {
     listen(mediaTypeForExt);
   }
 });
 
 function listen(mediaTypeForExt) {
-  // TODO: Line wise reading doesn't cut it
-  
-  const reader = readline.createInterface({
-    input: process.stdin
-  });
-
-  reader.on('line', (input) => {
-    const event = JSON.parse(input);
-    const rawExt = path.extname(event.payload.url.path);
-    const extension = rawExt === '' ? '.html' : rawExt;
-    inform(event.id, "checking media type of extension " + extension);
-    const mediaType = mediaTypeForExt[extension];
-    send(event.id, event.index, extension, mediaType);
-  });
-}
-
-function send(id, index, extension, mediaType) {
-  const event = {
+  process.stdin.on('data', ParseMessage(({
     id,
-    index,
-    role: 'media-type',
-    cmd: 'set-content-type',
-    payload: {
-      extension,
-      mediaType,
-    },
-  };
-  const eventJson = JSON.stringify(event);
-  process.stdout.write(`${eventJson}\n`, 'utf8');
+    cmd, 
+    ext,
+  }) => {
+    if (cmd === 'FIND_MEDIA_TYPE') {
+      const extension = ext === '' ? '.html' : ext;
+      const mediaType = mediaTypeForExt[extension];
+      process.stdout.write(MakeMessage({
+        id,
+        cmd: 'PROCESS_MEDIA_TYPE',
+        mediaType,
+      }));
+    }
+  }));
 }
 
-function readMediaTypes(callback) {
-  const csvFilePath = path.join(__dirname, 'media-type-for-extension.csv');
+function loadMediaTypes(callback) {
+  const csvFilePath = path.join(__dirname, 'media-types.csv');
   fs.readFile(csvFilePath, 'utf8', (err, data) => {
     if (err) {
       callback(err);
@@ -58,6 +43,6 @@ function readMediaTypes(callback) {
       const cell = l.split(',');
       acc[cell[0]] = cell[1];
     }
-    callback(null, acc);
+    callback(undefined, acc);
   });
 }

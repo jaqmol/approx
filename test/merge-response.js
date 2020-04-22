@@ -1,61 +1,41 @@
-const readline = require('readline');
-const { inform, exit } = require('./log');
-const eventsBuffer = {};
+#!/usr/bin/env node
 
-// TODO: Implement new approach
+const {ParseMessage, MakeMessage} = require('./hub-messaging');
+const pending = {};
 
-// TODO: Line wise reading doesn't cut it
-const reader = readline.createInterface({
-  input: process.stdin
-});
+process.stdin.on('data', ParseMessage(({
+  id,
+  cmd, 
+  mediaType,
+  encoding,
+  payload,
+  error,
+}) => {
+  const resp = pending[id] || {id, cmd: 'RESPOND'};
+  if (cmd === 'PROCESS_MEDIA_TYPE') {
+    resp.mediaType = mediaType;
 
-reader.on('line', (input) => {
-  let event; 
-  try {
-    event = JSON.parse(input);
-  } catch(err) {
-    exit('', 'ERROR PARSING INPUT: "' + input + '": ' + err.toString());
-    return;
-  } 
-  const acc = eventsBuffer[event.id] || {
-    mediaType: null,
-    hasMediaType: false,
-    fileContent: null,
-    hasFileContent: false,
-  };
-
-  if (event.role === 'media-type') {
-    inform(event.id, 'media type received');
-    acc.mediaType = event.payload;
-    acc.hasMediaType = true;
-  } else if (event.role === 'file-content') {
-    inform(event.id, 'file content received');
-    acc.fileContent = event.payload;
-    acc.hasFileContent = true;
+  } else if (cmd === 'PROCESS_FILE') {
+    resp.encoding = encoding;
+    resp.payload = payload;
+  } else if (cmd === 'PROCESS_FILE_ERROR') {
+    resp.cmd = 'FAIL';
+    resp.error = error;
   }
+  pending[id] = resp;
+  respondIfComplete(id);
+}));
 
-  if (acc.hasMediaType && acc.hasFileContent) {
-    inform(event.id, 'media type and file content received, so returning');
-    const {status, body} = acc.fileContent;
-    const {mediaType} = acc.mediaType;
-    send(event.id, status, mediaType, body);
-    delete eventsBuffer[event.id];
+function respondIfComplete(id) {
+  const resp = pending[id];
+  if (resp.cmd === 'FAIL') {
+    process.stdout.write(MakeMessage(resp));
+    delete pending[id];
   } else {
-    eventsBuffer[event.id] = acc;
+    const hastMediaType = typeof resp.mediaType !== 'undefined';
+    if (hastMediaType && resp.encoding && resp.payload) {
+      process.stdout.write(MakeMessage(resp));
+      delete pending[id];
+    }
   }
-});
-
-function send(id, status, contentType, body) {
-  const event = {
-    id,
-    role: 'response',
-    cmd: 'respond',
-    payload: {
-      status,
-      contentType,
-      body,
-    },
-  };
-  const eventJson = JSON.stringify(event);
-  process.stdout.write(`${eventJson}\n`, 'utf8');
 }

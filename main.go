@@ -10,6 +10,12 @@ func main() {
 	args := os.Args[1:]
 	argsLen := len(args)
 
+	if argsLen == 0 {
+		printHeader()
+		printHelp()
+		return
+	}
+
 	switch args[0] {
 	case "tap":
 		if argsLen < 2 {
@@ -32,6 +38,12 @@ func main() {
 		} else {
 			lastIdx := len(args) - 1
 			startMerge(args[1:lastIdx], args[lastIdx])
+		}
+	case "cleanup":
+		if argsLen < 2 {
+			startCleanup(".")
+		} else {
+			startCleanup(args[1])
 		}
 	default:
 		printHeader()
@@ -56,6 +68,7 @@ func printHelp() {
 	printTapHelp()
 	printForkHelp()
 	printMergeHelp()
+	printCleanupHelp()
 }
 func printTapHelp() {
 	fmt.Println("tap <name>")
@@ -68,4 +81,8 @@ func printForkHelp() {
 func printMergeHelp() {
 	fmt.Println("merge <wr-name-1> <wr-name-2> <...< <rd-name>")
 	fmt.Println("  Merge message stream from all provided wr-fifos into rd-fifo")
+}
+func printCleanupHelp() {
+	fmt.Println("cleanup <directory>")
+	fmt.Println("  Cleanup directory from fifos (wr & rd)")
 }

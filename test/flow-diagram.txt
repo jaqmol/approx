@@ -1,0 +1,26 @@
+
+            |     ^
+            V     |
+         web-server.js <----------------o
+               |                        |
+               V                        |
+            req-fork                    |
+               |                        |
+     o---------o---------o              |
+     |                   |              |
+     V                   V              |
+read-file.js     find-media-type.js     |
+     |                   |              |
+     o---------o---------o              |
+               |                        |
+           resp-merge                   |
+               |                        |
+               V                        |
+        merge-response.js --------------o
+
+./hub fork web-server-out read-file-in find-media-type-in
+./hub merge read-file-out find-media-type-out web-server-in
+
+cat web-server-in.rd | ./web-server.js > web-server-out.wr
+cat read-file-in.rd | ./read-file.js > read-file-out.wr
+cat find-media-type-in.rd | ./find-media-type.js > find-media-type-out.wr
