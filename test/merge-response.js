@@ -13,8 +13,7 @@ process.stdin.on('data', ParseMessage(({
 }) => {
   const resp = pending[id] || {id, cmd: 'RESPOND'};
   if (cmd === 'PROCESS_MEDIA_TYPE') {
-    resp.mediaType = mediaType;
-
+    resp.contentType = mediaType;
   } else if (cmd === 'PROCESS_FILE') {
     resp.encoding = encoding;
     resp.payload = payload;

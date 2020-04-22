@@ -12,7 +12,10 @@ process.stdin.on('data', ParseMessage(({
   url,
 }) => {
   if (cmd === 'READ_FILE') {
-    readFile(url, (err, data) => {
+    const filePath = (url === '') || (url === '/')
+      ? '/index.html'
+      : url;
+    readFile(filePath, (err, data) => {
       if (err) {
         process.stdout.write(MakeMessage({
           id,
