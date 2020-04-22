@@ -12,7 +12,7 @@ process.stdin.on('data', ParseMessage(({
   url,
 }) => {
   if (cmd === 'READ_FILE') {
-    readFileB64(url, (err, data) => {
+    readFile(url, (err, data) => {
       if (err) {
         process.stdout.write(MakeMessage({
           id,
@@ -20,6 +20,7 @@ process.stdin.on('data', ParseMessage(({
           error: err.message,
         }));
       } else {
+        console.error('DID READ:', url, 'WITH DATA LENGTH:', data.length);
         process.stdout.write(MakeMessage({
           id,
           cmd: 'PROCESS_FILE',
@@ -31,8 +32,9 @@ process.stdin.on('data', ParseMessage(({
   }
 }));
 
-function readFileB64(filePath, callback) {
-  const fullPath = path.join(process.cwd(), process.env.BASE_PATH, filePath);
+function readFile(url, callback) {
+  // process.cwd()
+  const fullPath = path.join('.', 'static', url);
   fs.readFile(fullPath, (err, data) => {
     if (err) callback(err);
     else callback(undefined, data);
