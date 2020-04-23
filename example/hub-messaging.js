@@ -1,8 +1,8 @@
-let inputCache = '';
 
 const DELIMITER = '\n---\n';
 
 function ParseMessage(callback) {
+  let inputCache = '';
   return data => {
     inputCache += data.toString();
     let idx = inputCache.indexOf(DELIMITER);
@@ -23,26 +23,15 @@ function Envelope(msgObj) {
 }
 
 function MessageWriter(outputStream) {
-  const jobsCache = [];
-  let running = false;
-  const next = () => {
-    if (running) return;
-    if (!jobsCache.length) return;
-    const perform = jobsCache.splice(0, 1)[0];
-    running = true;
-    perform();
-  };
-  const conclude = () => {
-    running = false;
-    next();
-  };
+  let lastPromise = Promise.resolve();
   return message => {
-    jobsCache.push(() => {
+    const nextPromise = new Promise(resolve => {
       const waitForDrain = !outputStream.write(Envelope(message));
-      if (waitForDrain) outputStream.once('drain', conclude);
-      else setTimeout(conclude, 0);
+      if (waitForDrain) outputStream.once('drain', resolve);
+      else resolve();
     });
-    next();
+    lastPromise.then(nextPromise);
+    lastPromise = nextPromise;
   };
 }
 

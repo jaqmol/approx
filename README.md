@@ -1,134 +1,84 @@
-# UNIX Sockets based Approach
+# APPROX HUB
 
-This branch is to test a new idea to base the whole concepts on top of UNIX sockets.
+Connect small, reactive processes in every programming language that can read and write to Stdin and Stdout in a flow graph to form applications.
 
-## Concept
+- Communicating processes are also known as **Actors**
+- Processes are interconnecting via a **Messaging-Bus**
+- The form of programming is also known as **event-driven** or **reactive**
+- The same programming pattern like **messaging queues** like **RabbitMQ/AMQ**, but at the moment restricted to a single machine
 
-1. All events are routed via buses
-2. A bus is a unix sockets bound to a file
-3. The binding location can be everywhere
-4. Approx could therefore be used completely without a YAML file
-   - Start buses ate specific locations
-   - Pipe processes in and out those buses
+## Why?
 
-## Code Quickstart
+- Easy to handle form of parallel/concurrent programming
+- Easy to handle form of inter-process-communication between programs in different programming languages
+- Faster than the same thing via sockets or network interface, also no port-management required
 
-Use the following client server example as a quick start:
+## Input, Output
 
-```go
-// Server
+Messages/events flow through a process/actor via `stdin` and `stdout`. Stream-connectors are expressed as named pipes. The builtin actors "fork" and "merge" are used to splice and reunite the event streams. The builtin actors "pipe" is used to rewire any `stdout` to any `stdin` via a name pipe.
 
-package main
+## Simple Wire Format
 
-import (
-    "log"
-    "net"
-)
+Messages/events are JSON encoded, because it's pervasively supported. To distinguish messages from another, an additional envelope is used: the message is bas64-encoded with the delimiter `\n---\n`. Th reasons for this are pervasiveness of base64, ease of use and the resulting robustness.
 
-func echoServer(c net.Conn) {
-    for {
-        buf := make([]byte, 512)
-        nr, err := c.Read(buf)
-        if err != nil {
-            return
-        }
+## Usage
 
-        data := buf[0:nr]
-        println("Server got:", string(data))
-        _, err = c.Write(data)
-        if err != nil {
-            log.Fatal("Write: ", err)
-        }
-    }
-}
+First the `hub` command line tool is used to set up the infrastructure of named pipes. Usually automated by a shell-script. Second the actual actors/processes are started with their Stdin and Stdout connected to the named pipes.
 
-func main() {
-    l, err := net.Listen("unix", "/tmp/echo.sock")
-    if err != nil {
-        log.Fatal("listen error:", err)
-    }
+### `hub` CLI usage
 
-    for {
-        fd, err := l.Accept()
-        if err != nil {
-            log.Fatal("accept error:", err)
-        }
-
-        go echoServer(fd)
-    }
-}
+```bash
+$ ./hub
+hub
+Utility to build messaging systems by composing command line processes
+pipe <name>
+  Pipe message stream from <name>.wr to <name>.rd
+fork <wr-name> <rd-name-1> <rd-name-2> <...>
+  Fork message stream from wr-fifo into all provided rd-fifos
+merge <wr-name-1> <wr-name-2> <...< <rd-name>
+  Merge message stream from all provided wr-fifos into rd-fifo
+input <name>
+  Input JSON messages to stream them to <name>
+cleanup <directory>
+  Cleanup directory from fifos (wr & rd)
 ```
 
-```go
-// Client
+### Example:
 
-package main
+Given the following flow-graph...
 
-import (
-    "io"
-    "log"
-    "net"
-    "time"
-)
-
-func reader(r io.Reader) {
-    buf := make([]byte, 1024)
-    for {
-        n, err := r.Read(buf[:])
-        if err != nil {
-            return
-        }
-        println("Client got:", string(buf[0:n]))
-    }
-}
-
-func main() {
-    c, err := net.Dial("unix", "/tmp/echo.sock")
-    if err != nil {
-        panic(err)
-    }
-    defer c.Close()
-
-    go reader(c)
-    for {
-        _, err := c.Write([]byte("hi"))
-        if err != nil {
-            log.Fatal("write error:", err)
-            break
-        }
-        time.Sleep(1e9)
-    }
-}
+```ascii
+            |     ^
+            V     |
+         web-server.js <----------------o
+               |                        |
+               V                        |
+            req-fork                    |
+               |                        |
+     o---------o---------o              |
+     |                   |              |
+     V                   V              |
+read-file.js     find-media-type.js     |
+     |                   |              |
+     o---------o---------o              |
+               |                        |
+           resp-merge                   |
+               |                        |
+               V                        |
+        merge-response.js --------------o
 ```
 
-## Message Frames
+...the following setup and startup script is used:
 
-Reliable message frames must be ensured, so that the receiver knows when it's save to attempt parsing a message. Unfortunately in many script languages a message from stdin is chunked arbitrarily by some byte size set by the used library. Several solutions are possible:
+```bash
+./hub pipe response-pipe &
+./hub fork web-server-out read-file-in find-media-type-in &
+./hub merge read-file-out find-media-type-out merge-response-in &
 
-### A: Process restart for each message
+./web-server.js < response-pipe.rd > web-server-out.wr &
+./find-media-type.js < find-media-type-in.rd > find-media-type-out.wr &
+./merge-response.js < merge-response-in.rd > response-pipe.wr &
+./read-file.js < read-file-in.rd > read-file-out.wr &
+```
 
-Message handler is easy to implement. Performance goes down due to constant restarts of the processes.
-
-### B: Base64 as wire-format with separator
-
-Support in all possible scripting languages, though some implementation overhead, still easy to do.
-Choose a suitable message separator string like "\n---\n" -> easy to parse, pretty-print newlines will be ignored by every base64 parser.
-
-### B: Length-prefixed base64 wire-format
-
-Support in all possible scripting languages, though some implementation overhead, still easy to do.
-Very effective to implement with a state machine. Not so good when it comes to streaming of big data.
-
-### Unsafe solution: Usage of Unix Process Signals
-
-Instead of sending event-splitter via the bus, signals could be used to mark the divider between messages:
-[Signals default actions](https://en.wikipedia.org/wiki/Signal_(IPC)#Default_action).
-
-#### Possible signals:
-
-- SIGURG
-- SIGUSR2
-
-#### Side effects
-
-Signals are asynchronous, so that the actual end of message might be very hard to detect.
+**The example folder contains a static web-server expressed as flow-graph of forward-communicating processes (in NodeJS).** The file `hub-messaging.js` contains the only API necessary in 36 LOCs, showcasing how simple support can be implemented.

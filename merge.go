@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -16,8 +14,8 @@ func startMerge(usrWrNames []string, usrRdName string) {
 	for i, usrWrName := range usrWrNames {
 		usrWrFilepath := fmt.Sprintf("%s.wr", usrWrName)
 		usrWrFilepaths[i] = usrWrFilepath
-		os.Remove(usrWrFilepath)
-		usrWrFile, err := open(usrWrFilepath)
+
+		usrWrFile, err := createOpenFile(usrWrFilepath)
 		if err != nil {
 			log.Fatal("Error making/opening named pipe for writing: ", err)
 		}
@@ -31,8 +29,7 @@ func startMerge(usrWrNames []string, usrRdName string) {
 
 	usrRdFilepath := fmt.Sprintf("%s.rd", usrRdName)
 
-	os.Remove(usrRdFilepath)
-	usrRdFile, err := open(usrRdFilepath)
+	usrRdFile, err := createOpenFile(usrRdFilepath)
 	if err != nil {
 		log.Fatal("Error making/opening named pipe for reading: ", err)
 	}
@@ -55,9 +52,12 @@ func runMerge(usrWrFiles []io.Reader, usrRdFile io.Writer) {
 	for {
 		select {
 		case msgWithDelim := <-merger:
-			usrRdFile.Write(msgWithDelim)
+			_, err := usrRdFile.Write(msgWithDelim)
+			if err != nil {
+				log.Fatalln("Error dispatching merge message:", err)
+			}
 		case logMsg := <-logging:
-			log.Print(logMsg)
+			printLogLn(logMsg)
 		case err := <-errors:
 			log.Println(err)
 		case err := <-quit:
@@ -79,23 +79,17 @@ func scanReader(
 	errors chan<- error,
 	quit chan<- error,
 ) {
-	scanner := bufio.NewScanner(usrWrFile)
-	scanner.Split(scanMessages)
+	scanner := NewMsgScanner(usrWrFile)
 
 	for scanner.Scan() {
-		msgB64 := scanner.Bytes()
-
-		msg := make([]byte, base64.StdEncoding.DecodedLen(len(msgB64)))
-		_, err := base64.StdEncoding.Decode(msg, msgB64)
+		msg, err := scanner.DecodedMessage()
 		if err != nil {
-			errMsg := fmt.Errorf("Error decoding message: %s", err)
-			errors <- errMsg
+			errors <- err
 		}
-		logMsg := fmt.Sprintf("MERGING: %s\n", msg)
+		logMsg := fmt.Sprintf("MERGING: %s", msg)
 		logging <- logMsg
 
-		msgWithDelim := append(msgB64, delim...)
-		merger <- msgWithDelim
+		merger <- scanner.DelimitedMessage()
 	}
 
 	errors <- scanner.Err()

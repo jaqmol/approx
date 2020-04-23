@@ -32,15 +32,16 @@ function respondIfComplete(id) {
   const resp = pending[id];
   const hasContentType = typeof resp.contentType !== 'undefined';
   if (hasContentType && resp.encoding && resp.payload) {
-    console.error('MERGE COMPLETE:', JSON.stringify(resp));
+    console.error('MERGE COMPLETE:', resp.id);
     write(resp);
     delete pending[id];
   } else {
-    console.error('MERGE INCOMPLETE:', JSON.stringify(resp));
+    console.error('MERGE INCOMPLETE:', resp.id);
   }
 }
 
 function respondWithNotFound(cmd, id, error) {
+  console.error('MERGE PASSING ON NOT FOUND:', id);
   write({id, cmd, error});
   delete pending[id];
 }

@@ -38,8 +38,8 @@ process.stdin.on('data', ParseMessage(({
 }));
 
 function readFile(url, callback) {
-  // process.cwd()
-  const fullPath = path.join('.', 'static', url);
+  const fullPath = path.join(process.cwd(), 'static', url);
+  
   fs.readFile(fullPath, (err, data) => {
     if (err) callback(err);
     else callback(undefined, data);

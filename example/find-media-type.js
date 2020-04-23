@@ -21,7 +21,7 @@ function listen(mediaTypeForExt) {
   }) => {
     if (cmd === 'FIND_MEDIA_TYPE') {
       const extension = ext === '' ? '.html' : ext;
-      const mediaType = mediaTypeForExt[extension];
+      const mediaType = mediaTypeForExt[extension] || null;
       console.error('DID FIND MEDIA TYPE:', mediaType);
       write({
         id,

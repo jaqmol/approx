@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -13,8 +11,7 @@ import (
 func startFork(usrWrName string, usrRdNames []string) {
 	usrWrFilepath := fmt.Sprintf("%s.wr", usrWrName)
 
-	os.Remove(usrWrFilepath)
-	usrWrFile, err := open(usrWrFilepath)
+	usrWrFile, err := createOpenFile(usrWrFilepath)
 	if err != nil {
 		log.Fatal("Error making/opening named pipe for writing: ", err)
 	}
@@ -24,8 +21,8 @@ func startFork(usrWrName string, usrRdNames []string) {
 	for i, usrRdName := range usrRdNames {
 		usrRdFilepath := fmt.Sprintf("%s.rd", usrRdName)
 		usrRdFilepaths[i] = usrRdFilepath
-		os.Remove(usrRdFilepath)
-		usrRdFile, err := open(usrRdFilepath)
+
+		usrRdFile, err := createOpenFile(usrRdFilepath)
 		if err != nil {
 			log.Fatal("Error making/opening named pipe for reading: ", err)
 		}
@@ -45,22 +42,20 @@ func startFork(usrWrName string, usrRdNames []string) {
 }
 
 func runFork(usrWrFile io.Reader, usrRdFiles []io.Writer) error {
-	scanner := bufio.NewScanner(usrWrFile)
-	scanner.Split(scanMessages)
+	scanner := NewMsgScanner(usrWrFile)
 
 	for scanner.Scan() {
-		msgB64 := scanner.Bytes()
-
-		msg := make([]byte, base64.StdEncoding.DecodedLen(len(msgB64)))
-		_, err := base64.StdEncoding.Decode(msg, msgB64)
+		msg, err := scanner.DecodedMessage()
 		if err != nil {
-			log.Printf("Error decoding message: %s\n", err)
+			return err
 		}
-		log.Printf("FORKING: %s\n", msg)
+		printLogLn(fmt.Sprintf("FORKING: %s", msg))
 
-		msgWithDelim := append(msgB64, delim...)
 		for _, usrRdFile := range usrRdFiles {
-			usrRdFile.Write(msgWithDelim)
+			_, err = usrRdFile.Write(scanner.DelimitedMessage())
+			if err != nil {
+				return err
+			}
 		}
 	}
 

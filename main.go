@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"syscall"
 )
 
 func main() {
@@ -13,6 +12,7 @@ func main() {
 	if argsLen == 0 {
 		printHeader()
 		printHelp()
+		// test()
 		return
 	}
 
@@ -39,6 +39,13 @@ func main() {
 			lastIdx := len(args) - 1
 			startMerge(args[1:lastIdx], args[lastIdx])
 		}
+	case "input":
+		if argsLen < 2 {
+			fmt.Println("Not enough arguments for input:")
+			printInputHelp()
+		} else {
+			startInput(args[1])
+		}
 	case "cleanup":
 		if argsLen < 2 {
 			startCleanup(".")
@@ -51,13 +58,28 @@ func main() {
 	}
 }
 
-func open(filename string) (*os.File, error) {
-	err := syscall.Mkfifo(filename, 0666)
-	if err != nil {
-		return nil, err
-	}
-	return os.OpenFile(filename, os.O_RDWR, os.ModeNamedPipe)
-}
+// func test() {
+// 	src := strings.NewReader(`eyJuYW1lIjoicmVxdWVzdCIsInBheWxvYWQiOnsibWV0aG9kIjoiR0VUIn1
+// 9
+// ---
+// eyJuYW1lIjoicmVxdWVzdCIsInBheWxvYWQiOnsibWV0aG9kIjoiUE9TVCI
+// sImRhdGEiOnsiaGVsbG8iOiJ3b3JsZCJ9fX0=
+// ---
+// `)
+
+// 	reader := NewMsgReader(src)
+// 	for {
+// 		msgB64, err := reader.ReadMessage()
+// 		if err != nil {
+// 			log.Println(err)
+// 			break
+// 		}
+// 		if len(msgB64) > 0 {
+// 			log.Printf("Did read message: %s\n", msgB64)
+// 		}
+// 	}
+
+// }
 
 func printHeader() {
 	fmt.Println("hub")
@@ -68,6 +90,7 @@ func printHelp() {
 	printPipeHelp()
 	printForkHelp()
 	printMergeHelp()
+	printInputHelp()
 	printCleanupHelp()
 }
 func printPipeHelp() {
@@ -81,6 +104,10 @@ func printForkHelp() {
 func printMergeHelp() {
 	fmt.Println("merge <wr-name-1> <wr-name-2> <...< <rd-name>")
 	fmt.Println("  Merge message stream from all provided wr-fifos into rd-fifo")
+}
+func printInputHelp() {
+	fmt.Println("input <name>")
+	fmt.Println("  Input JSON messages to stream them to <name>")
 }
 func printCleanupHelp() {
 	fmt.Println("cleanup <directory>")
