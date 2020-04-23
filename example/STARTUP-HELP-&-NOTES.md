@@ -41,9 +41,9 @@ read-file.js     find-media-type.js     |
 
 ### 1st start the hubs
 
-./hub pipe response-pipe &
-./hub fork web-server-out read-file-in find-media-type-in &
-./hub merge read-file-out find-media-type-out merge-response-in &
+./hub pipe fifo-response-pipe &
+./hub fork fifo-web-server-out fifo-read-file-in fifo-find-media-type-in &
+./hub merge fifo-read-file-out fifo-find-media-type-out fifo-merge-response-in &
 
 ### 2nd start the programs
 
@@ -51,7 +51,7 @@ read-file.js     find-media-type.js     |
 > `web-server.js, find-media-type.js, merge-response.js, read-file.js`
 > Need to be executable (chmod +x)
 
-./web-server.js < response-pipe.rd > web-server-out.wr &
-./find-media-type.js < find-media-type-in.rd > find-media-type-out.wr &
-./merge-response.js < merge-response-in.rd > response-pipe.wr &
-./read-file.js < read-file-in.rd > read-file-out.wr &
+./web-server.js < fifo-response-pipe.rd > fifo-web-server-out.wr &
+./find-media-type.js < fifo-find-media-type-in.rd > fifo-find-media-type-out.wr &
+./merge-response.js < fifo-merge-response-in.rd > fifo-response-pipe.wr &
+./read-file.js < fifo-read-file-in.rd > fifo-read-file-out.wr &

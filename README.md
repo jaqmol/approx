@@ -12,6 +12,8 @@ Connect small, reactive processes in every programming language that can read an
 - Easy to handle form of parallel/concurrent programming
 - Easy to handle form of inter-process-communication between programs in different programming languages
 - Faster than the same thing via sockets or network interface, also no port-management required
+- Unix pipes are cool and everything that makes them usable for more problems is highly welcome 
+- Communication between processes can be visualized
 
 ## Input, Output
 

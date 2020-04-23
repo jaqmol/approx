@@ -32,7 +32,6 @@ process.stdin.on('data', ParseMessage(({
   contentType,
   error,
 }) => {
-  console.error(cmd, id, contentType, payload.length);
   if (cmd === 'RESPOND') {
     const {response} = pending[id];
     const data = Buffer.from(payload, encoding);
