@@ -1,60 +1,86 @@
-# APPROX
+# APPROX HUB
 
-1. Small is beautiful.
-2. Make each program do one thing well.
-3. Build a prototype as soon as possible.
-4. Choose portability over efficiency.
-5. Store data in flat text files.
-6. Use software leverage to your advantage.
-7. Use shell scripts to increase leverage and portability.
-8. Avoid captive user interfaces.
-9. Make every program a filter.
+Connect small, reactive processes in every programming language that can read and write to Stdin and Stdout in a flow graph to form applications.
 
-*Mike Gancarz: The UNIX Philosoph*
+- Communicating processes are also known as **Actors**
+- Processes are interconnecting via a **Messaging-Bus**
+- The form of programming is also known as **event-driven** or **reactive**
+- The same programming pattern like **messaging queues** like **RabbitMQ/AMQ**, but at the moment restricted to a single machine
 
-Approx allows for connecting small, reactive processes to form applications.
+## Why?
 
-## Nomenclature
+- Easy to handle form of parallel/concurrent programming
+- Easy to handle form of inter-process-communication between programs in different programming languages
+- Faster than the same thing via sockets or network interface, also no port-management required
+- Unix pipes are cool and everything that makes them usable for more problems is highly welcome 
+- Communication between processes can be visualized
 
-### Approx executable
+## Input, Output
 
-Reads a formation and spins up a flow-graph of actors.
+Messages/events flow through a process/actor via `stdin` and `stdout`. Stream-connectors are expressed as named pipes. The builtin actors "fork" and "merge" are used to splice and reunite the event streams. The builtin actors "pipe" is used to rewire any `stdout` to any `stdin` via a name pipe.
 
-### Actor
+## Simple Wire Format
 
-A process classified by:
+Messages/events are JSON encoded, because it's pervasively supported. To distinguish messages from another, an additional envelope is used: the message is bas64-encoded with the delimiter `\n---\n`. Th reasons for this are pervasiveness of base64, ease of use and the resulting robustness.
 
-- Parametrized by environments variables
-- Listens for events from an input-streams
-- Processes events and data
-- Writes events to an output-streams
-- As low complexity as possible
-- Listen for events until it receives SIGINT
+## Usage
 
-### Input, Output
+First the `hub` command line tool is used to set up the infrastructure of named pipes. Usually automated by a shell-script. Second the actual actors/processes are started with their Stdin and Stdout connected to the named pipes.
 
-Events flow through an actor via `stdin` and `stdout`. The builtin actors "fork" and "merge" are used to splice the event stream.
+### `hub` CLI usage
 
-## Why
+```bash
+$ ./hub
+hub
+Utility to build messaging systems by composing command line processes
+pipe <name>
+  Pipe message stream from <name>.wr to <name>.rd
+fork <wr-name> <rd-name-1> <rd-name-2> <...>
+  Fork message stream from wr-fifo into all provided rd-fifos
+merge <wr-name-1> <wr-name-2> <...< <rd-name>
+  Merge message stream from all provided wr-fifos into rd-fifo
+input <name>
+  Input JSON messages to stream them to <name>
+cleanup <directory>
+  Cleanup directory from fifos (wr & rd)
+```
 
-- To allow for designing applications as a flow-graph of stream actors.
-- To design each of them as a low complexity stream process, that transforms input into output.
-- To build multi-process-applications easily and with every programming language that can read/write to stdin/-out.
-- To mix and match programming languages as comes handy.
-- To choose the best library (or programming language) for a single problem.
-- Not to be forced into compromises.
+### Example:
 
-A flow-graph of stream actors is an event driven architecture. Listening for messages / or IPC via reading from `stdin` is among the most basic of tasks in the very most of programming languages. Also:
-- Very good performance.
-- Very good documentation.
-- Maximum operating system support.
+Given the following flow-graph...
 
-### Why not unix sockets?
+```ascii
+            |     ^
+            V     |
+         web-server.js <----------------o
+               |                        |
+               V                        |
+            req-fork                    |
+               |                        |
+     o---------o---------o              |
+     |                   |              |
+     V                   V              |
+read-file.js     find-media-type.js     |
+     |                   |              |
+     o---------o---------o              |
+               |                        |
+           resp-merge                   |
+               |                        |
+               V                        |
+        merge-response.js --------------o
+```
 
-Too difficult to reach in most programming languages. Too complex to use.
-Sockets don't perform better than pipes.
+...the following setup and startup script is used:
 
-### Why not http, websockets, long polling, ...?
+```bash
+./hub pipe response-pipe &
+./hub fork web-server-out read-file-in find-media-type-in &
+./hub merge read-file-out find-media-type-out merge-response-in &
 
-Request-response-based network communication protocols are not a natural or effective choice for event driven architectures. Especially not of used on the same machine.
-Communicating processes via network interface is not as ressource efficient as pipes.
+./web-server.js < response-pipe.rd > web-server-out.wr &
+./find-media-type.js < find-media-type-in.rd > find-media-type-out.wr &
+./merge-response.js < merge-response-in.rd > response-pipe.wr &
+./read-file.js < read-file-in.rd > read-file-out.wr &
+```
+
+**The example folder contains a static web-server expressed as flow-graph of forward-communicating processes (in NodeJS).** The file `hub-messaging.js` contains the only API necessary in 36 LOCs, showcasing how simple support can be implemented.

@@ -1,8 +1,0 @@
-package actor
-
-// Must implement io.WriteCloser
-
-// Stdout ...
-type Stdout struct {
-	Collector
-}
