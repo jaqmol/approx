@@ -79,7 +79,8 @@ func scanReader(
 	errors chan<- error,
 	quit chan<- error,
 ) {
-	scanner := NewMsgScanner(usrWrFile)
+	scanner := NewHeavyDutyScanner(usrWrFile, MsgDelimiter)
+	scanner.Decode = DecodeBase64Message
 
 	for scanner.Scan() {
 		msg, err := scanner.DecodedMessage()

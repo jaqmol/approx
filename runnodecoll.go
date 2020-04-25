@@ -160,7 +160,8 @@ func (p Process) Start() {
 
 	go func() {
 		dispatchChannels := collectInputChannels(p.findOutputRunners(p))
-		scanner := NewMsgScanner(cmdOut)
+		scanner := NewHeavyDutyScanner(cmdOut, MsgDelimiter)
+		// scanner.Decode = DecodeBase64Message NOT NEEDED DecodeMessage never called
 		for scanner.Scan() {
 			for _, c := range dispatchChannels {
 				c <- scanner.DelimitedMessage()

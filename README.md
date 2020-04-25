@@ -2,10 +2,10 @@
 
 Connect small, reactive processes in every programming language that can read and write to Stdin and Stdout in a flow graph to form applications.
 
-- Communicating processes are also known as **Actors**
-- Processes are interconnecting via a **Messaging-Bus**
-- The form of programming is also known as **event-driven** or **reactive**
-- The same programming pattern like **messaging queues** like **RabbitMQ/AMQ**, but at the moment restricted to a single machine
+- Communicating processes are also known as actor-based concurrency
+- Processes are interconnecting via a messaging-bus
+- The form of programming is also known as event-driven or reactive
+- The concurrency paradigm like actor based programming languages (Erlang) / messaging queues (RabbitMQ)
 
 ## Why?
 
@@ -50,37 +50,48 @@ cleanup <directory>
 Given the following flow-graph...
 
 ```ascii
+        Client / Network
+
             |     ^
             V     |
-         web-server.js <----------------o
+
+         web-server.js  <---------------o
+                                        |
                |                        |
-               V                        |
-            req-fork                    |
                |                        |
      o---------o---------o              |
      |                   |              |
      V                   V              |
+                                        |
 read-file.js     find-media-type.js     |
+                                        |
      |                   |              |
      o---------o---------o              |
                |                        |
-           resp-merge                   |
                |                        |
                V                        |
-        merge-response.js --------------o
+                                        |
+        merge-response.js  -------------o
 ```
 
-...the following setup and startup script is used:
+The communications can be described in a flow.hub files as follows:
+
+```ascii
+node web-server.js -> node read-file.js -> node merge-response.js
+node web-server.js -> node find-media-type.js -> node merge-response.js
+node merge-response.js -> node web-server.js
+```
+
+And run as follows:
 
 ```bash
-./hub pipe response-pipe &
-./hub fork web-server-out read-file-in find-media-type-in &
-./hub merge read-file-out find-media-type-out merge-response-in &
-
-./web-server.js < response-pipe.rd > web-server-out.wr &
-./find-media-type.js < find-media-type-in.rd > find-media-type-out.wr &
-./merge-response.js < merge-response-in.rd > response-pipe.wr &
-./read-file.js < read-file-in.rd > read-file-out.wr &
+$ ./hub flow.hub
 ```
 
-**The example folder contains a static web-server expressed as flow-graph of forward-communicating processes (in NodeJS).** The file `hub-messaging.js` contains the only API necessary in 36 LOCs, showcasing how simple support can be implemented.
+Alternatively approx/hub CLI can be used to manage a collection of named UNIX pipes. See [example/README.md](example/README.md) for details.
+
+### Example folder
+
+The example folder contains an actor-based static web-server implementation in NodeJS. Where each process follows a fire-and-forget-strategy. Messages/events are running in one direction only. Both things eliminate all problems and difficulties of concurrency and parallel-programming at once. 
+
+The file [example/hub-messaging.js](example/hub-messaging.js) contains the only API necessary, to get the implementation DRY, in 36 LOCs. Porting it to other programming languages should be simple.
