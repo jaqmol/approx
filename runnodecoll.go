@@ -1,10 +1,35 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"log"
-	"os"
 	"os/exec"
+	"strings"
 )
+
+func validateNodeCollection(collection NodeCollection) error {
+	makeError := func(node Node) error {
+		return fmt.Errorf(
+			"Error interpreting node if type \"%s\" [%s]",
+			NodeClassToString(node.Class),
+			node.ID,
+		)
+	}
+	for _, nodeID := range collection.IDs() {
+		node, nodeExists := collection.Node(nodeID)
+		if !nodeExists {
+			return makeError(node)
+		}
+		for _, nextNodeID := range node.OutKeys {
+			nextNode, nextNodeExists := collection.Node(nextNodeID)
+			if !nextNodeExists {
+				return makeError(nextNode)
+			}
+		}
+	}
+	return nil
+}
 
 func runNodeCollection(collection NodeCollection) {
 	index := make(map[string]Runner)
@@ -63,8 +88,7 @@ func runNodeCollection(collection NodeCollection) {
 	}
 
 	for message := range errors {
-		message := append(message, '\n')
-		os.Stderr.Write(message)
+		printLogLn(string(message))
 	}
 }
 
@@ -112,33 +136,31 @@ func (p Process) Node() Node { return p.node }
 
 // Start ...
 func (p Process) Start() {
-	cmd := exec.Command(p.node.Command)
-	err := cmd.Start()
+	cmd := exec.Command(p.node.Process.Command, p.node.Process.Arguments...)
+	cmdErr, err := cmd.StderrPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cmdIn, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	go func() {
-		cmdErr, err := cmd.StderrPipe()
-		if err != nil {
-			log.Fatal(err)
-		}
-		scanner := NewHeavyDutyScanner(cmdErr, []byte{'\n'})
-
+		scanner := bufio.NewScanner(cmdErr)
 		for scanner.Scan() {
-			message := scanner.Message()
+			message := scanner.Bytes()
 			p.errors <- message
 		}
 	}()
 
 	go func() {
 		dispatchChannels := collectInputChannels(p.findOutputRunners(p))
-		cmdOut, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Fatal(err)
-		}
 		scanner := NewMsgScanner(cmdOut)
-
 		for scanner.Scan() {
 			for _, c := range dispatchChannels {
 				c <- scanner.DelimitedMessage()
@@ -146,10 +168,16 @@ func (p Process) Start() {
 		}
 	}()
 
-	cmdIn, err := cmd.StdinPipe()
+	err = cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
+	printLogLn(fmt.Sprintf(
+		"Did start: %s %s",
+		p.node.Process.Command,
+		strings.Join(p.node.Process.Arguments, ", "),
+	))
+
 	for message := range p.channel {
 		cmdIn.Write(message)
 	}
@@ -165,62 +193,3 @@ func collectInputChannels(runners []Runner) []chan<- []byte {
 	}
 	return channels
 }
-
-// func startRunnerLoop(
-// 	node Node,
-// 	runnersForNodeOutputNodes func(Node) []Runner,
-// 	channel chan []byte,
-// ) {
-// 	dispatchChannels := collectInputChannels(runnersForNodeOutputNodes(node))
-
-// 	for message := range channel {
-// 		for _, c := range dispatchChannels {
-// 			c <- message
-// 		}
-// 	}
-// }
-
-// // Fork ...
-// type Fork struct {
-// 	node                      Node
-// 	runnersForNodeOutputNodes func(Node) []Runner
-// 	channel                   chan []byte
-// }
-
-// func (f Fork) start() {
-// 	startRunnerLoop(f.node, f.runnersForNodeOutputNodes, f.channel)
-// }
-
-// func (f Fork) input() chan<- []byte {
-// 	return f.channel
-// }
-
-// // Merge ...
-// type Merge struct {
-// 	node                      Node
-// 	runnersForNodeOutputNodes func(Node) []Runner
-// 	channel                   chan []byte
-// }
-
-// func (m Merge) start() {
-// 	startRunnerLoop(m.node, m.runnersForNodeOutputNodes, m.channel)
-// }
-
-// func (m Merge) input() chan<- []byte {
-// 	return m.channel
-// }
-
-// // Pipe ...
-// type Pipe struct {
-// 	node                      Node
-// 	runnersForNodeOutputNodes func(Node) []Runner
-// 	channel                   chan []byte
-// }
-
-// func (p Pipe) start() {
-// 	startRunnerLoop(p.node, p.runnersForNodeOutputNodes, p.channel)
-// }
-
-// func (p Pipe) input() chan<- []byte {
-// 	return p.channel
-// }

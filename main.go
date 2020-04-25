@@ -16,20 +16,11 @@ func main() {
 		return
 	} else if argsLen == 1 {
 		coll := NewNodeCollection(args[0])
-		for _, nodeID := range coll.IDs() {
-			node, _ := coll.Node(nodeID)
-			for _, nextNodeID := range node.OutKeys {
-				_, nextNodeExists := coll.Node(nextNodeID)
-				var found string
-				if nextNodeExists {
-					found = "FOUND"
-				} else {
-					found = "NOT FOUND"
-				}
-				log.Printf("%s -> %s [%s]\n", nodeID, nextNodeID, found)
-			}
+		err := validateNodeCollection(coll)
+		if err != nil {
+			log.Fatal(err)
 		}
-		// runNodeCollection
+		runNodeCollection(coll)
 		return
 	}
 

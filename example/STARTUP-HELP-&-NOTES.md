@@ -55,3 +55,9 @@ read-file.js     find-media-type.js     |
 ./find-media-type.js < fifo-find-media-type-in.rd > fifo-find-media-type-out.wr &
 ./merge-response.js < fifo-merge-response-in.rd > fifo-response-pipe.wr &
 ./read-file.js < fifo-read-file-in.rd > fifo-read-file-out.wr &
+
+## Using sh or bash from within Go
+
+```go
+cmd := exec.Command("bash", "-c", "pidof netstat | xargs kill -HUP")
+```

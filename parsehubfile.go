@@ -13,18 +13,41 @@ type NodeClass int
 
 // NodeClass ...
 const (
-	ProcessClass NodeClass = iota
+	UnknownClass NodeClass = iota
+	ProcessClass
 	ForkClass
 	MergeClass
 	PipeClass
 )
 
+// NodeClassToString ...
+func NodeClassToString(class NodeClass) string {
+	switch class {
+	case ProcessClass:
+		return "process"
+	case ForkClass:
+		return "fork"
+	case MergeClass:
+		return "merge"
+	case PipeClass:
+		return "pipe"
+	default:
+		return "unknown"
+	}
+}
+
 // Node ...
 type Node struct {
 	Class   NodeClass
 	ID      string
-	Command string
+	Process ProcessCommand
 	OutKeys []string
+}
+
+// ProcessCommand ...
+type ProcessCommand struct {
+	Command   string
+	Arguments []string
 }
 
 // NodeCollection ...
@@ -126,7 +149,7 @@ func parseHubFile(filePath string) map[string]Node {
 		n := Node{
 			Class:   ProcessClass,
 			ID:      makeCmdID(cmd),
-			Command: cmd,
+			Process: parseProcessCommand(cmd),
 		}
 
 		next, ok := connectionIndex[pipeFromKey(cmd)]
@@ -151,23 +174,56 @@ func parseHubFile(filePath string) map[string]Node {
 }
 
 func makeForkID(fromCmd string, toCmds []string) string {
-	return fmt.Sprintf("fork:%s->%s", fromCmd, join(toCmds, ","))
+	return fmt.Sprintf(
+		"fork:%s->%s",
+		underscoreWhitespace(fromCmd),
+		underscoreWhitespace(join(toCmds, ",")),
+	)
 }
 
 func makeMergeID(fromCmds []string, toCmd string) string {
-	return fmt.Sprintf("merge:%s->%s", join(fromCmds, ","), toCmd)
+	return fmt.Sprintf(
+		"merge:%s->%s",
+		underscoreWhitespace(join(fromCmds, ",")),
+		underscoreWhitespace(toCmd),
+	)
 }
 
 func makePipeID(fromCmd string, toCmd string) string {
-	return fmt.Sprintf("pipe:%s->%s", fromCmd, toCmd)
+	return fmt.Sprintf(
+		"pipe:%s->%s",
+		underscoreWhitespace(fromCmd),
+		underscoreWhitespace(toCmd),
+	)
 }
 
 func makeCmdID(cmd string) string {
-	return fmt.Sprintf("cmd:%s", cmd)
+	return fmt.Sprintf(
+		"cmd:%s",
+		underscoreWhitespace(cmd),
+	)
 }
 
 func join(elements []string, sep string) string {
 	return strings.Join(elements, sep)
+}
+func underscoreWhitespace(value string) string {
+	return strings.ReplaceAll(value, " ", "_")
+}
+
+func parseProcessCommand(command string) ProcessCommand {
+	rawSplit := strings.Split(command, " ")
+	comps := make([]string, 0)
+	for _, comp := range rawSplit {
+		trimmedComp := strings.TrimSpace(comp)
+		if len(trimmedComp) > 0 {
+			comps = append(comps, trimmedComp)
+		}
+	}
+	return ProcessCommand{
+		Command:   comps[0],
+		Arguments: comps[1:],
+	}
 }
 
 func mapToCmdIDs(cmds ...string) []string {

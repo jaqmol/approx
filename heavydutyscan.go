@@ -6,13 +6,8 @@ import (
 	"io"
 )
 
-// MsgDelimiter ...
-var MsgDelimiter = []byte{'\n', '-', '-', '-', '\n'}
-
-// NewMsgScanner ...
-func NewMsgScanner(reader io.Reader) *HeavyDutyScanner {
-	return NewHeavyDutyScanner(reader, MsgDelimiter)
-}
+// // MsgDelimiter ...
+// var MsgDelimiter = []byte{'\n', '-', '-', '-', '\n'}
 
 // HeavyDutyScanner ...
 type HeavyDutyScanner struct {

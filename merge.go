@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -83,7 +82,7 @@ func scanReader(
 	scanner := NewMsgScanner(usrWrFile)
 
 	for scanner.Scan() {
-		msg, err := scanner.DecodedMessage(base64.StdEncoding.DecodedLen, base64.StdEncoding.Decode)
+		msg, err := scanner.DecodedMessage()
 		if err != nil {
 			errors <- err
 		}
