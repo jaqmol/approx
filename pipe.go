@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -31,7 +32,7 @@ func runPipe(usrWrFile io.Reader, usrRdFile io.Writer) error {
 	scanner := NewMsgScanner(usrWrFile)
 
 	for scanner.Scan() {
-		msg, err := scanner.DecodedMessage()
+		msg, err := scanner.DecodedMessage(base64.StdEncoding.DecodedLen, base64.StdEncoding.Decode)
 		if err != nil {
 			return err
 		}
