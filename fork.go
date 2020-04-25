@@ -42,7 +42,8 @@ func startFork(usrWrName string, usrRdNames []string) {
 }
 
 func runFork(usrWrFile io.Reader, usrRdFiles []io.Writer) error {
-	scanner := NewMsgScanner(usrWrFile)
+	scanner := NewHeavyDutyScanner(usrWrFile, MsgDelimiter)
+	scanner.Decode = DecodeBase64Message
 
 	for scanner.Scan() {
 		msg, err := scanner.DecodedMessage()
