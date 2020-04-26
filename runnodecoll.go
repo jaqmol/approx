@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
+const channelBufferSize = 50
+
 func validateNodeCollection(collection NodeCollection) error {
 	makeError := func(node Node) error {
 		return fmt.Errorf(
-			"Error interpreting node if type \"%s\" [%s]",
+			"Error interpreting node of type \"%s\" [%s]",
 			NodeClassToString(node.Class),
 			node.ID,
 		)
@@ -55,14 +57,14 @@ func runNodeCollection(collection NodeCollection) {
 			i := InfrastructureRunner{
 				node:              n,
 				findOutputRunners: findOutputRunners,
-				channel:           make(chan []byte),
+				channel:           make(chan []byte, channelBufferSize),
 			}
 			index[n.ID] = i
 		case ProcessClass:
 			c := Process{
 				node:              n,
 				findOutputRunners: findOutputRunners,
-				channel:           make(chan []byte),
+				channel:           make(chan []byte, channelBufferSize),
 				errors:            errors,
 			}
 			index[n.ID] = c

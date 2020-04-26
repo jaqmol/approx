@@ -3,49 +3,52 @@
 const {ParseMessage, SendMessage} = require('./hub-messaging');
 const send = SendMessage(process.stdout);
 
-const contentTypeForID = {};
-const chunkMsgsForID = {};
+const dispatchForID = {};
 
-process.stdin.on('data', ParseMessage(({
-  id,
-  cmd, 
-  mediaType,
-  encoding,
-  payload,
-  error,
-}) => {
-  if (cmd === 'FAIL_WITH_NOT_FOUND') {
-    send({id, cmd, error});
-    delete contentTypeForID[id];
-    delete chunkMsgsForID[id];
-  } else if (cmd === 'PROCESS_MEDIA_TYPE') {
-    contentTypeForID[id] = mediaType;
-    flushIfPossible(id);
-  } else if (cmd === 'PROCESS_FILE_CHUNK') {
-    addChunkMsg(id, {id, cmd, encoding, payload});
-    flushIfPossible(id);
-  } else if (cmd === 'CONCLUDE_FILE') {
-    addChunkMsg(id, {id, cmd});
-    flushIfPossible(id);
-    delete contentTypeForID[id];
-    delete chunkMsgsForID[id];
+process.stdin.on('data', ParseMessage(msg => {
+  switch (msg.cmd) {
+    case 'FAIL_WITH_NOT_FOUND':
+      send(msg);
+      delete dispatchForID[msg.id];
+      break;
+    default:
+      let dispatch = dispatchForID[msg.id];
+      if (!dispatch) {
+        dispatch = makeBufferedDispatch(msg.id);
+        dispatchForID[msg.id] = dispatch;
+      }
+      dispatch(msg);
+      break;
   }
 }));
 
-function addChunkMsg(id, msg) {
-  const msgs = chunkMsgsForID[id] || [];
-  msgs.push(msg);
-  chunkMsgsForID[id] = msgs;
+function CONCLUDE_FILE(msg) {
+  send(msg);
+  delete dispatchForID[msg.id];
 }
 
-function flushIfPossible(id) {
-  const contentType = contentTypeForID[id];
-  const msgs = chunkMsgsForID[id] || [];
-  if ( (typeof contentType !== 'undefined') && 
-       (typeof msgs !== 'undefined') )
-  {
-    msgs.map(msg => ({...msg, contentType}))
-        .forEach(send);
-    chunkMsgsForID[id] = [];
-  }
+function makeBufferedDispatch(id) {
+  const buffer = [];
+  const commands = {
+    PROCESS_MEDIA_TYPE: msg => {
+      const dispatch = makeDispatch(msg.mediaType);
+      buffer.forEach(dispatch);
+      dispatchForID[id] = dispatch;
+    },
+    PROCESS_FILE_CHUNK: msg => {
+      buffer.push(msg);
+    },
+    CONCLUDE_FILE,
+  };
+  return msg => commands[msg.cmd](msg);
+}
+
+function makeDispatch(contentType) {
+  const commands = {
+    PROCESS_FILE_CHUNK: msg => {
+      send({...msg, contentType});
+    },
+    CONCLUDE_FILE,
+  };
+  return msg => commands[msg.cmd](msg);
 }

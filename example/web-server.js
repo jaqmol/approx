@@ -26,32 +26,26 @@ server.listen(port, (err) => {
   }
 });
 
-process.stdin.on('data', ParseMessage(({
-  id, 
-  cmd, 
-  encoding,
-  payload, 
-  contentType,
-  error,
-}) => {
-  if (cmd === 'PROCESS_FILE_CHUNK') {
+const commands = {
+  PROCESS_FILE_CHUNK: ({id, contentType, payload, encoding}) => {
     const {response, needsHeaders} = pending[id];
     if (needsHeaders) {
       response.setHeader('Content-Type', contentType);
       pending[id].needsHeaders = false;
     }
-    const data = Buffer.from(payload, encoding);
-    response.write(data);
-  } else if (cmd === 'CONCLUDE_FILE') {
+    response.write(Buffer.from(payload, encoding));
+  },
+  CONCLUDE_FILE: ({id}) => {
     const {response} = pending[id];
     response.end();
     delete pending[id];
-  } else if (cmd === 'FAIL_WITH_NOT_FOUND') {
+  },
+  FAIL_WITH_NOT_FOUND: ({id, error}) => {
     const {response} = pending[id];
     response.writeHead(404, { 'Content-Type': 'text/html' });
     response.end(`<h1>NOT FOUND</h1><p>${error}</p>`, 'utf-8')
     delete pending[id];
-  } else {
-    console.error('Web server: Unknown message:', cmd);
-  }
-}));
+  },
+};
+
+process.stdin.on('data', ParseMessage(msg => commands[msg.cmd](msg)));
