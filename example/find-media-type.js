@@ -2,8 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const {ParseMessage, MessageWriter} = require('./hub-messaging');
-const write = MessageWriter(process.stdout);
+const {ParseMessage, SendMessage} = require('./hub-messaging');
+const send = SendMessage(process.stdout);
 
 loadMediaTypes((err, mediaTypeForExt) => {
   if (err) {
@@ -22,8 +22,7 @@ function listen(mediaTypeForExt) {
     if (cmd === 'FIND_MEDIA_TYPE') {
       const extension = ext === '' ? '.html' : ext;
       const mediaType = mediaTypeForExt[extension] || null;
-      console.error('DID FIND MEDIA TYPE:', mediaType);
-      write({
+      send({
         id,
         cmd: 'PROCESS_MEDIA_TYPE',
         mediaType,

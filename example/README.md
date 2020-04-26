@@ -27,6 +27,8 @@ read-file.js     find-media-type.js     |
         merge-response.js  -------------o
 ```
 
+The example is a streaming web-server that serves static files. The process read-files.js sends files chunk-wise via approx/hub messages. Web-server.js dispatches the chunks to the client.Merge-response.js takes care that chunks have the correct content-type attached, which is handled by find-media-type.js.
+
 Approx/hub follows a fire-and-forget-strategy. Messages/events are running in one direction only. Both things eliminate all problems and difficulties of concurrency and parallel-programming at once.
 
 Approx/hub allows for 2 different ways to run this application.

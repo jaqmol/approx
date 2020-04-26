@@ -3,8 +3,8 @@
 const http = require('http');
 const path = require('path');
 const cuid = require('cuid');
-const {MessageWriter, ParseMessage} = require('./hub-messaging');
-const write = MessageWriter(process.stdout);
+const {SendMessage, ParseMessage} = require('./hub-messaging');
+const send = SendMessage(process.stdout);
 
 const port = 3000;
 const pending = {};
@@ -12,10 +12,12 @@ const pending = {};
 const server = http.createServer((request, response) => {
   const id = cuid();
   
-  pending[id] = {id, request, response};
+  pending[id] = {id, request, response, needsHeaders: true};
 
-  write({id, cmd: 'READ_FILE', url: request.url});
-  write({id, cmd: 'FIND_MEDIA_TYPE', ext: path.extname(request.url)});
+  response.setTimeout(10000);
+
+  send({id, cmd: 'READ_FILE', url: request.url});
+  send({id, cmd: 'FIND_MEDIA_TYPE', ext: path.extname(request.url)});
 });
 
 server.listen(port, (err) => {
@@ -24,26 +26,26 @@ server.listen(port, (err) => {
   }
 });
 
-process.stdin.on('data', ParseMessage(({
-  id, 
-  cmd, 
-  encoding,
-  payload, 
-  contentType,
-  error,
-}) => {
-  if (cmd === 'RESPOND') {
+const commands = {
+  PROCESS_FILE_CHUNK: ({id, contentType, payload, encoding}) => {
+    const {response, needsHeaders} = pending[id];
+    if (needsHeaders) {
+      response.setHeader('Content-Type', contentType);
+      pending[id].needsHeaders = false;
+    }
+    response.write(Buffer.from(payload, encoding));
+  },
+  CONCLUDE_FILE: ({id}) => {
     const {response} = pending[id];
-    const data = Buffer.from(payload, encoding);
-    response.setHeader('Content-Type', contentType);
-    response.end(data);
+    response.end();
     delete pending[id];
-  } else if (cmd === 'FAIL_WITH_NOT_FOUND') {
+  },
+  FAIL_WITH_NOT_FOUND: ({id, error}) => {
     const {response} = pending[id];
     response.writeHead(404, { 'Content-Type': 'text/html' });
     response.end(`<h1>NOT FOUND</h1><p>${error}</p>`, 'utf-8')
     delete pending[id];
-  } else {
-    console.error('Web server: Unknown message:', cmd);
-  }
-}));
+  },
+};
+
+process.stdin.on('data', ParseMessage(msg => commands[msg.cmd](msg)));
