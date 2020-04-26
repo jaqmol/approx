@@ -88,7 +88,7 @@ func runNodeCollection(collection NodeCollection) {
 	}
 
 	for message := range errors {
-		printLogLn(string(message))
+		printErrLn(string(message))
 	}
 }
 

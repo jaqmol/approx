@@ -8,3 +8,7 @@ func printLogLn(text string) {
 	}
 	os.Stderr.WriteString(text + "\n")
 }
+
+func printErrLn(text string) {
+	os.Stderr.WriteString(text + "\n")
+}

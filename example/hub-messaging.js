@@ -22,16 +22,16 @@ function Envelope(msgObj) {
   return `${buff.toString('base64')}${DELIMITER}`;
 }
 
-function MessageWriter(outputStream) {
-  let lastPromise = Promise.resolve();
+function SendMessage(outputStream) {
+  let sequentializer = Promise.resolve();
+
   return message => {
-    const nextPromise = new Promise(resolve => {
+    sequentializer = sequentializer.then(() => {
       const waitForDrain = !outputStream.write(Envelope(message));
-      if (waitForDrain) outputStream.once('drain', resolve);
-      else resolve();
+      if (waitForDrain) return new Promise(resolve => {
+        outputStream.once('drain', resolve);
+      });
     });
-    lastPromise.then(nextPromise);
-    lastPromise = nextPromise;
   };
 }
 
@@ -39,5 +39,5 @@ module.exports = {
   DELIMITER,
   ParseMessage,
   Envelope,
-  MessageWriter,
+  SendMessage,
 };

@@ -3,8 +3,8 @@
 const http = require('http');
 const path = require('path');
 const cuid = require('cuid');
-const {MessageWriter, ParseMessage} = require('./hub-messaging');
-const write = MessageWriter(process.stdout);
+const {SendMessage, ParseMessage} = require('./hub-messaging');
+const send = SendMessage(process.stdout);
 
 const port = 3000;
 const pending = {};
@@ -12,10 +12,12 @@ const pending = {};
 const server = http.createServer((request, response) => {
   const id = cuid();
   
-  pending[id] = {id, request, response};
+  pending[id] = {id, request, response, needsHeaders: true};
 
-  write({id, cmd: 'READ_FILE', url: request.url});
-  write({id, cmd: 'FIND_MEDIA_TYPE', ext: path.extname(request.url)});
+  response.setTimeout(10000);
+
+  send({id, cmd: 'READ_FILE', url: request.url});
+  send({id, cmd: 'FIND_MEDIA_TYPE', ext: path.extname(request.url)});
 });
 
 server.listen(port, (err) => {
@@ -32,11 +34,17 @@ process.stdin.on('data', ParseMessage(({
   contentType,
   error,
 }) => {
-  if (cmd === 'RESPOND') {
-    const {response} = pending[id];
+  if (cmd === 'PROCESS_FILE_CHUNK') {
+    const {response, needsHeaders} = pending[id];
+    if (needsHeaders) {
+      response.setHeader('Content-Type', contentType);
+      pending[id].needsHeaders = false;
+    }
     const data = Buffer.from(payload, encoding);
-    response.setHeader('Content-Type', contentType);
-    response.end(data);
+    response.write(data);
+  } else if (cmd === 'CONCLUDE_FILE') {
+    const {response} = pending[id];
+    response.end();
     delete pending[id];
   } else if (cmd === 'FAIL_WITH_NOT_FOUND') {
     const {response} = pending[id];
