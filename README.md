@@ -1,4 +1,4 @@
-# APPROX HUB
+# FLOWFLUX
 
 Connect small, reactive processes in every programming language that can read and write to Stdin and Stdout in a flow graph to form applications.
 
@@ -15,6 +15,20 @@ Connect small, reactive processes in every programming language that can read an
 - Unix pipes are cool and everything that makes them usable for more problems is highly welcome 
 - Communication between processes can be visualized
 
+### Also 
+
+1. Small is beautiful.
+2. Make each program do one thing well.
+3. Build a prototype as soon as possible.
+4. Choose portability over efficiency.
+5. Store data in flat text files.
+6. Use software leverage to your advantage.
+7. Use shell scripts to increase leverage and portability.
+8. Avoid captive user interfaces.
+9. Make every program a filter.
+
+*Mike Gancarz: The UNIX Philosoph*
+
 ## Input, Output
 
 Messages/events flow through a process/actor via `stdin` and `stdout`. Stream-connectors are expressed as named pipes. The builtin actors "fork" and "merge" are used to splice and reunite the event streams. The builtin actors "pipe" is used to rewire any `stdout` to any `stdin` via a name pipe.
@@ -25,13 +39,13 @@ Messages/events are JSON encoded, because it's pervasively supported. To disting
 
 ## Usage
 
-First the `hub` command line tool is used to set up the infrastructure of named pipes. Usually automated by a shell-script. Second the actual actors/processes are started with their Stdin and Stdout connected to the named pipes.
+First the `flow` command line tool is used to set up the infrastructure of named pipes. Usually automated by a shell-script. Second the actual actors/processes are started with their Stdin and Stdout connected to the named pipes.
 
-### `hub` CLI usage
+### `flow` CLI usage
 
 ```bash
-$ ./hub
-hub
+$ ./flow
+flow
 Utility to build messaging systems by composing command line processes
 pipe <name>
   Pipe message stream from <name>.wr to <name>.rd
@@ -74,7 +88,7 @@ read-file.js     find-media-type.js     |
         merge-response.js  -------------o
 ```
 
-The communications can be described in a flow.hub files as follows:
+The communications can be described in a flow.def files as follows:
 
 ```ascii
 node web-server.js -> node read-file.js -> node merge-response.js
@@ -85,13 +99,13 @@ node merge-response.js -> node web-server.js
 And run as follows:
 
 ```bash
-$ ./hub flow.hub
+$ ./flow flow.flow
 ```
 
-Alternatively approx/hub CLI can be used to manage a collection of named UNIX pipes. See [example/README.md](example/README.md) for details.
+Alternatively `flow` CLI can be used to manage a collection of named UNIX pipes. See [example/README.md](example/README.md) for details.
 
 ### Example folder
 
 The example folder contains an actor-based static web-server implementation in NodeJS. Where each process follows a fire-and-forget-strategy. Messages/events are running in one direction only. Both things eliminate all problems and difficulties of concurrency and parallel-programming at once. 
 
-The file [example/hub-messaging.js](example/hub-messaging.js) contains the only API necessary, to get the implementation DRY, in 36 LOCs. Porting it to other programming languages should be simple.
+The file [example/flow-messaging.js](example/flow-messaging.js) contains the only API necessary, to get the implementation DRY, in 36 LOCs. Porting it to other programming languages should be simple.

@@ -1,1 +1,1 @@
-go build -o hub *.go
+go build -o flow *.go

@@ -3,7 +3,7 @@
 const http = require('http');
 const path = require('path');
 const cuid = require('cuid');
-const {SendMessage, ParseMessage} = require('./hub-messaging');
+const {SendMessage, ParseMessage} = require('../flow-messaging');
 const send = SendMessage(process.stdout);
 
 const port = 3000;

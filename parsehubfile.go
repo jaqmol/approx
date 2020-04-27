@@ -14,15 +14,19 @@ type NodeClass int
 // NodeClass ...
 const (
 	UnknownClass NodeClass = iota
+	InputClass
 	ProcessClass
 	ForkClass
 	MergeClass
 	PipeClass
+	OutputClass
 )
 
 // NodeClassToString ...
 func NodeClassToString(class NodeClass) string {
 	switch class {
+	case InputClass:
+		return "input"
 	case ProcessClass:
 		return "process"
 	case ForkClass:
@@ -31,6 +35,8 @@ func NodeClassToString(class NodeClass) string {
 		return "merge"
 	case PipeClass:
 		return "pipe"
+	case OutputClass:
+		return "output"
 	default:
 		return "unknown"
 	}
@@ -100,11 +106,15 @@ func parseHubFile(filePath string) map[string]Node {
 
 	lines := parseLines(fileContent)
 	connectedPairs := makeConnectedPairs(lines)
+	log.Println("Did parse connected pairs:")
+	for _, pair := range connectedPairs {
+		log.Printf("PAIR %s : %s\n", pair[0], pair[1])
+	}
 
 	mainIndex := make(map[string]Node)
 	connectionIndex := make(map[string]Node)
 
-	// 1st setup communication nodes
+	// 1st analyze connection
 
 	for source, destinations := range findForkConnections(connectedPairs) {
 		n := Node{
@@ -143,7 +153,27 @@ func parseHubFile(filePath string) map[string]Node {
 		connectionIndex[pipeToKey(destination)] = n
 	}
 
-	// 2nd setup command process nodes
+	for inputTo, outputFrom := range findInputOutputConnection(connectedPairs) {
+		if len(inputTo) > 0 {
+			in := Node{
+				Class:   InputClass,
+				ID:      makeInputID(inputTo),
+				OutKeys: mapToCmdIDs(inputTo),
+			}
+			mainIndex[in.ID] = in
+			connectionIndex[inputToKey(inputTo)] = in
+		}
+		if len(outputFrom) > 0 {
+			out := Node{
+				Class: OutputClass,
+				ID:    makeOutputID(outputFrom),
+			}
+			mainIndex[out.ID] = out
+			connectionIndex[outputFromKey(outputFrom)] = out
+		}
+	}
+
+	// 2nd setup process nodes
 
 	for _, cmd := range uniqueProcessNames(lines) {
 		n := Node{
@@ -167,10 +197,22 @@ func parseHubFile(filePath string) map[string]Node {
 			n.OutKeys = append(n.OutKeys, next.ID)
 		}
 
+		next, ok = connectionIndex[outputFromKey(cmd)]
+		if ok {
+			n.OutKeys = append(n.OutKeys, next.ID)
+		}
+
 		mainIndex[n.ID] = n
 	}
 
 	return mainIndex
+}
+
+func makeInputID(toCmd string) string {
+	return inputToKey(toCmd)
+}
+func makeOutputID(fromCmd string) string {
+	return outputFromKey(fromCmd)
 }
 
 func makeForkID(fromCmd string, toCmds []string) string {
@@ -242,9 +284,7 @@ func parseLines(fileContent []byte) [][]string {
 		commandsPerLine := make([]string, 0)
 		for _, token := range tokensPerLine {
 			command := string(bytes.TrimSpace(token))
-			if len(command) > 0 {
-				commandsPerLine = append(commandsPerLine, command)
-			}
+			commandsPerLine = append(commandsPerLine, command)
 		}
 		if len(commandsPerLine) > 0 {
 			lines = append(lines, commandsPerLine)
@@ -302,7 +342,9 @@ func uniqueProcessNames(lines [][]string) []string {
 	}
 	for _, line := range lines {
 		for _, command := range line {
-			addProcess(command)
+			if len(command) > 0 {
+				addProcess(command)
+			}
 		}
 	}
 	return processes
@@ -329,6 +371,13 @@ func mergeToKey(toCmd string) string {
 	return makeToKey("merge", toCmd)
 }
 
+func outputFromKey(fromCmd string) string {
+	return makeFromKey("output", fromCmd)
+}
+func inputToKey(toCmd string) string {
+	return makeToKey("input", toCmd)
+}
+
 func makeFromKey(kind string, fromCmd string) string {
 	return fmt.Sprintf("%s:%s->", kind, fromCmd)
 }
@@ -340,7 +389,10 @@ func connectionsFrom(cmd string, connectedPairs [][]string) []string {
 	acc := make([]string, 0)
 	for _, pair := range connectedPairs {
 		if pair[0] == cmd {
-			acc = append(acc, pair[1])
+			dest := pair[1]
+			if len(dest) > 0 {
+				acc = append(acc, dest)
+			}
 		}
 	}
 	return acc
@@ -349,7 +401,10 @@ func connectionsTo(cmd string, connectedPairs [][]string) []string {
 	acc := make([]string, 0)
 	for _, pair := range connectedPairs {
 		if pair[1] == cmd {
-			acc = append(acc, pair[0])
+			src := pair[0]
+			if len(src) > 0 {
+				acc = append(acc, src)
+			}
 		}
 	}
 	return acc
@@ -391,4 +446,22 @@ func findPipeConnections(connectedPairs [][]string) map[string]string {
 		}
 	}
 	return pipeConnections
+}
+
+func findInputOutputConnection(connectedPairs [][]string) map[string]string {
+	var inputTo, outputFrom string
+	for _, pair := range connectedPairs {
+		fromCmd := strings.TrimSpace(pair[0])
+		toCmd := strings.TrimSpace(pair[1])
+		if len(fromCmd) == 0 && len(toCmd) > 0 {
+			inputTo = toCmd
+		}
+		if len(fromCmd) > 0 && len(toCmd) == 0 {
+			outputFrom = fromCmd
+		}
+	}
+	if len(inputTo) == 0 && len(outputFrom) == 0 {
+		return map[string]string{}
+	}
+	return map[string]string{inputTo: outputFrom}
 }

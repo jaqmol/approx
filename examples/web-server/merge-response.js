@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const {ParseMessage, SendMessage} = require('./hub-messaging');
+const {ParseMessage, SendMessage} = require('../flow-messaging');
 const send = SendMessage(process.stdout);
 
 const dispatchForID = {};
